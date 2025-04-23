@@ -1,8 +1,8 @@
 use core::str::from_utf8;
-use pinocchio::{
+use crate::pinocchio::{
     account_info::AccountInfo, program::set_return_data, program_error::ProgramError, ProgramResult,
 };
-use spl_token_interface::{
+use crate::spl_token_interface::{
     error::TokenError,
     state::{load, mint::Mint},
 };

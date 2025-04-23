@@ -1,9 +1,9 @@
 use core::marker::PhantomData;
 
-use pinocchio::{
+use crate::pinocchio::{
     account_info::AccountInfo, program_error::ProgramError, pubkey::Pubkey, ProgramResult,
 };
-use spl_token_interface::{
+use crate::spl_token_interface::{
     error::TokenError,
     instruction::AuthorityType,
     state::{account::Account, load_mut, mint::Mint, RawType},

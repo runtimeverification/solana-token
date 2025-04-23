@@ -1,4 +1,4 @@
-use pinocchio::{account_info::AccountInfo, ProgramResult};
+use crate::pinocchio::{account_info::AccountInfo, ProgramResult};
 
 use super::shared;
 

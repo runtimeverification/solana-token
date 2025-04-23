@@ -4,11 +4,11 @@ use core::{
     slice::{from_raw_parts, from_raw_parts_mut},
     str::from_utf8_unchecked,
 };
-use pinocchio::{
+use crate::pinocchio::{
     account_info::AccountInfo, memory::sol_memcpy, program_error::ProgramError, pubkey::Pubkey,
     ProgramResult,
 };
-use spl_token_interface::{
+use crate::spl_token_interface::{
     error::TokenError,
     program::ID as TOKEN_PROGRAM_ID,
     state::{

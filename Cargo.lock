@@ -2803,24 +2803,6 @@ version = "0.7.1"
 source = "git+https://github.com/febo/pinocchio.git?branch=febo%2Fclose-unstable#246a026bb74c501ba83ea18201000e56c097cb0d"
 
 [[package]]
-name = "pinocchio-log"
-version = "0.3.0"
-source = "git+https://github.com/febo/pinocchio.git?branch=febo%2Fclose-unstable#246a026bb74c501ba83ea18201000e56c097cb0d"
-dependencies = [
- "pinocchio-log-macro",
-]
-
-[[package]]
-name = "pinocchio-log-macro"
-version = "0.3.0"
-source = "git+https://github.com/febo/pinocchio.git?branch=febo%2Fclose-unstable#246a026bb74c501ba83ea18201000e56c097cb0d"
-dependencies = [
- "quote",
- "regex",
- "syn 1.0.109",
-]
-
-[[package]]
 name = "pinocchio-pubkey"
 version = "0.2.2"
 source = "git+https://github.com/febo/pinocchio.git?branch=febo%2Fclose-unstable#246a026bb74c501ba83ea18201000e56c097cb0d"
@@ -2834,12 +2816,10 @@ name = "pinocchio-token-program"
 version = "0.0.0"
 dependencies = [
  "assert_matches",
- "pinocchio",
- "pinocchio-log",
+ "five8_const",
  "solana-program-test",
  "solana-sdk",
  "spl-token 4.0.2",
- "spl-token-interface",
  "test-case",
 ]
 

@@ -1,7 +1,7 @@
-use pinocchio::{
+use crate::pinocchio::{
     account_info::AccountInfo, program::set_return_data, program_error::ProgramError, ProgramResult,
 };
-use spl_token_interface::{
+use crate::spl_token_interface::{
     error::TokenError,
     state::{account::Account, load, mint::Mint, RawType},
 };

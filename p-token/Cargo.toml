@@ -16,9 +16,11 @@ logging = []
 test-sbf = []
 
 [dependencies]
-pinocchio = { version = "0.7", git = "https://github.com/febo/pinocchio.git", branch = "febo/close-unstable" }
-pinocchio-log = { version = "0.3", git = "https://github.com/febo/pinocchio.git", branch = "febo/close-unstable" }
-spl-token-interface = { version = "^0", path = "../interface" }
+#pinocchio = { version = "0.7", git = "https://github.com/febo/pinocchio.git", branch = "febo/close-unstable" }
+#pinocchio-log = { version = "0.3", git = "https://github.com/febo/pinocchio.git", branch = "febo/close-unstable", default-features = false }
+#pinocchio-pubkey = { version = "0.2.2", git = "https://github.com/febo/pinocchio.git", branch = "febo/close-unstable", default-features = false }
+#spl-token-interface = { version = "^0", path = "../interface" }
+five8_const = { version = "0.1.3" }
 
 [dev-dependencies]
 assert_matches = "1.5.0"
