@@ -1,11 +1,10 @@
 use {
-    crate::processor::check_account_owner,
-    pinocchio::{
-        account_info::AccountInfo,
-        program_error::ProgramError,
-        pubkey::Pubkey,
+    crate::{
+        processor::check_account_owner,
         sysvars::{rent::Rent, Sysvar},
-        ProgramResult,
+    },
+    pinocchio::{
+        account_info::AccountInfo, program_error::ProgramError, pubkey::Pubkey, ProgramResult,
     },
     spl_token_interface::{
         error::TokenError,
