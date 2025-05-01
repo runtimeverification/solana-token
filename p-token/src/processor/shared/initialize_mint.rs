@@ -1,6 +1,10 @@
 use {
     pinocchio::{
-        account_info::AccountInfo, program_error::ProgramError, pubkey::Pubkey, ProgramResult,
+        account_info::AccountInfo,
+        program_error::ProgramError,
+        pubkey::Pubkey,
+        sysvars::{rent::Rent, Sysvar},
+        ProgramResult,
     },
     spl_token_interface::{
         error::TokenError,

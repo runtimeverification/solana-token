@@ -4,4 +4,3 @@
 
 mod entrypoint;
 mod processor;
-pub(crate) mod sysvars;

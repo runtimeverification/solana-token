@@ -64,7 +64,6 @@ pub use {
     thaw_account::process_thaw_account, transfer::process_transfer,
     transfer_checked::process_transfer_checked, ui_amount_to_amount::process_ui_amount_to_amount,
 };
-
 #[cfg(feature = "new-instructions")]
 pub use {batch::process_batch, withdraw_excess_lamports::process_withdraw_excess_lamports};
 
