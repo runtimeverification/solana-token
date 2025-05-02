@@ -1,3 +1,4 @@
+#![cfg(not(feature = "fuzzing"))]
 #![allow(clippy::arithmetic_side_effects)]
 
 mod setup;

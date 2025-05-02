@@ -1,3 +1,5 @@
+#![cfg(not(feature = "fuzzing"))]
+
 mod setup;
 
 use {

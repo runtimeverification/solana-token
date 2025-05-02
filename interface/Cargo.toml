@@ -11,6 +11,10 @@ readme = "./README.md"
 [lib]
 crate-type = ["rlib"]
 
+[features]
+default = ["fuzzing"]
+fuzzing = []
+
 [dependencies]
 pinocchio = "0.8.4"
 pinocchio-pubkey = "0.2"
