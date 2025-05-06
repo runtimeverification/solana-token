@@ -45,12 +45,26 @@ impl Mint {
 
     #[inline(always)]
     pub fn clear_mint_authority(&mut self) {
-        self.mint_authority.0[0] = 0;
+        #[cfg(not(feature = "fuzzing"))]
+        {
+            self.mint_authority.0[0] = 0;
+        }
+        #[cfg(feature = "fuzzing")]
+        {
+            self.mint_authority.0 = [0, 0, 0, 0];
+        }
     }
 
     #[inline(always)]
     pub fn set_mint_authority(&mut self, mint_authority: &Pubkey) {
-        self.mint_authority.0[0] = 1;
+        #[cfg(not(feature = "fuzzing"))]
+        {
+            self.mint_authority.0[0] = 1;
+        }
+        #[cfg(feature = "fuzzing")]
+        {
+            self.mint_authority.0 = [1, 0, 0, 0];
+        }
         self.mint_authority.1 = *mint_authority;
     }
 
@@ -65,12 +79,26 @@ impl Mint {
 
     #[inline(always)]
     pub fn clear_freeze_authority(&mut self) {
-        self.freeze_authority.0[0] = 0;
+        #[cfg(not(feature = "fuzzing"))]
+        {
+            self.freeze_authority.0[0] = 0;
+        }
+        #[cfg(feature = "fuzzing")]
+        {
+            self.freeze_authority.0 = [0, 0, 0, 0];
+        }
     }
 
     #[inline(always)]
     pub fn set_freeze_authority(&mut self, freeze_authority: &Pubkey) {
-        self.freeze_authority.0[0] = 1;
+        #[cfg(not(feature = "fuzzing"))]
+        {
+            self.freeze_authority.0[0] = 1;
+        }
+        #[cfg(feature = "fuzzing")]
+        {
+            self.freeze_authority.0 = [1, 0, 0, 0];
+        }
         self.freeze_authority.1 = *freeze_authority;
     }
 

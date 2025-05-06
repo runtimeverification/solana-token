@@ -86,6 +86,9 @@ pub fn process_initialize_mint(
 
     if let Some(freeze_authority) = freeze_authority {
         mint.set_freeze_authority(freeze_authority);
+    } else {
+        #[cfg(feature = "fuzzing")]
+        mint.clear_freeze_authority();
     }
 
     Ok(())

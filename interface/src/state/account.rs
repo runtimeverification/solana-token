@@ -68,12 +68,26 @@ impl Account {
 
     #[inline(always)]
     pub fn clear_delegate(&mut self) {
-        self.delegate.0[0] = 0;
+        #[cfg(not(feature = "fuzzing"))]
+        {
+            self.delegate.0[0] = 0;
+        }
+        #[cfg(feature = "fuzzing")]
+        {
+            self.delegate.0 = [0, 0, 0, 0];
+        }
     }
 
     #[inline(always)]
     pub fn set_delegate(&mut self, delegate: &Pubkey) {
-        self.delegate.0[0] = 1;
+        #[cfg(not(feature = "fuzzing"))]
+        {
+            self.delegate.0[0] = 1;
+        }
+        #[cfg(feature = "fuzzing")]
+        {
+            self.delegate.0 = [1, 0, 0, 0];
+        }
         self.delegate.1 = *delegate;
     }
 
@@ -88,7 +102,14 @@ impl Account {
 
     #[inline(always)]
     pub fn set_native(&mut self, value: bool) {
-        self.is_native[0] = value as u8;
+        #[cfg(not(feature = "fuzzing"))]
+        {
+            self.is_native[0] = value as u8;
+        }
+        #[cfg(feature = "fuzzing")]
+        {
+            self.is_native = [value as u8, 0, 0, 0];
+        }
     }
 
     #[inline(always)]
@@ -122,12 +143,26 @@ impl Account {
 
     #[inline(always)]
     pub fn clear_close_authority(&mut self) {
-        self.close_authority.0[0] = 0;
+        #[cfg(not(feature = "fuzzing"))]
+        {
+            self.close_authority.0[0] = 0;
+        }
+        #[cfg(feature = "fuzzing")]
+        {
+            self.close_authority.0 = [0, 0, 0, 0];
+        }
     }
 
     #[inline(always)]
     pub fn set_close_authority(&mut self, value: &Pubkey) {
-        self.close_authority.0[0] = 1;
+        #[cfg(not(feature = "fuzzing"))]
+        {
+            self.close_authority.0[0] = 1;
+        }
+        #[cfg(feature = "fuzzing")]
+        {
+            self.close_authority.0 = [1, 0, 0, 0];
+        }
         self.close_authority.1 = *value;
     }
 

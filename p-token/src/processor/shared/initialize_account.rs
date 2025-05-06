@@ -83,6 +83,15 @@ pub fn process_initialize_account(
     account.set_account_state(AccountState::Initialized);
     account.mint = *mint_info.key();
     account.owner = *owner;
+    #[cfg(feature = "fuzzing")]
+    {
+        account.set_amount(0);
+        account.set_delegated_amount(0);
+
+        account.clear_close_authority();
+        account.clear_delegate();
+        account.set_native(false);
+    }
 
     if is_native_mint {
         account.set_native(true);
