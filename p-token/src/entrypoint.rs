@@ -6,6 +6,47 @@ use crate::pinocchio::{
 
 use crate::processor::*;
 
+///////////////////////////////////////////////////////////////////
+// test functions
+
+pub fn process_transfer_valid(accounts: &[AccountInfo; 3], amountBytes: &[u8; 8]) {
+    let result = process_transfer(accounts, amountBytes);
+
+    assert!(result == Ok(()));
+}
+
+pub fn process_transfer_invalid_accounts(accounts: &[AccountInfo; 2], amountBytes: &[u8; 8]) {
+    let result = process_transfer(accounts, amountBytes);
+
+    assert_eq!(result, Err(ProgramError::AccountDataTooSmall));
+}
+
+pub fn process_transfer_invalid_amount(accounts: &[AccountInfo; 3], amountBytes: &[u8; 4]) {
+    let result = process_transfer(accounts, amountBytes);
+
+    assert_eq!(result, Err(ProgramError::InvalidInstructionData));
+}
+
+// this is here so the test functions are used in the program. Otherwise they get removed as dead code
+#[no_mangle]
+pub unsafe extern "C" fn tests() {
+    use crate::pinocchio::account_info::Account;
+    use core::default::Default;
+    let mut dummy: Account = Default::default();
+    let info: AccountInfo = AccountInfo{raw: &mut dummy as *mut Account};
+
+    let accs: [AccountInfo; 3] = [info.clone(), info.clone(), info.clone()];
+    let amount_bytes : [u8;8] = [1, 2, 3, 4, 5, 6, 7, 8];
+    let _ = process_transfer_valid(&accs, &amount_bytes);
+
+    let _ = process_transfer_invalid_accounts(&[info.clone(), info.clone()], &amount_bytes);
+
+    let _ = process_transfer_invalid_amount(&accs, &[1, 2, 3, 4]);
+
+}
+
+///////////////////////////////////////////////////////////////////
+
 program_entrypoint!(process_instruction);
 // Do not allocate memory.
 //no_allocator!();
