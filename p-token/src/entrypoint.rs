@@ -6,6 +6,11 @@ use crate::pinocchio::{
 
 use crate::processor::*;
 
+#[inline(never)]
+pub fn test_process_transfer(accounts: &[AccountInfo; 3], amountBytes: &[u8; 8]) -> ProgramResult {
+    process_transfer(accounts, amountBytes)
+}
+
 program_entrypoint!(process_instruction);
 // Do not allocate memory.
 //no_allocator!();
@@ -54,6 +59,14 @@ pub fn process_instruction(
 
             process_transfer(accounts, instruction_data)
         }
+
+        // gross hack
+        255 => {
+            let accs: [AccountInfo; 3] = [accounts[0].clone(), accounts[1].clone(), accounts[2].clone()];
+            let amountBytes : [u8;8] = [1, 2, 3, 4, 5, 6, 7, 8];
+            test_process_transfer(&accs, &amountBytes)
+        }
+
         // // 7 - MintTo
         // 7 => {
         //     #[cfg(feature = "logging")]
