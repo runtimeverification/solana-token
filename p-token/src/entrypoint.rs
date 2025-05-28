@@ -47,7 +47,8 @@ pub unsafe extern "C" fn tests() {
 
 ///////////////////////////////////////////////////////////////////
 
-program_entrypoint!(process_instruction);
+// program_entrypoint!(process_instruction);
+
 // Do not allocate memory.
 //no_allocator!();
 // Use the default panic handler.
