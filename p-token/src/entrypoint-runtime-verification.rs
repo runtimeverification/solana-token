@@ -696,6 +696,7 @@ pub fn test_process_burn(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]
 /// accounts[0] // Source Info
 /// accounts[1] // Destination Info
 /// accounts[2] // Authority Info
+/// accounts[3..14] // Multisig Signers
 #[inline(never)]
 pub fn test_process_close_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
     use pinocchio_token_interface::state::{account, multisig};
