@@ -1646,10 +1646,12 @@ fn test_process_initialize_multisig(accounts: &[AccountInfo; 5], instruction_dat
 /// accounts[0] // Source Account Info
 /// accounts[1] // Delegate Info
 /// accounts[2] // Owner Info
+/// accounts[3..14] // Signers
 /// instruction_data[0..8] // Little Endian Bytes of u64 amount
 #[inline(never)]
 fn test_process_approve(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]) -> ProgramResult {
-    use pinocchio_token_interface::state::{account, account_state};
+    use pinocchio_token_interface::state::{account, account_state, multisig};
+    use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
 
@@ -1658,9 +1660,15 @@ fn test_process_approve(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8])
         (account_info.borrow_data_unchecked().as_ptr() as *const account::Account)
             .read()
     };
+    let get_multisig = |account_info: &AccountInfo| unsafe {
+        (account_info.borrow_data_unchecked().as_ptr() as *const multisig::Multisig)
+            .read()
+    };
 
     //-Initial State-----------------------------------------------------------
     let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
+    let src_owner = get_account(&accounts[0]).owner;
+    let multisig_is_initialised = get_multisig(&accounts[2]).is_initialized();
 
     //-Process Instruction-----------------------------------------------------
     let result = process_approve(accounts, instruction_data);
@@ -1677,7 +1685,59 @@ fn test_process_approve(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8])
     } else if get_account(&accounts[0]).account_state().unwrap() == account_state::AccountState::Frozen  {
         assert_eq!(result, Err(ProgramError::Custom(17)))
     } else {
-        // TODO validate owner
+        { // Validate Owner
+            // Line 102-104 of validate_owner function in mod.rs
+            if src_owner != *accounts[2].key() {
+                assert_eq!(result, Err(ProgramError::Custom(4)));
+                return result;
+            }
+            // Line 106-108
+            else if accounts[2].data_len() == multisig::Multisig::LEN && accounts[2].is_owned_by(&ID) {
+                // Line 114
+                if multisig_is_initialised.is_err() {
+                    assert_eq!(result, Err(ProgramError::InvalidAccountData));
+                    return result;
+                } else if !multisig_is_initialised.unwrap() {
+                    assert_eq!(result, Err(ProgramError::UninitializedAccount));
+                    return result;
+                } else {
+                    // Lines 116-117
+                    let multisig = get_multisig(&accounts[2]);
+
+                    // Lines 119-129: Did all declared and allowed signers sign?
+                    let unsigned_exists = accounts[3..].iter()
+                        .any(|potential_signer| {
+                            multisig.signers
+                                .iter()
+                                .any(|registered_key| registered_key == potential_signer.key() && !potential_signer.is_signer())
+                        });
+
+                    if unsigned_exists {
+                        assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                        return result;
+                    }
+
+                    // Lines 130-132: Were enough signatures received?
+                    let signers_count = multisig.signers.iter()
+                        .filter_map(|registered_key| {
+                            accounts[3..].iter()
+                                .find(|potential_signer| potential_signer.key() == registered_key && potential_signer.is_signer())
+                        })
+                        .count();
+
+                    // Line 130-132: Check if we have enough signers (singers_count < multisig.m)
+                    if signers_count < multisig.m as usize {
+                        assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                        return result;
+                    }
+                }
+            }
+            // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+            else if !accounts[2].is_signer() {
+                assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                return result;
+            }
+        }
 
         assert_eq!(get_account(&accounts[0]).delegate().unwrap(), accounts[1].key());
         assert_eq!(get_account(&accounts[0]).delegated_amount(), amount);
@@ -2213,10 +2273,12 @@ fn test_process_thaw_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
 /// accounts[1] // Expected Mint Info
 /// accounts[2] // Delegate Info
 /// accounts[3] // Owner Info
+/// accounts[4..15] // Signers
 /// instruction_data[0..9] // Little Endian Bytes of u64 amount, and decimals
 #[inline(never)]
 fn test_process_approve_checked(accounts: &[AccountInfo; 4], instruction_data: &[u8; 9]) -> ProgramResult {
-    use pinocchio_token_interface::state::{account, account_state, mint};
+    use pinocchio_token_interface::state::{account, account_state, mint, multisig};
+    use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
 
@@ -2229,9 +2291,15 @@ fn test_process_approve_checked(accounts: &[AccountInfo; 4], instruction_data: &
         (account_info.borrow_data_unchecked().as_ptr() as *const mint::Mint)
             .read()
     };
+    let get_multisig = |account_info: &AccountInfo| unsafe {
+        (account_info.borrow_data_unchecked().as_ptr() as *const multisig::Multisig)
+            .read()
+    };
 
     //-Initial State-----------------------------------------------------------
     let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
+    let src_owner = get_account(&accounts[0]).owner;
+    let multisig_is_initialised = get_multisig(&accounts[3]).is_initialized();
 
     //-Process Instruction-----------------------------------------------------
     let result = process_approve_checked(accounts, instruction_data);
@@ -2257,7 +2325,59 @@ fn test_process_approve_checked(accounts: &[AccountInfo; 4], instruction_data: &
     } else if instruction_data[8] != get_mint(&accounts[1]).decimals { // UNTESTED
         assert_eq!(result, Err(ProgramError::Custom(18)))
     } else {
-        // TODO validate owner
+        { // Validate Owner
+            // Line 102-104 of validate_owner function in mod.rs
+            if src_owner != *accounts[3].key() {
+                assert_eq!(result, Err(ProgramError::Custom(4)));
+                return result;
+            }
+            // Line 106-108
+            else if accounts[3].data_len() == multisig::Multisig::LEN && accounts[3].is_owned_by(&ID) {
+                // Line 114
+                if multisig_is_initialised.is_err() {
+                    assert_eq!(result, Err(ProgramError::InvalidAccountData));
+                    return result;
+                } else if !multisig_is_initialised.unwrap() {
+                    assert_eq!(result, Err(ProgramError::UninitializedAccount));
+                    return result;
+                } else {
+                    // Lines 116-117
+                    let multisig = get_multisig(&accounts[3]);
+
+                    // Lines 119-129: Did all declared and allowed signers sign?
+                    let unsigned_exists = accounts[4..].iter()
+                        .any(|potential_signer| {
+                            multisig.signers
+                                .iter()
+                                .any(|registered_key| registered_key == potential_signer.key() && !potential_signer.is_signer())
+                        });
+
+                    if unsigned_exists {
+                        assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                        return result;
+                    }
+
+                    // Lines 130-132: Were enough signatures received?
+                    let signers_count = multisig.signers.iter()
+                        .filter_map(|registered_key| {
+                            accounts[4..].iter()
+                                .find(|potential_signer| potential_signer.key() == registered_key && potential_signer.is_signer())
+                        })
+                        .count();
+
+                    // Line 130-132: Check if we have enough signers (singers_count < multisig.m)
+                    if signers_count < multisig.m as usize {
+                        assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                        return result;
+                    }
+                }
+            }
+            // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+            else if !accounts[3].is_signer() {
+                assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                return result;
+            }
+        }
 
         assert_eq!(get_account(&accounts[0]).delegate().unwrap(), accounts[2].key());
         assert_eq!(get_account(&accounts[0]).delegated_amount(), amount);
