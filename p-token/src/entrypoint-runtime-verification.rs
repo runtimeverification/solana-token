@@ -1841,7 +1841,7 @@ fn test_process_initialize_multisig2(accounts: &[AccountInfo; 4], instruction_da
         assert_eq!(result, Err(ProgramError::Custom(6)))
     } else if multisig_init_lamports < minimum_balance { // UNTESTED
         assert_eq!(result, Err(ProgramError::Custom(0)))
-    } else if !multisig::Multisig::is_valid_signer_index((accounts.len() - 2) as u8) { // UNTESTED
+    } else if !multisig::Multisig::is_valid_signer_index((accounts.len() - 1) as u8) { // UNTESTED
         assert_eq!(result, Err(ProgramError::Custom(7)))
     } else if !multisig::Multisig::is_valid_signer_index(instruction_data[0]) { // UNTESTED
         assert_eq!(result, Err(ProgramError::Custom(8)))
