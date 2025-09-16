@@ -468,16 +468,22 @@ pub fn test_process_initialize_account(accounts: &[AccountInfo; 4]) -> ProgramRe
 /// accounts[0] // Source Info
 /// accounts[1] // Destination Info
 /// accounts[2] // Authority Info
+/// accounts[3..14] // Signers
 /// instruction_data[0..8] // Little Endian Bytes of u64 amount
 #[inline(never)]
 pub fn test_process_transfer(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]) -> ProgramResult {
-    use pinocchio_token_interface::state::{account, account_state};
+    use pinocchio_token_interface::state::{account, account_state, multisig};
+    use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
 
     //-Helpers-----------------------------------------------------------------
     let get_account = |account_info: &AccountInfo| unsafe {
         (account_info.borrow_data_unchecked().as_ptr() as *const account::Account)
+            .read()
+    };
+    let get_multisig = |account_info: &AccountInfo| unsafe {
+        (account_info.borrow_data_unchecked().as_ptr() as *const multisig::Multisig)
             .read()
     };
 
@@ -489,55 +495,185 @@ pub fn test_process_transfer(accounts: &[AccountInfo; 3], instruction_data: &[u8
     let dst_initial_amount = get_account(&accounts[1]).amount();
     let src_initial_lamports = accounts[0].lamports();
     let dst_initial_lamports = accounts[1].lamports();
+    let src_owner = get_account(&accounts[0]).owner;
+    let old_src_delgate = get_account(&accounts[0]).delegate().cloned();
+    let old_src_delgated_amount = get_account(&accounts[0]).delegated_amount();
+    let multisig_is_initialised = get_multisig(&accounts[2]).is_initialized();
 
     //-Process Instruction-----------------------------------------------------
     let result = process_transfer(accounts, instruction_data);
 
     //-Assert Postconditions---------------------------------------------------
     if instruction_data.len() < 8 {
-        assert_eq!(result, Err(ProgramError::Custom(12)))
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
     } else if accounts.len() < 3 {
-        assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys))
+        assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
+        return result;
     } else if !src_initialised.unwrap() {
         // I don't believe there is a way to construct an Account with AccountState::Uninitialized
         // so it can only be an invalid account
-        assert_eq!(result, Err(ProgramError::InvalidAccountData))
+        assert_eq!(result, Err(ProgramError::InvalidAccountData));
+        return result;
     } else if accounts[0] != accounts[1] && !dst_initialised.unwrap() {
         // I don't believe there is a way to construct an Account with AccountState::Uninitialized
         // so it can only be an invalid account
-        assert_eq!(result, Err(ProgramError::InvalidAccountData))
+        assert_eq!(result, Err(ProgramError::InvalidAccountData));
+        return result;
     } else if get_account(&accounts[0]).account_state().unwrap() == account_state::AccountState::Frozen {
-        assert_eq!(result, Err(ProgramError::Custom(17)))
+        assert_eq!(result, Err(ProgramError::Custom(17)));
+        return result;
     } else if src_initial_amount < amount {
-        assert_eq!(result, Err(ProgramError::Custom(1)))
+        assert_eq!(result, Err(ProgramError::Custom(1)));
+        return result;
     } else if accounts[0] != accounts[1] && get_account(&accounts[0]).mint != get_account(&accounts[1]).mint {
-        assert_eq!(result, Err(ProgramError::Custom(3)))
+        assert_eq!(result, Err(ProgramError::Custom(3)));
+        return result;
     } else {
-        if get_account(&accounts[0]).delegate() == Some(accounts[2].key()) {
-            // TODO validate_owner and delgated_amount
+        if old_src_delgate == Some(*accounts[2].key()) {
+            { // Validate Owner
+                // Line 102-104 of validate_owner function in mod.rs
+                // if accounts[2].key() != accounts[2].key() {... } // Now redundant
+
+                // Line 106-108
+                if accounts[2].data_len() == multisig::Multisig::LEN && accounts[2].is_owned_by(&ID) {
+                    // Line 114
+                    if multisig_is_initialised.is_err() {
+                        assert_eq!(result, Err(ProgramError::InvalidAccountData));
+                        return result;
+                    } else if !multisig_is_initialised.unwrap() {
+                        assert_eq!(result, Err(ProgramError::UninitializedAccount));
+                        return result;
+                    } else {
+                        // Lines 116-117
+                        let multisig = get_multisig(&accounts[2]);
+
+                        // Lines 119-129: Did all declared and allowed signers sign?
+                        let unsigned_exists = accounts[3..].iter()
+                            .any(|potential_signer| {
+                                multisig.signers
+                                    .iter()
+                                    .any(|registered_key| registered_key == potential_signer.key() && !potential_signer.is_signer())
+                            });
+
+                        if unsigned_exists {
+                            assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                            return result;
+                        }
+
+                        // Lines 130-132: Were enough signatures received?
+                        let signers_count = multisig.signers.iter()
+                            .filter_map(|registered_key| {
+                                accounts[3..].iter()
+                                    .find(|potential_signer| potential_signer.key() == registered_key && potential_signer.is_signer())
+                            })
+                            .count();
+
+                        // Line 130-132: Check if we have enough signers (singers_count < multisig.m)
+                        if signers_count < multisig.m as usize {
+                            assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                            return result;
+                        }
+                    }
+                }
+                // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+                else if !accounts[2].is_signer() {
+                    assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                    return result;
+                }
+            }
+
+            if old_src_delgated_amount < amount {
+                assert_eq!(result, Err(ProgramError::Custom(1)));
+                return result;
+            }
         } else {
-            // TODO validate_owner
+            { // Validate Owner
+                // Line 102-104 of validate_owner function in mod.rs
+                if src_owner != *accounts[2].key() {
+                    assert_eq!(result, Err(ProgramError::Custom(4)));
+                    return result;
+                }
+                // Line 106-108
+                else if accounts[2].data_len() == multisig::Multisig::LEN && accounts[2].is_owned_by(&ID) {
+                    // Line 114
+                    if multisig_is_initialised.is_err() {
+                        assert_eq!(result, Err(ProgramError::InvalidAccountData));
+                        return result;
+                    } else if !multisig_is_initialised.unwrap() {
+                        assert_eq!(result, Err(ProgramError::UninitializedAccount));
+                        return result;
+                    } else {
+                        // Lines 116-117
+                        let multisig = get_multisig(&accounts[2]);
+
+                        // Lines 119-129: Did all declared and allowed signers sign?
+                        let unsigned_exists = accounts[3..].iter()
+                            .any(|potential_signer| {
+                                multisig.signers
+                                    .iter()
+                                    .any(|registered_key| registered_key == potential_signer.key() && !potential_signer.is_signer())
+                            });
+
+                        if unsigned_exists {
+                            assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                            return result;
+                        }
+
+                        // Lines 130-132: Were enough signatures received?
+                        let signers_count = multisig.signers.iter()
+                            .filter_map(|registered_key| {
+                                accounts[3..].iter()
+                                    .find(|potential_signer| potential_signer.key() == registered_key && potential_signer.is_signer())
+                            })
+                            .count();
+
+                        // Line 130-132: Check if we have enough signers (singers_count < multisig.m)
+                        if signers_count < multisig.m as usize {
+                            assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                            return result;
+                        }
+                    }
+                }
+                // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+                else if !accounts[2].is_signer() {
+                    assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                    return result;
+                }
+            }
         }
 
         if (accounts[0] == accounts[1] || amount == 0) && accounts[0].owner() != &pinocchio_token_interface::program::ID {
-            assert_eq!(result, Err(ProgramError::IncorrectProgramId)) // UNTESTED
+            assert_eq!(result, Err(ProgramError::IncorrectProgramId)); // UNTESTED
+            return result;
         } else if (accounts[0] == accounts[1] || amount == 0) && accounts[1].owner() != &pinocchio_token_interface::program::ID {
-            assert_eq!(result, Err(ProgramError::IncorrectProgramId)) // UNTESTED
+            assert_eq!(result, Err(ProgramError::IncorrectProgramId)); // UNTESTED
+            return result;
         } else if accounts[0] != accounts[1] && amount != 0 && get_account(&accounts[0]).is_native() && src_initial_lamports < amount {
             // Not sure how to fund native mint
-            assert_eq!(result, Err(ProgramError::Custom(14))) // UNTESTED
+            assert_eq!(result, Err(ProgramError::Custom(14))); // UNTESTED
+            return result;
         } else if accounts[0] != accounts[1] && amount != 0 && get_account(&accounts[0]).is_native() && u64::MAX - amount < dst_initial_lamports {
             // Not sure how to fund native mint
-            assert_eq!(result, Err(ProgramError::Custom(14))) // UNTESTED
-        }  else {
-            assert!(result.is_ok());
-            assert_eq!(get_account(&accounts[0]).amount(), src_initial_amount - amount);
-            assert_eq!(get_account(&accounts[1]).amount(), dst_initial_amount + amount);
+            assert_eq!(result, Err(ProgramError::Custom(14))); // UNTESTED
+            return result;
+        }
 
-            if get_account(&accounts[0]).is_native() {
-                // UNTESTED Not sure how to fund native mint
-                assert_eq!(accounts[0].lamports(), src_initial_lamports + amount);
-                assert_eq!(accounts[1].lamports(), src_initial_lamports - amount);
+        assert!(result.is_ok());
+        assert_eq!(get_account(&accounts[0]).amount(), src_initial_amount - amount);
+        assert_eq!(get_account(&accounts[1]).amount(), dst_initial_amount + amount);
+
+        if get_account(&accounts[0]).is_native() {
+            // UNTESTED Not sure how to fund native mint
+            assert_eq!(accounts[0].lamports(), src_initial_lamports + amount);
+            assert_eq!(accounts[1].lamports(), src_initial_lamports - amount);
+        }
+
+        // Delgate updates
+        if old_src_delgate == Some(*accounts[2].key()) && accounts[0] != accounts[1] {
+            assert_eq!(get_account(&accounts[0]).delegated_amount(), old_src_delgated_amount - amount);
+            if old_src_delgated_amount - amount == 0 {
+                assert_eq!(get_account(&accounts[0]).delegate(), None);
             }
         }
     }
@@ -890,10 +1026,12 @@ pub fn test_process_close_account(accounts: &[AccountInfo; 3]) -> ProgramResult 
 /// accounts[1] // Mint Info
 /// accounts[2] // Destination Info
 /// accounts[3] // Authority Info
+/// accounts[4..15] // Signers
 /// instruction_data[0..9] // Little Endian Bytes of u64 amount, and decimals
 #[inline(never)]
 pub fn test_process_transfer_checked(accounts: &[AccountInfo; 4], instruction_data: &[u8; 9]) -> ProgramResult {
-    use pinocchio_token_interface::state::{account, account_state, mint::Mint};
+    use pinocchio_token_interface::state::{account, account_state, mint::Mint, multisig};
+    use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
 
@@ -906,6 +1044,10 @@ pub fn test_process_transfer_checked(accounts: &[AccountInfo; 4], instruction_da
         (account_info.borrow_data_unchecked().as_ptr() as *const Mint)
             .read()
     };
+    let get_multisig = |account_info: &AccountInfo| unsafe {
+        (account_info.borrow_data_unchecked().as_ptr() as *const multisig::Multisig)
+            .read()
+    };
 
     //-Initial State-----------------------------------------------------------
     let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
@@ -915,63 +1057,197 @@ pub fn test_process_transfer_checked(accounts: &[AccountInfo; 4], instruction_da
     let dst_initial_amount = get_account(&accounts[2]).amount();
     let src_initial_lamports = accounts[0].lamports();
     let dst_initial_lamports = accounts[2].lamports();
+    let src_owner = get_account(&accounts[0]).owner;
+    let old_src_delgate = get_account(&accounts[0]).delegate().cloned();
+    let old_src_delgated_amount = get_account(&accounts[0]).delegated_amount();
+    let multisig_is_initialised = get_multisig(&accounts[3]).is_initialized();
 
     //-Process Instruction-----------------------------------------------------
     let result = process_transfer_checked(accounts, instruction_data);
 
     //-Assert Postconditions---------------------------------------------------
     if instruction_data.len() < 9 {
-        assert_eq!(result, Err(ProgramError::Custom(12)))
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
     } else if accounts.len() < 4 {
-        assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys))
+        assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
+        return result;
     } else if !src_initialised.unwrap() {
         // I don't believe there is a way to construct an Account with AccountState::Uninitialized
         // so it can only be an invalid account
-        assert_eq!(result, Err(ProgramError::InvalidAccountData))
+        assert_eq!(result, Err(ProgramError::InvalidAccountData));
+        return result;
     } else if accounts[0] != accounts[2] && !dst_initialised.unwrap() {
         // I don't believe there is a way to construct an Account with AccountState::Uninitialized
         // so it can only be an invalid account
-        assert_eq!(result, Err(ProgramError::InvalidAccountData))
+        assert_eq!(result, Err(ProgramError::InvalidAccountData));
+        return result;
     } else if get_account(&accounts[0]).account_state().unwrap() == account_state::AccountState::Frozen {
-        assert_eq!(result, Err(ProgramError::Custom(17)))
+        assert_eq!(result, Err(ProgramError::Custom(17)));
+        return result;
     } else if src_initial_amount < amount {
-        assert_eq!(result, Err(ProgramError::Custom(1)))
+        assert_eq!(result, Err(ProgramError::Custom(1)));
+        return result;
     } else if accounts[0] != accounts[2] && get_account(&accounts[0]).mint != get_account(&accounts[2]).mint {
-        assert_eq!(result, Err(ProgramError::Custom(3)))
+        assert_eq!(result, Err(ProgramError::Custom(3)));
+        return result;
     } else if accounts[1].key() != &get_account(&accounts[0]).mint {
-        assert_eq!(result, Err(ProgramError::Custom(3)))
+        assert_eq!(result, Err(ProgramError::Custom(3)));
+        return result;
     } else if accounts[1].data_len() != core::mem::size_of::<Mint>() {
-        assert_eq!(result, Err(ProgramError::InvalidAccountData)) // UNTESTED
+        assert_eq!(result, Err(ProgramError::InvalidAccountData)); // UNTESTED
+        return result;
     } else if !get_mint(&accounts[1]).is_initialized().unwrap() {
-        assert_eq!(result, Err(ProgramError::UninitializedAccount)) // UNTESTED
+        assert_eq!(result, Err(ProgramError::UninitializedAccount)); // UNTESTED
+        return result;
     } else if instruction_data[8] != get_mint(&accounts[1]).decimals {
-        assert_eq!(result, Err(ProgramError::Custom(18)))
+        assert_eq!(result, Err(ProgramError::Custom(18)));
+        return result;
     } else {
-        if get_account(&accounts[0]).delegate() == Some(accounts[3].key()) {
-            // TODO validate_owner and delgated_amount
+        if old_src_delgate == Some(*accounts[3].key()) {
+            { // Validate Owner
+                // Line 102-104 of validate_owner function in mod.rs
+                // if accounts[3].key() != accounts[3].key() {... } // Now redundant
+
+                // Line 106-108
+                if accounts[3].data_len() == multisig::Multisig::LEN && accounts[3].is_owned_by(&ID) {
+                    // Line 114
+                    if multisig_is_initialised.is_err() {
+                        assert_eq!(result, Err(ProgramError::InvalidAccountData));
+                        return result;
+                    } else if !multisig_is_initialised.unwrap() {
+                        assert_eq!(result, Err(ProgramError::UninitializedAccount));
+                        return result;
+                    } else {
+                        // Lines 116-117
+                        let multisig = get_multisig(&accounts[3]);
+
+                        // Lines 119-129: Did all declared and allowed signers sign?
+                        let unsigned_exists = accounts[4..].iter()
+                            .any(|potential_signer| {
+                                multisig.signers
+                                    .iter()
+                                    .any(|registered_key| registered_key == potential_signer.key() && !potential_signer.is_signer())
+                            });
+
+                        if unsigned_exists {
+                            assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                            return result;
+                        }
+
+                        // Lines 130-132: Were enough signatures received?
+                        let signers_count = multisig.signers.iter()
+                            .filter_map(|registered_key| {
+                                accounts[4..].iter()
+                                    .find(|potential_signer| potential_signer.key() == registered_key && potential_signer.is_signer())
+                            })
+                            .count();
+
+                        // Line 130-132: Check if we have enough signers (singers_count < multisig.m)
+                        if signers_count < multisig.m as usize {
+                            assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                            return result;
+                        }
+                    }
+                }
+                // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+                else if !accounts[3].is_signer() {
+                    assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                    return result;
+                }
+            }
+
+            if old_src_delgated_amount < amount {
+                assert_eq!(result, Err(ProgramError::Custom(1)));
+                return result;
+            }
         } else {
-            // TODO validate_owner
+            { // Validate Owner
+                // Line 102-104 of validate_owner function in mod.rs
+                if src_owner != *accounts[3].key() {
+                    assert_eq!(result, Err(ProgramError::Custom(4)));
+                    return result;
+                }
+                // Line 106-108
+                else if accounts[3].data_len() == multisig::Multisig::LEN && accounts[3].is_owned_by(&ID) {
+                    // Line 114
+                    if multisig_is_initialised.is_err() {
+                        assert_eq!(result, Err(ProgramError::InvalidAccountData));
+                        return result;
+                    } else if !multisig_is_initialised.unwrap() {
+                        assert_eq!(result, Err(ProgramError::UninitializedAccount));
+                        return result;
+                    } else {
+                        // Lines 116-117
+                        let multisig = get_multisig(&accounts[3]);
+
+                        // Lines 119-129: Did all declared and allowed signers sign?
+                        let unsigned_exists = accounts[4..].iter()
+                            .any(|potential_signer| {
+                                multisig.signers
+                                    .iter()
+                                    .any(|registered_key| registered_key == potential_signer.key() && !potential_signer.is_signer())
+                            });
+
+                        if unsigned_exists {
+                            assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                            return result;
+                        }
+
+                        // Lines 130-132: Were enough signatures received?
+                        let signers_count = multisig.signers.iter()
+                            .filter_map(|registered_key| {
+                                accounts[4..].iter()
+                                    .find(|potential_signer| potential_signer.key() == registered_key && potential_signer.is_signer())
+                            })
+                            .count();
+
+                        // Line 130-132: Check if we have enough signers (singers_count < multisig.m)
+                        if signers_count < multisig.m as usize {
+                            assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                            return result;
+                        }
+                    }
+                }
+                // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+                else if !accounts[3].is_signer() {
+                    assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                    return result;
+                }
+            }
         }
 
         if (accounts[0] == accounts[2] || amount == 0) && accounts[0].owner() != &pinocchio_token_interface::program::ID {
-            assert_eq!(result, Err(ProgramError::IncorrectProgramId)) // UNTESTED
+            assert_eq!(result, Err(ProgramError::IncorrectProgramId)); // UNTESTED
+            return result;
         } else if (accounts[0] == accounts[2] || amount == 0) && accounts[2].owner() != &pinocchio_token_interface::program::ID {
-            assert_eq!(result, Err(ProgramError::IncorrectProgramId)) // UNTESTED
+            assert_eq!(result, Err(ProgramError::IncorrectProgramId)); // UNTESTED
+            return result;
         } else if get_account(&accounts[0]).is_native() && src_initial_lamports < amount {
             // Not sure how to fund native mint
-            assert_eq!(result, Err(ProgramError::Custom(14))) // UNTESTED
+            assert_eq!(result, Err(ProgramError::Custom(14))); // UNTESTED
+            return result;
         } else if get_account(&accounts[0]).is_native() && u64::MAX - amount < dst_initial_lamports {
             // Not sure how to fund native mint
-            assert_eq!(result, Err(ProgramError::Custom(14))) // UNTESTED
-        }  else {
-            assert!(result.is_ok());
-            assert_eq!(get_account(&accounts[0]).amount(), src_initial_amount - amount);
-            assert_eq!(get_account(&accounts[2]).amount(), dst_initial_amount + amount);
+            assert_eq!(result, Err(ProgramError::Custom(14))); // UNTESTED
+            return result;
+        }
 
-            if get_account(&accounts[0]).is_native() {
-                // UNTESTED Not sure how to fund native mint
-                assert_eq!(accounts[0].lamports(), src_initial_lamports + amount);
-                assert_eq!(accounts[2].lamports(), src_initial_lamports - amount);
+        assert!(result.is_ok());
+        assert_eq!(get_account(&accounts[0]).amount(), src_initial_amount - amount);
+        assert_eq!(get_account(&accounts[2]).amount(), dst_initial_amount + amount);
+
+        if get_account(&accounts[0]).is_native() {
+            // UNTESTED Not sure how to fund native mint
+            assert_eq!(accounts[0].lamports(), src_initial_lamports + amount);
+            assert_eq!(accounts[2].lamports(), src_initial_lamports - amount);
+        }
+
+        // Delgate updates
+        if old_src_delgate == Some(*accounts[3].key()) && accounts[0] != accounts[2] {
+            assert_eq!(get_account(&accounts[0]).delegated_amount(), old_src_delgated_amount - amount);
+            if old_src_delgated_amount - amount == 0 {
+                assert_eq!(get_account(&accounts[0]).delegate(), None);
             }
         }
     }
