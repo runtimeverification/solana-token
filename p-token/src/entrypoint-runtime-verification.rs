@@ -666,8 +666,8 @@ pub fn test_process_transfer(accounts: &[AccountInfo; 3], instruction_data: &[u8
 
             if get_account(&accounts[0]).is_native() {
                 // UNTESTED Not sure how to fund native mint
-                assert_eq!(accounts[0].lamports(), src_initial_lamports + amount);
-                assert_eq!(accounts[1].lamports(), src_initial_lamports - amount);
+                assert_eq!(accounts[0].lamports(), src_initial_lamports - amount);
+                assert_eq!(accounts[1].lamports(), dst_initial_lamports + amount);
             }
         }
 
@@ -1377,8 +1377,8 @@ pub fn test_process_transfer_checked(accounts: &[AccountInfo; 4], instruction_da
 
             if get_account(&accounts[0]).is_native() {
                 // UNTESTED Not sure how to fund native mint
-                assert_eq!(accounts[0].lamports(), src_initial_lamports + amount);
-                assert_eq!(accounts[2].lamports(), src_initial_lamports - amount);
+                assert_eq!(accounts[0].lamports(), src_initial_lamports - amount);
+                assert_eq!(accounts[1].lamports(), dst_initial_lamports + amount);
             }
         }
 
