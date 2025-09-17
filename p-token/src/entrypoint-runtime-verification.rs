@@ -657,17 +657,18 @@ pub fn test_process_transfer(accounts: &[AccountInfo; 3], instruction_data: &[u8
             // Not sure how to fund native mint
             assert_eq!(result, Err(ProgramError::Custom(14))); // UNTESTED
             return result;
+        } else if accounts[0] != accounts[1]  && amount != 0 {
+            assert_eq!(get_account(&accounts[0]).amount(), src_initial_amount - amount);
+            assert_eq!(get_account(&accounts[1]).amount(), dst_initial_amount + amount);
+
+            if get_account(&accounts[0]).is_native() {
+                // UNTESTED Not sure how to fund native mint
+                assert_eq!(accounts[0].lamports(), src_initial_lamports + amount);
+                assert_eq!(accounts[1].lamports(), src_initial_lamports - amount);
+            }
         }
 
         assert!(result.is_ok());
-        assert_eq!(get_account(&accounts[0]).amount(), src_initial_amount - amount);
-        assert_eq!(get_account(&accounts[1]).amount(), dst_initial_amount + amount);
-
-        if get_account(&accounts[0]).is_native() {
-            // UNTESTED Not sure how to fund native mint
-            assert_eq!(accounts[0].lamports(), src_initial_lamports + amount);
-            assert_eq!(accounts[1].lamports(), src_initial_lamports - amount);
-        }
 
         // Delegate updates
         if old_src_delgate == Some(*accounts[2].key()) && accounts[0] != accounts[1] {
@@ -1354,26 +1355,28 @@ pub fn test_process_transfer_checked(accounts: &[AccountInfo; 4], instruction_da
         } else if (accounts[0] == accounts[2] || amount == 0) && accounts[2].owner() != &pinocchio_token_interface::program::ID {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId)); // UNTESTED
             return result;
-        } else if get_account(&accounts[0]).is_native() && src_initial_lamports < amount {
-            // Not sure how to fund native mint
-            assert_eq!(result, Err(ProgramError::Custom(14))); // UNTESTED
-            return result;
-        } else if get_account(&accounts[0]).is_native() && u64::MAX - amount < dst_initial_lamports {
-            // Not sure how to fund native mint
-            assert_eq!(result, Err(ProgramError::Custom(14))); // UNTESTED
-            return result;
+        } else if accounts[0] != accounts[2] && amount != 0 {
+            if get_account(&accounts[0]).is_native() && src_initial_lamports < amount {
+                // Not sure how to fund native mint
+                assert_eq!(result, Err(ProgramError::Custom(14))); // UNTESTED
+                return result;
+            } else if get_account(&accounts[0]).is_native() && u64::MAX - amount < dst_initial_lamports {
+                // Not sure how to fund native mint
+                assert_eq!(result, Err(ProgramError::Custom(14))); // UNTESTED
+                return result;
+            }
+
+            assert_eq!(get_account(&accounts[0]).amount(), src_initial_amount - amount);
+            assert_eq!(get_account(&accounts[2]).amount(), dst_initial_amount + amount);
+
+            if get_account(&accounts[0]).is_native() {
+                // UNTESTED Not sure how to fund native mint
+                assert_eq!(accounts[0].lamports(), src_initial_lamports + amount);
+                assert_eq!(accounts[2].lamports(), src_initial_lamports - amount);
+            }
         }
 
         assert!(result.is_ok());
-        assert_eq!(get_account(&accounts[0]).amount(), src_initial_amount - amount);
-        assert_eq!(get_account(&accounts[2]).amount(), dst_initial_amount + amount);
-
-        if get_account(&accounts[0]).is_native() {
-            // UNTESTED Not sure how to fund native mint
-            assert_eq!(accounts[0].lamports(), src_initial_lamports + amount);
-            assert_eq!(accounts[2].lamports(), src_initial_lamports - amount);
-        }
-
         // Delegate updates
         if old_src_delgate == Some(*accounts[3].key()) && accounts[0] != accounts[2] {
             assert_eq!(get_account(&accounts[0]).delegated_amount(), old_src_delgated_amount - amount);
