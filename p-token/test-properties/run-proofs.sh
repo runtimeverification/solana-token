@@ -3,23 +3,21 @@
 # Run all start symbols given as arguments (or read them from tests.md
 # table if -a given) with given run options (-o) and timeout (-t).
 # Options and defaults:
-#   -t NUM   : timeout in seconds (default 1200)
-#   -o STRING: prove-rs options. Default "--max-iterations 30 --max-depth 200 "
+#   -t NUM   : timeout in seconds (default 3600)
+#   -o STRING: prove-rs options. Default "--max-iterations 90 --max-depth 200 "
 #   -a       : run all start symbols from table in `tests.md` (1st column)
-#   -c       : continue existing proofs instead of reloading (which is default)
 #
-# Always runs verbosely, always uses artefacts/proof
+# Always runs verbosely, always reloads, always uses artefacts/proof
 # as proof directory
 #
 #######################################################################
 
 ALL_NAMES=$(sed -n -e 's/^| \(test_p[a-zA-Z0-9:_]*\) *|.*/\1/p' tests.md)
 
-TIMEOUT=1200
-PROVE_OPTS="--max-iterations 30 --max-depth 200"
-RELOAD_OPT="--reload"
+TIMEOUT=3600
+PROVE_OPTS="--max-iterations 90 --max-depth 200"
 
-while getopts ":t:o:ac" opt; do
+while getopts ":t:o:a" opt; do
     case $opt in
         t)
             TIMEOUT=$OPTARG
@@ -29,9 +27,6 @@ while getopts ":t:o:ac" opt; do
             ;;
         a)
             TESTS=${ALL_NAMES}
-            ;;
-        c)
-            RELOAD_OPT=""
             ;;
         \?)
             echo "[ERROR] Invalid option -$OPTARG." 1>&2
@@ -52,13 +47,7 @@ fi
 
 set -u
 
-if [ -z "${RELOAD_OPT}" ]; then
-    MODE="Continuing"
-else
-    MODE="Re-running"
-fi
-
-echo "${MODE} tests ${TESTS} with options '$PROVE_OPTS' and timeout $TIMEOUT"
+echo "Running tests ${TESTS} with options '$PROVE_OPTS' and timeout $TIMEOUT"
 
 prefix=pinocchio_token_program::entrypoint::
 
@@ -68,7 +57,7 @@ for name in $TESTS; do
     timeout --preserve-status -v ${TIMEOUT} \
             uv --project mir-semantics/kmir run -- \
             kmir prove-rs --smir artefacts/p-token.smir.json \
-            --proof-dir artefacts/proof --verbose --start-symbol $start ${RELOAD_OPT} ${PROVE_OPTS}
+            --proof-dir artefacts/proof --reload --verbose --start-symbol $start ${PROVE_OPTS}
     uv --project mir-semantics/kmir run -- \
        kmir show --proof-dir artefacts/proof p-token.smir.$start \
        --full-printer > artefacts/proof/${name}-full.txt
