@@ -292,6 +292,38 @@ fn inner_process_remaining_instruction(
     }
 }
 
+use pinocchio_token_interface::state::account::Account;
+use pinocchio_token_interface::state::mint::Mint;
+use pinocchio_token_interface::state::multisig::Multisig;
+use pinocchio::sysvars::rent::Rent;
+
+fn get_account(account_info: &AccountInfo) -> Account {
+    unsafe {
+        let ptr = account_info.borrow_data_unchecked().as_ptr() as *const Account;
+        ptr.read()
+    }
+}
+fn get_mint(account_info: &AccountInfo) -> Mint {
+    unsafe {
+        let ptr = account_info.borrow_data_unchecked().as_ptr() as *const Mint;
+        ptr.read()
+    }
+}
+fn get_multisig(account_info: &AccountInfo) -> Multisig {
+    unsafe {
+        let ptr = account_info.borrow_data_unchecked().as_ptr() as *const Multisig;
+        ptr.read()
+
+    }
+}
+
+fn get_rent(account_info: &AccountInfo) -> &Rent {
+    unsafe {
+        Rent::from_bytes_unchecked(account_info.borrow_data_unchecked())
+    }
+}
+
+
 // Hack Tests For Stable MIR JSON ---------------------------------------------
 /// accounts[0] // Mint Info
 /// accounts[1] // Rent Sysvar Info
@@ -302,16 +334,9 @@ fn inner_process_remaining_instruction(
 #[inline(never)]
 pub fn test_process_initialize_mint_freeze(accounts: &[AccountInfo; 2], instruction_data: &[u8; 66]) -> ProgramResult {
     use pinocchio_token_interface::state::mint::Mint;
-    //-Helpers-----------------------------------------------------------------
-    let get_mint = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const Mint)
-            .read()
-    };
 
     //-Initial State-----------------------------------------------------------
-    let minimum_balance = unsafe {
-        pinocchio::sysvars::rent::Rent::from_bytes_unchecked(accounts[1].borrow_data_unchecked())
-    }.minimum_balance(accounts[0].data_len());
+    let minimum_balance = get_rent(&accounts[1]).minimum_balance(accounts[0].data_len());
     let mint_is_initialised_prior = get_mint(&accounts[0]).is_initialized();
 
     //-Process Instruction-----------------------------------------------------
@@ -353,16 +378,9 @@ pub fn test_process_initialize_mint_freeze(accounts: &[AccountInfo; 2], instruct
 #[inline(never)]
 pub fn test_process_initialize_mint_no_freeze(accounts: &[AccountInfo; 2], instruction_data: &[u8; 34]) -> ProgramResult {
     use pinocchio_token_interface::state::mint::Mint;
-    //-Helpers-----------------------------------------------------------------
-    let get_mint = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const Mint)
-            .read()
-    };
 
     //-Initial State-----------------------------------------------------------
-    let minimum_balance = unsafe {
-        pinocchio::sysvars::rent::Rent::from_bytes_unchecked(accounts[1].borrow_data_unchecked())
-    }.minimum_balance(accounts[0].data_len());
+    let minimum_balance = get_rent(&accounts[1]).minimum_balance(accounts[0].data_len());
     let mint_is_initialised_prior = get_mint(&accounts[0]).is_initialized();
 
     //-Process Instruction-----------------------------------------------------
@@ -406,20 +424,12 @@ pub fn test_process_initialize_account(accounts: &[AccountInfo; 4]) -> ProgramRe
 
     // TODO: requires accounts[..] are all valid ptrs
 
-    //-Helpers-----------------------------------------------------------------
-    let get_account = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const account::Account)
-            .read()
-    };
-
     //-Initial State-----------------------------------------------------------
     let initial_state_new_account =  get_account(&accounts[0])
         .account_state()
         .unwrap();
 
-    let minimum_balance = unsafe {
-        pinocchio::sysvars::rent::Rent::from_bytes_unchecked(accounts[3].borrow_data_unchecked())
-    }.minimum_balance(accounts[0].data_len());
+    let minimum_balance = get_rent(&accounts[3]).minimum_balance(accounts[0].data_len());
 
     let is_native_mint = accounts[1].key() == &pinocchio_token_interface::native_mint::ID;
 
@@ -472,20 +482,10 @@ pub fn test_process_initialize_account(accounts: &[AccountInfo; 4]) -> ProgramRe
 /// instruction_data[0..8] // Little Endian Bytes of u64 amount
 #[inline(never)]
 pub fn test_process_transfer(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]) -> ProgramResult {
-    use pinocchio_token_interface::state::{account, account_state, multisig};
+    use pinocchio_token_interface::state::{account_state, multisig};
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
-
-    //-Helpers-----------------------------------------------------------------
-    let get_account = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const account::Account)
-            .read()
-    };
-    let get_multisig = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const multisig::Multisig)
-            .read()
-    };
 
     //-Initial State-----------------------------------------------------------
     let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
@@ -697,20 +697,6 @@ pub fn test_process_mint_to(accounts: &[AccountInfo; 3], instruction_data: &[u8;
 
     // TODO: requires accounts[..] are all valid ptrs
 
-    //-Helpers-----------------------------------------------------------------
-    let get_account = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const account::Account)
-            .read()
-    };
-    let get_mint = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const mint::Mint)
-            .read()
-    };
-    let get_multisig = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const multisig::Multisig)
-            .read()
-    };
-
     //-Initial State-----------------------------------------------------------
     let initial_supply = get_mint(&accounts[0]).supply();
     let initial_amount = get_account(&accounts[1]).amount();
@@ -841,20 +827,6 @@ pub fn test_process_burn(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
-
-    //-Helpers-----------------------------------------------------------------
-    let get_account = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const account::Account)
-            .read()
-    };
-    let get_mint = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const mint::Mint)
-            .read()
-    };
-    let get_multisig = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const multisig::Multisig)
-            .read()
-    };
 
     //-Initial State-----------------------------------------------------------
     let amount = || unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
@@ -1048,16 +1020,6 @@ pub fn test_process_close_account(accounts: &[AccountInfo; 3]) -> ProgramResult 
 
     // TODO: requires accounts[..] are all valid ptrs
 
-    //-Helpers-----------------------------------------------------------------
-    let get_account = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const account::Account)
-            .read()
-    };
-    let get_multisig = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const multisig::Multisig)
-            .read()
-    };
-
     //-Initial State-----------------------------------------------------------
     let src_initialised = get_account(&accounts[0]).is_initialized();
     let src_data_len = accounts[0].data_len();
@@ -1165,24 +1127,10 @@ pub fn test_process_close_account(accounts: &[AccountInfo; 3]) -> ProgramResult 
 /// instruction_data[0..9] // Little Endian Bytes of u64 amount, and decimals
 #[inline(never)]
 pub fn test_process_transfer_checked(accounts: &[AccountInfo; 4], instruction_data: &[u8; 9]) -> ProgramResult {
-    use pinocchio_token_interface::state::{account, account_state, mint::Mint, multisig};
+    use pinocchio_token_interface::state::{account_state, mint::Mint, multisig};
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
-
-    //-Helpers-----------------------------------------------------------------
-    let get_account = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const account::Account)
-            .read()
-    };
-    let get_mint = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const Mint)
-            .read()
-    };
-    let get_multisig = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const multisig::Multisig)
-            .read()
-    };
 
     //-Initial State-----------------------------------------------------------
     let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
@@ -1407,20 +1355,6 @@ pub fn test_process_burn_checked(accounts: &[AccountInfo; 3], instruction_data: 
 
     // TODO: requires accounts[..] are all valid ptrs
 
-    //-Helpers-----------------------------------------------------------------
-    let get_account = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const account::Account)
-            .read()
-    };
-    let get_mint = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const mint::Mint)
-            .read()
-    };
-    let get_multisig = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const multisig::Multisig)
-            .read()
-    };
-
     //-Initial State-----------------------------------------------------------
     let amount = || unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
     let src_initialised = get_account(&accounts[0]).is_initialized();
@@ -1615,20 +1549,12 @@ pub fn test_process_initialize_account2(accounts: &[AccountInfo; 3], instruction
 
     // TODO: requires accounts[..] are all valid ptrs
 
-    //-Helpers-----------------------------------------------------------------
-    let get_account = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const account::Account)
-            .read()
-    };
-
     //-Initial State-----------------------------------------------------------
     let initial_state_new_account =  get_account(&accounts[0])
         .account_state()
         .unwrap();
 
-    let minimum_balance = unsafe {
-        pinocchio::sysvars::rent::Rent::from_bytes_unchecked(accounts[2].borrow_data_unchecked())
-    }.minimum_balance(accounts[0].data_len());
+    let minimum_balance = get_rent(&accounts[2]).minimum_balance(accounts[0].data_len());
 
     let is_native_mint = accounts[1].key() == &pinocchio_token_interface::native_mint::ID;
 
@@ -1684,12 +1610,6 @@ pub fn test_process_initialize_account3(accounts: &[AccountInfo; 2], instruction
     use pinocchio_token_interface::state::{account, account_state};
 
     // TODO: requires accounts[..] are all valid ptrs
-
-    //-Helpers-----------------------------------------------------------------
-    let get_account = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const account::Account)
-            .read()
-    };
 
     //-Initial State-----------------------------------------------------------
     let initial_state_new_account =  get_account(&accounts[0])
@@ -1752,11 +1672,6 @@ pub fn test_process_initialize_account3(accounts: &[AccountInfo; 2], instruction
 #[inline(never)]
 pub fn test_process_initialize_mint2_freeze(accounts: &[AccountInfo; 1], instruction_data: &[u8; 66]) -> ProgramResult {
     use pinocchio_token_interface::state::mint::Mint;
-    //-Helpers-----------------------------------------------------------------
-    let get_mint = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const Mint)
-            .read()
-    };
 
     //-Initial State-----------------------------------------------------------
     // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
@@ -1802,11 +1717,6 @@ pub fn test_process_initialize_mint2_freeze(accounts: &[AccountInfo; 1], instruc
 #[inline(never)]
 pub fn test_process_initialize_mint2_no_freeze(accounts: &[AccountInfo; 1], instruction_data: &[u8; 34]) -> ProgramResult {
     use pinocchio_token_interface::state::mint::Mint;
-    //-Helpers-----------------------------------------------------------------
-    let get_mint = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const Mint)
-            .read()
-    };
 
     //-Initial State-----------------------------------------------------------
     // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
@@ -1857,18 +1767,10 @@ fn test_process_initialize_multisig(accounts: &[AccountInfo; 5], instruction_dat
 
     // TODO: requires accounts[..] are all valid ptrs
 
-    //-Helpers-----------------------------------------------------------------
-    let get_multisig = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const multisig::Multisig)
-            .read()
-    };
-
     //-Initial State-----------------------------------------------------------
     let multisig_already_initialised = get_multisig(&accounts[0]).is_initialized();
     let multisig_init_lamports = accounts[0].lamports();
-    let minimum_balance = unsafe {
-        pinocchio::sysvars::rent::Rent::from_bytes_unchecked(accounts[1].borrow_data_unchecked())
-    }.minimum_balance(accounts[0].data_len());
+    let minimum_balance = get_rent(&accounts[1]).minimum_balance(accounts[0].data_len());
 
     //-Process Instruction-----------------------------------------------------
     let result = process_initialize_multisig(accounts, instruction_data);
@@ -1925,16 +1827,6 @@ fn test_process_approve(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8])
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
-
-    //-Helpers-----------------------------------------------------------------
-    let get_account = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const account::Account)
-            .read()
-    };
-    let get_multisig = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const multisig::Multisig)
-            .read()
-    };
 
     //-Initial State-----------------------------------------------------------
     let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
@@ -2027,16 +1919,6 @@ fn test_process_revoke(accounts: &[AccountInfo; 2]) -> ProgramResult {
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
-
-    //-Helpers-----------------------------------------------------------------
-    let get_account = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const account::Account)
-            .read()
-    };
-    let get_multisig = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const multisig::Multisig)
-            .read()
-    };
 
     //-Initial State-----------------------------------------------------------
     let src_initialised = get_account(&accounts[0]).is_initialized();
@@ -2135,20 +2017,6 @@ fn test_process_set_authority(accounts: &[AccountInfo; 2], instruction_data: &[u
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
-
-    //-Helpers-----------------------------------------------------------------
-    let get_account = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const account::Account)
-            .read()
-    };
-    let get_mint = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const mint::Mint)
-            .read()
-    };
-    let get_multisig = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const multisig::Multisig)
-            .read()
-    };
 
     //-Initial State-----------------------------------------------------------
     let src_initialised = get_account(&accounts[0]).is_initialized();
@@ -2488,20 +2356,6 @@ fn test_process_freeze_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
 
     // TODO: requires accounts[..] are all valid ptrs
 
-    //-Helpers-----------------------------------------------------------------
-    let get_account = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const account::Account)
-            .read()
-    };
-    let get_mint = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const mint::Mint)
-            .read()
-    };
-    let get_multisig = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const multisig::Multisig)
-            .read()
-    };
-
     //-Initial State-----------------------------------------------------------
     let src_initialised = get_account(&accounts[0]).is_initialized();
     let src_init_state = get_account(&accounts[0]).account_state();
@@ -2607,20 +2461,6 @@ fn test_process_thaw_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
-
-    //-Helpers-----------------------------------------------------------------
-    let get_account = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const account::Account)
-            .read()
-    };
-    let get_mint = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const mint::Mint)
-            .read()
-    };
-    let get_multisig = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const multisig::Multisig)
-            .read()
-    };
 
     //-Initial State-----------------------------------------------------------
     let src_initialised = get_account(&accounts[0]).is_initialized();
@@ -2731,20 +2571,6 @@ fn test_process_approve_checked(accounts: &[AccountInfo; 4], instruction_data: &
 
     // TODO: requires accounts[..] are all valid ptrs
 
-    //-Helpers-----------------------------------------------------------------
-    let get_account = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const account::Account)
-            .read()
-    };
-    let get_mint = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const mint::Mint)
-            .read()
-    };
-    let get_multisig = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const multisig::Multisig)
-            .read()
-    };
-
     //-Initial State-----------------------------------------------------------
     let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
     let src_owner = get_account(&accounts[0]).owner;
@@ -2847,20 +2673,6 @@ fn test_process_mint_to_checked(accounts: &[AccountInfo; 3], instruction_data: &
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
-
-    //-Helpers-----------------------------------------------------------------
-    let get_account = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const account::Account)
-            .read()
-    };
-    let get_mint = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const mint::Mint)
-            .read()
-    };
-    let get_multisig = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const multisig::Multisig)
-            .read()
-    };
 
     //-Initial State-----------------------------------------------------------
     let initial_supply = get_mint(&accounts[0]).supply();
@@ -2989,12 +2801,6 @@ fn test_process_sync_native(accounts: &[AccountInfo; 1]) -> ProgramResult {
 
     // TODO: requires accounts[..] are all valid ptrs
 
-    //-Helpers-----------------------------------------------------------------
-    let get_account = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const account::Account)
-            .read()
-    };
-
     //-Initial State-----------------------------------------------------------
     let src_owner = accounts[0].owner();
     let src_initialised = get_account(&accounts[0]).is_initialized();
@@ -3037,12 +2843,6 @@ fn test_process_initialize_multisig2(accounts: &[AccountInfo; 4], instruction_da
     use pinocchio_token_interface::state::multisig;
 
     // TODO: requires accounts[..] are all valid ptrs
-
-    //-Helpers-----------------------------------------------------------------
-    let get_multisig = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const multisig::Multisig)
-            .read()
-    };
 
     //-Initial State-----------------------------------------------------------
     let multisig_already_initialised = get_multisig(&accounts[0]).is_initialized();
@@ -3100,8 +2900,6 @@ fn test_process_get_account_data_size(accounts: &[AccountInfo; 1]) -> ProgramRes
 
     // TODO: requires accounts[..] are all valid ptrs
 
-    //-Helpers-----------------------------------------------------------------
-
     //-Initial State-----------------------------------------------------------
     let get_mint = |account_info: &AccountInfo| unsafe {
         (account_info.borrow_data_unchecked().as_ptr() as *const mint::Mint)
@@ -3135,12 +2933,6 @@ fn test_process_initialize_immutable_owner(accounts: &[AccountInfo; 1]) -> Progr
 
     // TODO: requires accounts[..] are all valid ptrs
 
-    //-Helpers-----------------------------------------------------------------
-    let get_account = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const account::Account)
-            .read()
-    };
-
     //-Initial State-----------------------------------------------------------
     let src_initialised = get_account(&accounts[0]).is_initialized();
 
@@ -3165,12 +2957,6 @@ fn test_process_amount_to_ui_amount(accounts: &[AccountInfo; 1], instruction_dat
     use pinocchio_token_interface::state::mint;
 
     // TODO: requires accounts[..] are all valid ptrs
-
-    //-Helpers-----------------------------------------------------------------
-    let get_mint = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const mint::Mint)
-            .read()
-    };
 
     //-Initial State-----------------------------------------------------------
 
@@ -3200,12 +2986,6 @@ fn test_process_ui_amount_to_amount(accounts: &[AccountInfo; 1], instruction_dat
     use pinocchio_token_interface::state::mint;
 
     // TODO: requires accounts[..] are all valid ptrs
-
-    // //-Helpers-----------------------------------------------------------------
-    let get_mint = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const mint::Mint)
-            .read()
-    };
 
     // //-Initial State-----------------------------------------------------------
     let ui_amount = core::str::from_utf8(instruction_data);
@@ -3300,20 +3080,6 @@ fn test_process_withdraw_excess_lamports(accounts: &[AccountInfo]) -> ProgramRes
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
-
-    //-Helpers-----------------------------------------------------------------
-    let get_account = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const account::Account)
-            .read()
-    };
-    let get_mint = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const mint::Mint)
-            .read()
-    };
-    let get_multisig = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const multisig::Multisig)
-            .read()
-    };
 
     //-Initial State-----------------------------------------------------------
     let src_data_len = accounts[0].data_len();
