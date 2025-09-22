@@ -205,7 +205,7 @@ fn inner_process_remaining_instruction(
             #[cfg(feature = "logging")]
             pinocchio::msg!("Instruction: SetAuthority");
 
-            test_process_set_authority(accounts.first_chunk().unwrap(), instruction_data)
+            test_process_set_authority(accounts.first_chunk().unwrap(), instruction_data.first_chunk().unwrap())
         }
         // 10 - FreezeAccount
         10 => {
@@ -286,14 +286,14 @@ fn inner_process_remaining_instruction(
             #[cfg(feature = "logging")]
             pinocchio::msg!("Instruction: WithdrawExcessLamports");
 
-            test_process_withdraw_excess_lamports(accounts)
+            test_process_withdraw_excess_lamports(accounts.first_chunk().unwrap())
         }
         _ => Err(TokenError::InvalidInstruction.into()),
     }
 }
 
-use pinocchio_token_interface::state::account::Account;
 use pinocchio_token_interface::state::mint::Mint;
+use pinocchio_token_interface::state::account::Account;
 use pinocchio_token_interface::state::multisig::Multisig;
 use pinocchio::sysvars::rent::Rent;
 
@@ -323,7 +323,6 @@ fn get_rent(account_info: &AccountInfo) -> &Rent {
     }
 }
 
-
 // Hack Tests For Stable MIR JSON ---------------------------------------------
 /// accounts[0] // Mint Info
 /// accounts[1] // Rent Sysvar Info
@@ -333,10 +332,9 @@ fn get_rent(account_info: &AccountInfo) -> &Rent {
 /// instruction_data[34..66] // instruction_data[33] == 1 ==> Freeze Authority Pubkey
 #[inline(never)]
 pub fn test_process_initialize_mint_freeze(accounts: &[AccountInfo; 2], instruction_data: &[u8; 66]) -> ProgramResult {
-    use pinocchio_token_interface::state::mint::Mint;
 
     //-Initial State-----------------------------------------------------------
-    let minimum_balance = get_rent(&accounts[1]).minimum_balance(accounts[0].data_len());
+    let minimum_balance = get_rent(&accounts[1]).minimum_balance(accounts[0].data_len()); // TODO float problem
     let mint_is_initialised_prior = get_mint(&accounts[0]).is_initialized();
 
     //-Process Instruction-----------------------------------------------------
@@ -377,10 +375,9 @@ pub fn test_process_initialize_mint_freeze(accounts: &[AccountInfo; 2], instruct
 /// instruction_data[33]     // Freeze Authority Exists? 0 for no freeze
 #[inline(never)]
 pub fn test_process_initialize_mint_no_freeze(accounts: &[AccountInfo; 2], instruction_data: &[u8; 34]) -> ProgramResult {
-    use pinocchio_token_interface::state::mint::Mint;
 
     //-Initial State-----------------------------------------------------------
-    let minimum_balance = get_rent(&accounts[1]).minimum_balance(accounts[0].data_len());
+    let minimum_balance = get_rent(&accounts[1]).minimum_balance(accounts[0].data_len()); // TODO float problem
     let mint_is_initialised_prior = get_mint(&accounts[0]).is_initialized();
 
     //-Process Instruction-----------------------------------------------------
@@ -420,7 +417,7 @@ pub fn test_process_initialize_mint_no_freeze(accounts: &[AccountInfo; 2], instr
 /// accounts[3] // Rent Sysvar Info
 #[inline(never)]
 pub fn test_process_initialize_account(accounts: &[AccountInfo; 4]) -> ProgramResult {
-    use pinocchio_token_interface::state::{account, account_state};
+    use pinocchio_token_interface::state::account_state;
 
     // TODO: requires accounts[..] are all valid ptrs
 
@@ -429,15 +426,11 @@ pub fn test_process_initialize_account(accounts: &[AccountInfo; 4]) -> ProgramRe
         .account_state()
         .unwrap();
 
-    let minimum_balance = get_rent(&accounts[3]).minimum_balance(accounts[0].data_len());
+    let minimum_balance = get_rent(&accounts[3]).minimum_balance(accounts[0].data_len()); // TODO float problem
 
     let is_native_mint = accounts[1].key() == &pinocchio_token_interface::native_mint::ID;
 
-    let mint_is_initialised = unsafe {
-        (accounts[1].borrow_data_unchecked().as_ptr() as *const pinocchio_token_interface::state::mint::Mint)
-            .read()
-            .is_initialized()
-    };
+    let mint_is_initialised = get_mint(&accounts[1]).is_initialized();
 
     //-Process Instruction-----------------------------------------------------
     let result = process_initialize_account(accounts);
@@ -447,7 +440,7 @@ pub fn test_process_initialize_account(accounts: &[AccountInfo; 4]) -> ProgramRe
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
     } else if accounts[3].key() != &pinocchio::sysvars::rent::RENT_ID {
         assert_eq!(result, Err(ProgramError::InvalidArgument))
-    } else if accounts[0].data_len() != account::Account::LEN {
+    } else if accounts[0].data_len() != Account::LEN {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if initial_state_new_account != account_state::AccountState::Uninitialized  { // Untested
         assert_eq!(result, Err(ProgramError::Custom(6)))
@@ -482,7 +475,7 @@ pub fn test_process_initialize_account(accounts: &[AccountInfo; 4]) -> ProgramRe
 /// instruction_data[0..8] // Little Endian Bytes of u64 amount
 #[inline(never)]
 pub fn test_process_transfer(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]) -> ProgramResult {
-    use pinocchio_token_interface::state::{account_state, multisig};
+    use pinocchio_token_interface::state::account_state;
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
@@ -539,7 +532,7 @@ pub fn test_process_transfer(accounts: &[AccountInfo; 3], instruction_data: &[u8
                 // if accounts[2].key() != accounts[2].key() {... } // Now redundant
 
                 // Line 106-108
-                if accounts[2].data_len() == multisig::Multisig::LEN && accounts[2].is_owned_by(&ID) {
+                if accounts[2].data_len() == Multisig::LEN && accounts[2].is_owned_by(&ID) {
                     // Line 114
                     if multisig_is_initialised.is_err() {
                         assert_eq!(result, Err(ProgramError::InvalidAccountData));
@@ -598,7 +591,7 @@ pub fn test_process_transfer(accounts: &[AccountInfo; 3], instruction_data: &[u8
                     return result;
                 }
                 // Line 106-108
-                else if accounts[2].data_len() == multisig::Multisig::LEN && accounts[2].is_owned_by(&ID) {
+                else if accounts[2].data_len() == Multisig::LEN && accounts[2].is_owned_by(&ID) {
                     // Line 114
                     if multisig_is_initialised.is_err() {
                         assert_eq!(result, Err(ProgramError::InvalidAccountData));
@@ -692,7 +685,7 @@ pub fn test_process_transfer(accounts: &[AccountInfo; 3], instruction_data: &[u8
 /// instruction_data[0..8] // Little Endian Bytes of u64 amount
 #[inline(never)]
 pub fn test_process_mint_to(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]) -> ProgramResult {
-    use pinocchio_token_interface::state::{account, account_state, mint, multisig};
+    use pinocchio_token_interface::state::account_state;
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
@@ -712,7 +705,7 @@ pub fn test_process_mint_to(accounts: &[AccountInfo; 3], instruction_data: &[u8;
     } else if accounts.len() < 3 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
         return result;
-    } else if accounts[1].data_len() != account::Account::LEN {
+    } else if accounts[1].data_len() != Account::LEN {
         assert_eq!(result, Err(ProgramError::InvalidAccountData));
         return result;
     } else if !get_account(&accounts[1]).is_initialized().unwrap() { // UNTESTED
@@ -727,7 +720,7 @@ pub fn test_process_mint_to(accounts: &[AccountInfo; 3], instruction_data: &[u8;
     } else if accounts[0].key() != &get_account(&accounts[1]).mint {
         assert_eq!(result, Err(ProgramError::Custom(3)));
         return result;
-    } else if accounts[0].data_len() != mint::Mint::LEN { // UNTESTED
+    } else if accounts[0].data_len() != Mint::LEN { // UNTESTED
         // Not sure if this is even possible if we get past the case above
         assert_eq!(result, Err(ProgramError::InvalidAccountData));
         return result;
@@ -743,7 +736,7 @@ pub fn test_process_mint_to(accounts: &[AccountInfo; 3], instruction_data: &[u8;
                     return result;
                 }
                 // Line 106-108
-                else if accounts[2].data_len() == multisig::Multisig::LEN && accounts[2].is_owned_by(&ID) {
+                else if accounts[2].data_len() == Multisig::LEN && accounts[2].is_owned_by(&ID) {
                     // Line 114
                     if multisig_is_initialised.is_err() {
                         assert_eq!(result, Err(ProgramError::InvalidAccountData));
@@ -823,13 +816,13 @@ pub fn test_process_mint_to(accounts: &[AccountInfo; 3], instruction_data: &[u8;
 /// instruction_data[0..8] // Little Endian Bytes of u64 amount
 #[inline(never)]
 pub fn test_process_burn(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]) -> ProgramResult {
-    use pinocchio_token_interface::state::{account, account_state, mint, multisig};
+    use pinocchio_token_interface::state::account_state;
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
 
     //-Initial State-----------------------------------------------------------
-    let amount = || unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
+    let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
     let src_initialised = get_account(&accounts[0]).is_initialized();
     let src_init_amount = get_account(&accounts[0]).amount();
     let src_init_state = get_account(&accounts[0]).account_state();
@@ -852,11 +845,11 @@ pub fn test_process_burn(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]
         assert_eq!(result, Err(ProgramError::Custom(12)))
     } else if accounts.len() < 3 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys))
-    } else if accounts[0].data_len() != account::Account::LEN {
+    } else if accounts[0].data_len() != Account::LEN {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if !src_initialised.unwrap() { // UNTESTED
         assert_eq!(result, Err(ProgramError::UninitializedAccount))
-    } else if accounts[1].data_len() != mint::Mint::LEN { // UNTESTED
+    } else if accounts[1].data_len() != Mint::LEN { // UNTESTED
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if !mint_initialised.unwrap() { // UNTESTED
         assert_eq!(result, Err(ProgramError::UninitializedAccount))
@@ -864,7 +857,7 @@ pub fn test_process_burn(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]
         assert_eq!(result, Err(ProgramError::Custom(17)))
     } else if src_is_native {
         assert_eq!(result, Err(ProgramError::Custom(10)))
-    } else if src_init_amount < amount() {
+    } else if src_init_amount < amount {
         assert_eq!(result, Err(ProgramError::Custom(1)))
     } else if accounts[1].key() != &src_mint {
         assert_eq!(result, Err(ProgramError::Custom(3)))
@@ -879,7 +872,7 @@ pub fn test_process_burn(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]
                     }
 
                     // Line 106-108
-                    if accounts[2].data_len() == multisig::Multisig::LEN && accounts[2].is_owned_by(&ID) {
+                    if accounts[2].data_len() == Multisig::LEN && accounts[2].is_owned_by(&ID) {
                         // Line 114
                         if multisig_is_initialised.is_err() {
                             assert_eq!(result, Err(ProgramError::InvalidAccountData));
@@ -926,7 +919,7 @@ pub fn test_process_burn(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]
                     }
                 }
 
-                if old_src_delgated_amount < amount() {
+                if old_src_delgated_amount < amount {
                     assert_eq!(result, Err(ProgramError::Custom(1)));
                     return result;
                 }
@@ -938,7 +931,7 @@ pub fn test_process_burn(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]
                         return result;
                     }
                     // Line 106-108
-                    else if accounts[2].data_len() == multisig::Multisig::LEN && accounts[2].is_owned_by(&ID) {
+                    else if accounts[2].data_len() == Multisig::LEN && accounts[2].is_owned_by(&ID) {
                         // Line 114
                         if multisig_is_initialised.is_err() {
                             assert_eq!(result, Err(ProgramError::InvalidAccountData));
@@ -987,19 +980,19 @@ pub fn test_process_burn(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]
             }
         }
 
-        if amount() == 0 && src_owner != pinocchio_token_interface::program::ID { // UNTESTED
+        if amount == 0 && src_owner != pinocchio_token_interface::program::ID { // UNTESTED
             assert_eq!(result, Err(ProgramError::IncorrectProgramId))
-        } else if amount() == 0 && mint_owner != pinocchio_token_interface::program::ID { // UNTESTED
+        } else if amount == 0 && mint_owner != pinocchio_token_interface::program::ID { // UNTESTED
             assert_eq!(result, Err(ProgramError::IncorrectProgramId))
         } else {
-            assert!(get_account(&accounts[0]).amount() == src_init_amount - amount());
-            assert!(get_mint(&accounts[1]).supply() == mint_init_supply - amount());
+            assert!(get_account(&accounts[0]).amount() == src_init_amount - amount);
+            assert!(get_mint(&accounts[1]).supply() == mint_init_supply - amount);
             assert!(result.is_ok());
 
             // Delegate updates
             if old_src_delgate.is_some() && *accounts[2].key() == old_src_delgate.unwrap() {
-                assert_eq!(get_account(&accounts[0]).delegated_amount(), old_src_delgated_amount - amount());
-                if old_src_delgated_amount - amount() == 0 {
+                assert_eq!(get_account(&accounts[0]).delegated_amount(), old_src_delgated_amount - amount);
+                if old_src_delgated_amount - amount == 0 {
                     assert_eq!(get_account(&accounts[0]).delegate(), None);
                 }
             }
@@ -1015,7 +1008,7 @@ pub fn test_process_burn(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]
 /// accounts[3..14] // Multisig Signers
 #[inline(never)]
 pub fn test_process_close_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
-    use pinocchio_token_interface::state::{account, multisig};
+    use pinocchio_token_interface::state::account::INCINERATOR_ID;
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
@@ -1041,7 +1034,7 @@ pub fn test_process_close_account(accounts: &[AccountInfo; 3]) -> ProgramResult 
     } else if accounts[0] == accounts[1] {
         assert_eq!(result, Err(ProgramError::InvalidAccountData));
         return result;
-    } else if src_data_len != account::Account::LEN {
+    } else if src_data_len != Account::LEN {
         assert_eq!(result, Err(ProgramError::InvalidAccountData));
         return result;
     } else if !src_initialised.unwrap() { // UNTESTED
@@ -1058,7 +1051,7 @@ pub fn test_process_close_account(accounts: &[AccountInfo; 3]) -> ProgramResult 
                 return result;
             }
             // Line 106-108
-            else if accounts[2].data_len() == multisig::Multisig::LEN && accounts[2].is_owned_by(&ID) {
+            else if accounts[2].data_len() == Multisig::LEN && accounts[2].is_owned_by(&ID) {
                 // Line 114
                 if multisig_is_initialised.is_err() {
                     assert_eq!(result, Err(ProgramError::InvalidAccountData));
@@ -1103,7 +1096,7 @@ pub fn test_process_close_account(accounts: &[AccountInfo; 3]) -> ProgramResult 
                 assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                 return result;
             }
-        } else if accounts[1].key() != &account::INCINERATOR_ID { // UNTESTED
+        } else if accounts[1].key() != &INCINERATOR_ID { // UNTESTED
             assert_eq!(result, Err(ProgramError::InvalidAccountData));
             return result;
         } else if u64::MAX - src_init_lamports < dst_init_lamports { // UNTESTED
@@ -1127,7 +1120,7 @@ pub fn test_process_close_account(accounts: &[AccountInfo; 3]) -> ProgramResult 
 /// instruction_data[0..9] // Little Endian Bytes of u64 amount, and decimals
 #[inline(never)]
 pub fn test_process_transfer_checked(accounts: &[AccountInfo; 4], instruction_data: &[u8; 9]) -> ProgramResult {
-    use pinocchio_token_interface::state::{account_state, mint::Mint, multisig};
+    use pinocchio_token_interface::state::account_state;
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
@@ -1196,7 +1189,7 @@ pub fn test_process_transfer_checked(accounts: &[AccountInfo; 4], instruction_da
                 // if accounts[3].key() != accounts[3].key() {... } // Now redundant
 
                 // Line 106-108
-                if accounts[3].data_len() == multisig::Multisig::LEN && accounts[3].is_owned_by(&ID) {
+                if accounts[3].data_len() == Multisig::LEN && accounts[3].is_owned_by(&ID) {
                     // Line 114
                     if multisig_is_initialised.is_err() {
                         assert_eq!(result, Err(ProgramError::InvalidAccountData));
@@ -1255,7 +1248,7 @@ pub fn test_process_transfer_checked(accounts: &[AccountInfo; 4], instruction_da
                     return result;
                 }
                 // Line 106-108
-                else if accounts[3].data_len() == multisig::Multisig::LEN && accounts[3].is_owned_by(&ID) {
+                else if accounts[3].data_len() == Multisig::LEN && accounts[3].is_owned_by(&ID) {
                     // Line 114
                     if multisig_is_initialised.is_err() {
                         assert_eq!(result, Err(ProgramError::InvalidAccountData));
@@ -1350,13 +1343,13 @@ pub fn test_process_transfer_checked(accounts: &[AccountInfo; 4], instruction_da
 /// instruction_data[0..9] // Little Endian Bytes of u64 amount, and decimals
 #[inline(never)]
 pub fn test_process_burn_checked(accounts: &[AccountInfo; 3], instruction_data: &[u8; 9]) -> ProgramResult {
-    use pinocchio_token_interface::state::{account, account_state, mint, multisig};
+    use pinocchio_token_interface::state::account_state;
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
 
     //-Initial State-----------------------------------------------------------
-    let amount = || unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
+    let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
     let src_initialised = get_account(&accounts[0]).is_initialized();
     let src_init_amount = get_account(&accounts[0]).amount();
     let src_init_state = get_account(&accounts[0]).account_state();
@@ -1380,11 +1373,11 @@ pub fn test_process_burn_checked(accounts: &[AccountInfo; 3], instruction_data: 
         assert_eq!(result, Err(ProgramError::Custom(12)))
     } else if accounts.len() < 3 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys))
-    } else if accounts[0].data_len() != account::Account::LEN {
+    } else if accounts[0].data_len() != Account::LEN {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if !src_initialised.unwrap() { // UNTESTED
         assert_eq!(result, Err(ProgramError::UninitializedAccount))
-    } else if accounts[1].data_len() != mint::Mint::LEN { // UNTESTED
+    } else if accounts[1].data_len() != Mint::LEN { // UNTESTED
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if !mint_initialised.unwrap() { // UNTESTED
         assert_eq!(result, Err(ProgramError::UninitializedAccount))
@@ -1392,7 +1385,7 @@ pub fn test_process_burn_checked(accounts: &[AccountInfo; 3], instruction_data: 
         assert_eq!(result, Err(ProgramError::Custom(17)))
     } else if src_is_native {
         assert_eq!(result, Err(ProgramError::Custom(10)))
-    } else if src_init_amount < amount() {
+    } else if src_init_amount < amount {
         assert_eq!(result, Err(ProgramError::Custom(1)))
     } else if accounts[1].key() != &src_mint {
         assert_eq!(result, Err(ProgramError::Custom(3)))
@@ -1409,7 +1402,7 @@ pub fn test_process_burn_checked(accounts: &[AccountInfo; 3], instruction_data: 
                     }
 
                     // Line 106-108
-                    if accounts[2].data_len() == multisig::Multisig::LEN && accounts[2].is_owned_by(&ID) {
+                    if accounts[2].data_len() == Multisig::LEN && accounts[2].is_owned_by(&ID) {
                         // Line 114
                         if multisig_is_initialised.is_err() {
                             assert_eq!(result, Err(ProgramError::InvalidAccountData));
@@ -1456,7 +1449,7 @@ pub fn test_process_burn_checked(accounts: &[AccountInfo; 3], instruction_data: 
                     }
                 }
 
-                if old_src_delgated_amount < amount() {
+                if old_src_delgated_amount < amount {
                     assert_eq!(result, Err(ProgramError::Custom(1)));
                     return result;
                 }
@@ -1468,7 +1461,7 @@ pub fn test_process_burn_checked(accounts: &[AccountInfo; 3], instruction_data: 
                         return result;
                     }
                     // Line 106-108
-                    else if accounts[2].data_len() == multisig::Multisig::LEN && accounts[2].is_owned_by(&ID) {
+                    else if accounts[2].data_len() == Multisig::LEN && accounts[2].is_owned_by(&ID) {
                         // Line 114
                         if multisig_is_initialised.is_err() {
                             assert_eq!(result, Err(ProgramError::InvalidAccountData));
@@ -1517,19 +1510,19 @@ pub fn test_process_burn_checked(accounts: &[AccountInfo; 3], instruction_data: 
             }
         }
 
-        if amount() == 0 && src_owner != pinocchio_token_interface::program::ID { // UNTESTED
+        if amount == 0 && src_owner != pinocchio_token_interface::program::ID { // UNTESTED
             assert_eq!(result, Err(ProgramError::IncorrectProgramId))
-        } else if amount() == 0 && mint_owner != pinocchio_token_interface::program::ID { // UNTESTED
+        } else if amount == 0 && mint_owner != pinocchio_token_interface::program::ID { // UNTESTED
             assert_eq!(result, Err(ProgramError::IncorrectProgramId))
         } else {
-            assert!(get_account(&accounts[0]).amount() == src_init_amount - amount());
-            assert!(get_mint(&accounts[1]).supply() == mint_init_supply - amount());
+            assert!(get_account(&accounts[0]).amount() == src_init_amount - amount);
+            assert!(get_mint(&accounts[1]).supply() == mint_init_supply - amount);
             assert!(result.is_ok());
 
             // Delegate updates
             if old_src_delgate.is_some() && *accounts[2].key() == old_src_delgate.unwrap() {
-                assert_eq!(get_account(&accounts[0]).delegated_amount(), old_src_delgated_amount - amount());
-                if old_src_delgated_amount - amount() == 0 {
+                assert_eq!(get_account(&accounts[0]).delegated_amount(), old_src_delgated_amount - amount);
+                if old_src_delgated_amount - amount == 0 {
                     assert_eq!(get_account(&accounts[0]).delegate(), None);
                 }
             }
@@ -1545,7 +1538,7 @@ pub fn test_process_burn_checked(accounts: &[AccountInfo; 3], instruction_data: 
 /// instruction_data[..] // Owner
 #[inline(never)]
 pub fn test_process_initialize_account2(accounts: &[AccountInfo; 3], instruction_data: &[u8; 32]) -> ProgramResult {
-    use pinocchio_token_interface::state::{account, account_state};
+    use pinocchio_token_interface::state::account_state;
 
     // TODO: requires accounts[..] are all valid ptrs
 
@@ -1558,11 +1551,7 @@ pub fn test_process_initialize_account2(accounts: &[AccountInfo; 3], instruction
 
     let is_native_mint = accounts[1].key() == &pinocchio_token_interface::native_mint::ID;
 
-    let mint_is_initialised = unsafe {
-        (accounts[1].borrow_data_unchecked().as_ptr() as *const pinocchio_token_interface::state::mint::Mint)
-            .read()
-            .is_initialized()
-    };
+    let mint_is_initialised = get_mint(&accounts[1]).is_initialized();
 
     //-Process Instruction-----------------------------------------------------
     let result = process_initialize_account2(accounts, instruction_data);
@@ -1574,7 +1563,7 @@ pub fn test_process_initialize_account2(accounts: &[AccountInfo; 3], instruction
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
     } else if accounts[2].key() != &pinocchio::sysvars::rent::RENT_ID {
         assert_eq!(result, Err(ProgramError::InvalidArgument))
-    } else if accounts[0].data_len() != account::Account::LEN {
+    } else if accounts[0].data_len() != Account::LEN {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if initial_state_new_account != account_state::AccountState::Uninitialized  { // Untested
         assert_eq!(result, Err(ProgramError::Custom(6)))
@@ -1607,7 +1596,7 @@ pub fn test_process_initialize_account2(accounts: &[AccountInfo; 3], instruction
 /// instruction_data[..] // Owner
 #[inline(never)]
 pub fn test_process_initialize_account3(accounts: &[AccountInfo; 2], instruction_data: &[u8; 32]) -> ProgramResult {
-    use pinocchio_token_interface::state::{account, account_state};
+    use pinocchio_token_interface::state::account_state;
 
     // TODO: requires accounts[..] are all valid ptrs
 
@@ -1622,11 +1611,7 @@ pub fn test_process_initialize_account3(accounts: &[AccountInfo; 2], instruction
 
     let is_native_mint = accounts[1].key() == &pinocchio_token_interface::native_mint::ID;
 
-    let mint_is_initialised = unsafe {
-        (accounts[1].borrow_data_unchecked().as_ptr() as *const pinocchio_token_interface::state::mint::Mint)
-            .read()
-            .is_initialized()
-    };
+    let mint_is_initialised = get_mint(&accounts[1]).is_initialized();
 
     //-Process Instruction-----------------------------------------------------
     let result = process_initialize_account3(accounts, instruction_data);
@@ -1636,7 +1621,7 @@ pub fn test_process_initialize_account3(accounts: &[AccountInfo; 2], instruction
         assert_eq!(result, Err(ProgramError::Custom(12)))
     } else if accounts.len() < 2 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
-    } else if accounts[0].data_len() != account::Account::LEN {
+    } else if accounts[0].data_len() != Account::LEN {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if initial_state_new_account != account_state::AccountState::Uninitialized  { // Untested
         assert_eq!(result, Err(ProgramError::Custom(6)))
@@ -1671,7 +1656,6 @@ pub fn test_process_initialize_account3(accounts: &[AccountInfo; 2], instruction
 /// instruction_data[34..66] // instruction_data[33] == 1 ==> Freeze Authority Pubkey
 #[inline(never)]
 pub fn test_process_initialize_mint2_freeze(accounts: &[AccountInfo; 1], instruction_data: &[u8; 66]) -> ProgramResult {
-    use pinocchio_token_interface::state::mint::Mint;
 
     //-Initial State-----------------------------------------------------------
     // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
@@ -1716,7 +1700,6 @@ pub fn test_process_initialize_mint2_freeze(accounts: &[AccountInfo; 1], instruc
 /// instruction_data[33]     // Freeze Authority Exists? 0 for no freeze
 #[inline(never)]
 pub fn test_process_initialize_mint2_no_freeze(accounts: &[AccountInfo; 1], instruction_data: &[u8; 34]) -> ProgramResult {
-    use pinocchio_token_interface::state::mint::Mint;
 
     //-Initial State-----------------------------------------------------------
     // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
@@ -1763,8 +1746,6 @@ pub fn test_process_initialize_mint2_no_freeze(accounts: &[AccountInfo; 1], inst
 #[inline(never)]
 fn test_process_initialize_multisig(accounts: &[AccountInfo; 5], instruction_data: &[u8; 1]) -> ProgramResult {
                                                           // ^ FIXME: totally arbitrary for the tests
-    use pinocchio_token_interface::state::multisig;
-
     // TODO: requires accounts[..] are all valid ptrs
 
     //-Initial State-----------------------------------------------------------
@@ -1782,7 +1763,7 @@ fn test_process_initialize_multisig(accounts: &[AccountInfo; 5], instruction_dat
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys))
     } else if accounts[1].key() != &pinocchio::sysvars::rent::RENT_ID { // UNTESTED
         assert_eq!(result, Err(ProgramError::InvalidArgument))
-    } else if accounts[0].data_len() != multisig::Multisig::LEN {
+    } else if accounts[0].data_len() != Multisig::LEN {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if multisig_already_initialised.is_err() { // UNTESTED
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
@@ -1790,9 +1771,9 @@ fn test_process_initialize_multisig(accounts: &[AccountInfo; 5], instruction_dat
         assert_eq!(result, Err(ProgramError::Custom(6)))
     } else if multisig_init_lamports < minimum_balance { // UNTESTED
         assert_eq!(result, Err(ProgramError::Custom(0)))
-    } else if !multisig::Multisig::is_valid_signer_index((accounts.len() - 2) as u8) { // UNTESTED
+    } else if !Multisig::is_valid_signer_index((accounts.len() - 2) as u8) { // UNTESTED
         assert_eq!(result, Err(ProgramError::Custom(7)))
-    } else if !multisig::Multisig::is_valid_signer_index(instruction_data[0]) { // UNTESTED
+    } else if !Multisig::is_valid_signer_index(instruction_data[0]) { // UNTESTED
         assert_eq!(result, Err(ProgramError::Custom(8)))
     } else {
         assert!(accounts[2..]
@@ -1823,7 +1804,7 @@ fn test_process_initialize_multisig(accounts: &[AccountInfo; 5], instruction_dat
 /// instruction_data[0..8] // Little Endian Bytes of u64 amount
 #[inline(never)]
 fn test_process_approve(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]) -> ProgramResult {
-    use pinocchio_token_interface::state::{account, account_state, multisig};
+    use pinocchio_token_interface::state::{account_state};
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
@@ -1841,7 +1822,7 @@ fn test_process_approve(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8])
         assert_eq!(result, Err(ProgramError::Custom(12)))
     } else if accounts.len() < 3 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys))
-    } else if accounts[0].data_len() != account::Account::LEN {
+    } else if accounts[0].data_len() != Account::LEN {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if !get_account(&accounts[0]).is_initialized().unwrap() { // UNTESTED
         assert_eq!(result, Err(ProgramError::UninitializedAccount))
@@ -1855,7 +1836,7 @@ fn test_process_approve(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8])
                 return result;
             }
             // Line 106-108
-            else if accounts[2].data_len() == multisig::Multisig::LEN && accounts[2].is_owned_by(&ID) {
+            else if accounts[2].data_len() == Multisig::LEN && accounts[2].is_owned_by(&ID) {
                 // Line 114
                 if multisig_is_initialised.is_err() {
                     assert_eq!(result, Err(ProgramError::InvalidAccountData));
@@ -1915,7 +1896,7 @@ fn test_process_approve(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8])
 /// accounts[2..13] // Signers
 #[inline(never)]
 fn test_process_revoke(accounts: &[AccountInfo; 2]) -> ProgramResult {
-    use pinocchio_token_interface::state::{account, account_state, multisig};
+    use pinocchio_token_interface::state::{account_state};
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
@@ -1932,7 +1913,7 @@ fn test_process_revoke(accounts: &[AccountInfo; 2]) -> ProgramResult {
     //-Assert Postconditions---------------------------------------------------
     if accounts.len() < 1 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys))
-    } else if accounts[0].data_len() != account::Account::LEN {
+    } else if accounts[0].data_len() != Account::LEN {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if !src_initialised.unwrap() { // UNTESTED
         assert_eq!(result, Err(ProgramError::UninitializedAccount))
@@ -1950,7 +1931,7 @@ fn test_process_revoke(accounts: &[AccountInfo; 2]) -> ProgramResult {
                 return result;
             }
             // Line 106-108
-            else if accounts[1].data_len() == multisig::Multisig::LEN && accounts[1].is_owned_by(&ID) {
+            else if accounts[1].data_len() == Multisig::LEN && accounts[1].is_owned_by(&ID) {
                 // Line 114
                 if multisig_is_initialised.is_err() {
                     assert_eq!(result, Err(ProgramError::InvalidAccountData));
@@ -2012,8 +1993,8 @@ fn test_process_revoke(accounts: &[AccountInfo; 2]) -> ProgramResult {
 /// instruction_data[1] // New Authority Follows (0 -> No, 1 -> Yes)
 /// instruction_data[2..34] // New Authority Pubkey
 #[inline(never)]
-fn test_process_set_authority(accounts: &[AccountInfo; 2], instruction_data: &[u8]) -> ProgramResult {
-    use pinocchio_token_interface::state::{account, account_state, mint, multisig};
+fn test_process_set_authority(accounts: &[AccountInfo; 2], instruction_data: &[u8; 34]) -> ProgramResult {
+    use pinocchio_token_interface::state::{account_state};
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
@@ -2049,11 +2030,11 @@ fn test_process_set_authority(accounts: &[AccountInfo; 2], instruction_data: &[u
     } else if accounts.len() < 2 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
         return result;
-    } else if account_data_len != account::Account::LEN && account_data_len != mint::Mint::LEN {
+    } else if account_data_len != Account::LEN && account_data_len != Mint::LEN {
         assert_eq!(result, Err(ProgramError::InvalidArgument));
         return result;
     } else {
-        if account_data_len == account::Account::LEN {
+        if account_data_len == Account::LEN {
             if !src_initialised.unwrap() { // UNTESTED
                 assert_eq!(result, Err(ProgramError::UninitializedAccount));
                 return result;
@@ -2073,7 +2054,7 @@ fn test_process_set_authority(accounts: &[AccountInfo; 2], instruction_data: &[u
                             return result;
                         }
                         // Line 106-108
-                        else if accounts[1].data_len() == multisig::Multisig::LEN && accounts[1].is_owned_by(&ID) {
+                        else if accounts[1].data_len() == Multisig::LEN && accounts[1].is_owned_by(&ID) {
                             // Line 114
                             if multisig_is_initialised.is_err() {
                                 assert_eq!(result, Err(ProgramError::InvalidAccountData));
@@ -2142,7 +2123,7 @@ fn test_process_set_authority(accounts: &[AccountInfo; 2], instruction_data: &[u
                             return result;
                         }
                         // Line 106-108
-                        else if accounts[1].data_len() == multisig::Multisig::LEN && accounts[1].is_owned_by(&ID) {
+                        else if accounts[1].data_len() == Multisig::LEN && accounts[1].is_owned_by(&ID) {
                             // Line 114
                             if multisig_is_initialised.is_err() {
                                 assert_eq!(result, Err(ProgramError::InvalidAccountData));
@@ -2197,7 +2178,7 @@ fn test_process_set_authority(accounts: &[AccountInfo; 2], instruction_data: &[u
                     assert!(result.is_ok()) //  UNTESTED
                 }
             }
-        } else { // account_data_len == mint::Mint::LEN
+        } else { // account_data_len == Mint::LEN
             if !get_mint(&accounts[0]).is_initialized().unwrap() { // UNTESTED: FIXME not accessing old
                 assert_eq!(result, Err(ProgramError::UninitializedAccount));
                 return result;
@@ -2218,7 +2199,7 @@ fn test_process_set_authority(accounts: &[AccountInfo; 2], instruction_data: &[u
                             return result;
                         }
                         // Line 106-108
-                        else if accounts[1].data_len() == multisig::Multisig::LEN && accounts[1].is_owned_by(&ID) {
+                        else if accounts[1].data_len() == Multisig::LEN && accounts[1].is_owned_by(&ID) {
                             // Line 114
                             if multisig_is_initialised.is_err() {
                                 assert_eq!(result, Err(ProgramError::InvalidAccountData));
@@ -2284,7 +2265,7 @@ fn test_process_set_authority(accounts: &[AccountInfo; 2], instruction_data: &[u
                             return result;
                         }
                         // Line 106-108
-                        else if accounts[1].data_len() == multisig::Multisig::LEN && accounts[1].is_owned_by(&ID) {
+                        else if accounts[1].data_len() == Multisig::LEN && accounts[1].is_owned_by(&ID) {
                             // Line 114
                             if multisig_is_initialised.is_err() {
                                 assert_eq!(result, Err(ProgramError::InvalidAccountData));
@@ -2351,7 +2332,7 @@ fn test_process_set_authority(accounts: &[AccountInfo; 2], instruction_data: &[u
 /// accounts[3..13] // Signers
 #[inline(never)]
 fn test_process_freeze_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
-    use pinocchio_token_interface::state::{account, account_state, mint, multisig};
+    use pinocchio_token_interface::state::{account_state};
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
@@ -2371,7 +2352,7 @@ fn test_process_freeze_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
     //-Assert Postconditions---------------------------------------------------
     if accounts.len() < 3 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys))
-    } else if accounts[0].data_len() != account::Account::LEN {
+    } else if accounts[0].data_len() != Account::LEN {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if !src_initialised.unwrap() { // UNTESTED
         assert_eq!(result, Err(ProgramError::UninitializedAccount))
@@ -2384,7 +2365,7 @@ fn test_process_freeze_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
         assert_eq!(result, Err(ProgramError::Custom(10)))
     } else if accounts[1].key() != &src_mint {
         assert_eq!(result, Err(ProgramError::Custom(3)))
-    } else if accounts[1].data_len() != mint::Mint::LEN { // UNTESTED
+    } else if accounts[1].data_len() != Mint::LEN { // UNTESTED
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if !mint_initialised.unwrap() { // UNTESTED
         assert_eq!(result, Err(ProgramError::UninitializedAccount))
@@ -2398,7 +2379,7 @@ fn test_process_freeze_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
                 return result;
             }
             // Line 106-108
-            else if accounts[2].data_len() == multisig::Multisig::LEN && accounts[2].is_owned_by(&ID) {
+            else if accounts[2].data_len() == Multisig::LEN && accounts[2].is_owned_by(&ID) {
                 // Line 114
                 if multisig_is_initialised.is_err() {
                     assert_eq!(result, Err(ProgramError::InvalidAccountData));
@@ -2457,7 +2438,7 @@ fn test_process_freeze_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
 /// accounts[3..13] // Signers
 #[inline(never)]
 fn test_process_thaw_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
-    use pinocchio_token_interface::state::{account, account_state, mint, multisig};
+    use pinocchio_token_interface::state::{account_state};
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
@@ -2477,7 +2458,7 @@ fn test_process_thaw_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
     //-Assert Postconditions---------------------------------------------------
     if accounts.len() < 3 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys))
-    } else if accounts[0].data_len() != account::Account::LEN {
+    } else if accounts[0].data_len() != Account::LEN {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if !src_initialised.unwrap() { // UNTESTED
         assert_eq!(result, Err(ProgramError::UninitializedAccount))
@@ -2490,7 +2471,7 @@ fn test_process_thaw_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
         assert_eq!(result, Err(ProgramError::Custom(10)))
     } else if accounts[1].key() != &src_mint {
         assert_eq!(result, Err(ProgramError::Custom(3)))
-    } else if accounts[1].data_len() != mint::Mint::LEN { // UNTESTED
+    } else if accounts[1].data_len() != Mint::LEN { // UNTESTED
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if !mint_initialised.unwrap() { // UNTESTED
         assert_eq!(result, Err(ProgramError::UninitializedAccount))
@@ -2505,7 +2486,7 @@ fn test_process_thaw_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
                 return result;
             }
             // Line 106-108
-            else if accounts[2].data_len() == multisig::Multisig::LEN && accounts[2].is_owned_by(&ID) {
+            else if accounts[2].data_len() == Multisig::LEN && accounts[2].is_owned_by(&ID) {
                 // Line 114
                 if multisig_is_initialised.is_err() {
                     assert_eq!(result, Err(ProgramError::InvalidAccountData));
@@ -2566,7 +2547,7 @@ fn test_process_thaw_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
 /// instruction_data[0..9] // Little Endian Bytes of u64 amount, and decimals
 #[inline(never)]
 fn test_process_approve_checked(accounts: &[AccountInfo; 4], instruction_data: &[u8; 9]) -> ProgramResult {
-    use pinocchio_token_interface::state::{account, account_state, mint, multisig};
+    use pinocchio_token_interface::state::{account_state};
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
@@ -2584,7 +2565,7 @@ fn test_process_approve_checked(accounts: &[AccountInfo; 4], instruction_data: &
         assert_eq!(result, Err(ProgramError::Custom(12)))
     } else if accounts.len() < 4 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys))
-    } else if accounts[0].data_len() != account::Account::LEN {
+    } else if accounts[0].data_len() != Account::LEN {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if !get_account(&accounts[0]).is_initialized().unwrap() { // UNTESTED
         assert_eq!(result, Err(ProgramError::UninitializedAccount))
@@ -2592,7 +2573,7 @@ fn test_process_approve_checked(accounts: &[AccountInfo; 4], instruction_data: &
         assert_eq!(result, Err(ProgramError::Custom(17)))
     } else if accounts[1].key() != &get_account(&accounts[0]).mint {
         assert_eq!(result, Err(ProgramError::Custom(3)))
-    } else if accounts[1].data_len() != mint::Mint::LEN { // UNTESTED
+    } else if accounts[1].data_len() != Mint::LEN { // UNTESTED
         // Not sure if this is even possible if we get past the case above
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if !get_mint(&accounts[1]).is_initialized().unwrap() { // UNTESTED
@@ -2607,7 +2588,7 @@ fn test_process_approve_checked(accounts: &[AccountInfo; 4], instruction_data: &
                 return result;
             }
             // Line 106-108
-            else if accounts[3].data_len() == multisig::Multisig::LEN && accounts[3].is_owned_by(&ID) {
+            else if accounts[3].data_len() == Multisig::LEN && accounts[3].is_owned_by(&ID) {
                 // Line 114
                 if multisig_is_initialised.is_err() {
                     assert_eq!(result, Err(ProgramError::InvalidAccountData));
@@ -2669,7 +2650,7 @@ fn test_process_approve_checked(accounts: &[AccountInfo; 4], instruction_data: &
 /// instruction_data[0..9] // Little Endian Bytes of u64 amount, and decimals
 #[inline(never)]
 fn test_process_mint_to_checked(accounts: &[AccountInfo; 3], instruction_data: &[u8; 9]) -> ProgramResult {
-    use pinocchio_token_interface::state::{account, account_state, mint, multisig};
+    use pinocchio_token_interface::state::{account_state};
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
@@ -2689,7 +2670,7 @@ fn test_process_mint_to_checked(accounts: &[AccountInfo; 3], instruction_data: &
     } else if accounts.len() < 3 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
         return result;
-    } else if accounts[1].data_len() != account::Account::LEN {
+    } else if accounts[1].data_len() != Account::LEN {
         assert_eq!(result, Err(ProgramError::InvalidAccountData));
         return result;
     } else if !get_account(&accounts[1]).is_initialized().unwrap() { // UNTESTED
@@ -2704,7 +2685,7 @@ fn test_process_mint_to_checked(accounts: &[AccountInfo; 3], instruction_data: &
     } else if accounts[0].key() != &get_account(&accounts[1]).mint {
         assert_eq!(result, Err(ProgramError::Custom(3)));
         return result;
-    } else if accounts[0].data_len() != mint::Mint::LEN { // UNTESTED
+    } else if accounts[0].data_len() != Mint::LEN { // UNTESTED
         // Not sure if this is even possible if we get past the case above
         assert_eq!(result, Err(ProgramError::InvalidAccountData));
         return result;
@@ -2723,7 +2704,7 @@ fn test_process_mint_to_checked(accounts: &[AccountInfo; 3], instruction_data: &
                     return result;
                 }
                 // Line 106-108
-                else if accounts[2].data_len() == multisig::Multisig::LEN && accounts[2].is_owned_by(&ID) {
+                else if accounts[2].data_len() == Multisig::LEN && accounts[2].is_owned_by(&ID) {
                     // Line 114
                     if multisig_is_initialised.is_err() {
                         assert_eq!(result, Err(ProgramError::InvalidAccountData));
@@ -2797,7 +2778,7 @@ fn test_process_mint_to_checked(accounts: &[AccountInfo; 3], instruction_data: &
 
 #[inline(never)]
 fn test_process_sync_native(accounts: &[AccountInfo; 1]) -> ProgramResult {
-    use pinocchio_token_interface::{program, state::account};
+    use pinocchio_token_interface::program;
 
     // TODO: requires accounts[..] are all valid ptrs
 
@@ -2816,7 +2797,7 @@ fn test_process_sync_native(accounts: &[AccountInfo; 1]) -> ProgramResult {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys))
     } else if src_owner != &program::ID { // UNTESTED
         assert_eq!(result, Err(ProgramError::IncorrectProgramId))
-    } else if accounts[0].data_len() != account::Account::LEN { // UNTESTED
+    } else if accounts[0].data_len() != Account::LEN { // UNTESTED
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if !src_initialised.unwrap() { // UNTESTED
         assert_eq!(result, Err(ProgramError::UninitializedAccount))
@@ -2840,7 +2821,6 @@ fn test_process_sync_native(accounts: &[AccountInfo; 1]) -> ProgramResult {
 #[inline(never)]
 fn test_process_initialize_multisig2(accounts: &[AccountInfo; 4], instruction_data: &[u8; 1]) -> ProgramResult {
                                                            // ^ FIXME: totally arbitrary for the tests
-    use pinocchio_token_interface::state::multisig;
 
     // TODO: requires accounts[..] are all valid ptrs
 
@@ -2859,7 +2839,7 @@ fn test_process_initialize_multisig2(accounts: &[AccountInfo; 4], instruction_da
         assert_eq!(result, Err(ProgramError::Custom(12)))
     } else if accounts.len() < 1 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys))
-    } else if accounts[0].data_len() != multisig::Multisig::LEN {
+    } else if accounts[0].data_len() != Multisig::LEN {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if multisig_already_initialised.is_err() { // UNTESTED
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
@@ -2867,9 +2847,9 @@ fn test_process_initialize_multisig2(accounts: &[AccountInfo; 4], instruction_da
         assert_eq!(result, Err(ProgramError::Custom(6)))
     } else if multisig_init_lamports < minimum_balance { // UNTESTED
         assert_eq!(result, Err(ProgramError::Custom(0)))
-    } else if !multisig::Multisig::is_valid_signer_index((accounts.len() - 1) as u8) { // UNTESTED
+    } else if !Multisig::is_valid_signer_index((accounts.len() - 1) as u8) { // UNTESTED
         assert_eq!(result, Err(ProgramError::Custom(7)))
-    } else if !multisig::Multisig::is_valid_signer_index(instruction_data[0]) { // UNTESTED
+    } else if !Multisig::is_valid_signer_index(instruction_data[0]) { // UNTESTED
         assert_eq!(result, Err(ProgramError::Custom(8)))
     } else {
         assert!(accounts[1..]
@@ -2896,15 +2876,7 @@ fn test_process_initialize_multisig2(accounts: &[AccountInfo; 4], instruction_da
 /// accounts[0] // Mint Info
 #[inline(never)]
 fn test_process_get_account_data_size(accounts: &[AccountInfo; 1]) -> ProgramResult {
-    use pinocchio_token_interface::state::mint;
-
     // TODO: requires accounts[..] are all valid ptrs
-
-    //-Initial State-----------------------------------------------------------
-    let get_mint = |account_info: &AccountInfo| unsafe {
-        (account_info.borrow_data_unchecked().as_ptr() as *const mint::Mint)
-            .read()
-    };
 
     //-Process Instruction-----------------------------------------------------
     let result = process_get_account_data_size(accounts);
@@ -2914,7 +2886,7 @@ fn test_process_get_account_data_size(accounts: &[AccountInfo; 1]) -> ProgramRes
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys))
     } else if accounts[0].owner() != &pinocchio_token_interface::program::ID { // UNTESTED
         assert_eq!(result, Err(ProgramError::IncorrectProgramId))
-    } else if accounts[0].data_len() != mint::Mint::LEN {
+    } else if accounts[0].data_len() != Mint::LEN {
         assert_eq!(result, Err(ProgramError::Custom(2)))
     } else if !get_mint(&accounts[0]).is_initialized().unwrap() {
         assert_eq!(result, Err(ProgramError::Custom(2)))
@@ -2929,8 +2901,6 @@ fn test_process_get_account_data_size(accounts: &[AccountInfo; 1]) -> ProgramRes
 
 #[inline(never)]
 fn test_process_initialize_immutable_owner(accounts: &[AccountInfo; 1]) -> ProgramResult {
-    use pinocchio_token_interface::state::account;
-
     // TODO: requires accounts[..] are all valid ptrs
 
     //-Initial State-----------------------------------------------------------
@@ -2942,7 +2912,7 @@ fn test_process_initialize_immutable_owner(accounts: &[AccountInfo; 1]) -> Progr
     //-Assert Postconditions---------------------------------------------------
     if accounts.len() != 1 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys)) // UNTESTED
-    } else if accounts[0].data_len() != account::Account::LEN {
+    } else if accounts[0].data_len() != Account::LEN {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if src_initialised.unwrap() { // UNTESTED
         assert_eq!(result, Err(ProgramError::Custom(6)))
@@ -2954,8 +2924,6 @@ fn test_process_initialize_immutable_owner(accounts: &[AccountInfo; 1]) -> Progr
 
 #[inline(never)]
 fn test_process_amount_to_ui_amount(accounts: &[AccountInfo; 1], instruction_data: &[u8; 8]) -> ProgramResult {
-    use pinocchio_token_interface::state::mint;
-
     // TODO: requires accounts[..] are all valid ptrs
 
     //-Initial State-----------------------------------------------------------
@@ -2970,7 +2938,7 @@ fn test_process_amount_to_ui_amount(accounts: &[AccountInfo; 1], instruction_dat
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys))
     } else if accounts[0].owner() != &pinocchio_token_interface::program::ID { // UNTESTED
         assert_eq!(result, Err(ProgramError::IncorrectProgramId))
-    } else if accounts[0].data_len() != mint::Mint::LEN {
+    } else if accounts[0].data_len() != Mint::LEN {
         assert_eq!(result, Err(ProgramError::Custom(2)))
     } else if !get_mint(&accounts[0]).is_initialized().unwrap() {
         assert_eq!(result, Err(ProgramError::Custom(2)))
@@ -2983,8 +2951,6 @@ fn test_process_amount_to_ui_amount(accounts: &[AccountInfo; 1], instruction_dat
 
 #[inline(never)]
 fn test_process_ui_amount_to_amount(accounts: &[AccountInfo; 1], instruction_data: &[u8]) -> ProgramResult {
-    use pinocchio_token_interface::state::mint;
-
     // TODO: requires accounts[..] are all valid ptrs
 
     // //-Initial State-----------------------------------------------------------
@@ -3001,7 +2967,7 @@ fn test_process_ui_amount_to_amount(accounts: &[AccountInfo; 1], instruction_dat
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys))
     } else if accounts[0].owner() != &pinocchio_token_interface::program::ID { // UNTESTED
         assert_eq!(result, Err(ProgramError::IncorrectProgramId))
-    } else if accounts[0].data_len() != mint::Mint::LEN {
+    } else if accounts[0].data_len() != Mint::LEN {
         assert_eq!(result, Err(ProgramError::Custom(2)))
     } else if !get_mint(&accounts[0]).is_initialized().unwrap() {
         assert_eq!(result, Err(ProgramError::Custom(2)))
@@ -3075,8 +3041,7 @@ fn test_process_ui_amount_to_amount(accounts: &[AccountInfo; 1], instruction_dat
 /// accounts[2] // Authority Info
 /// accounts[3..14] // Signers
 #[inline(never)]
-fn test_process_withdraw_excess_lamports(accounts: &[AccountInfo]) -> ProgramResult {
-    use pinocchio_token_interface::state::{account, mint, multisig};
+fn test_process_withdraw_excess_lamports(accounts: &[AccountInfo; 3]) -> ProgramResult {
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
@@ -3103,11 +3068,11 @@ fn test_process_withdraw_excess_lamports(accounts: &[AccountInfo]) -> ProgramRes
     if accounts.len() < 3 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
         return result;
-    } else if src_data_len != account::Account::LEN && src_data_len != mint::Mint::LEN && src_data_len != multisig::Multisig::LEN { // UNTESTED
+    } else if src_data_len != Account::LEN && src_data_len != Mint::LEN && src_data_len != Multisig::LEN { // UNTESTED
         assert_eq!(result, Err(ProgramError::Custom(13)));
         return result;
     } else {
-        if src_data_len == account::Account::LEN {
+        if src_data_len == Account::LEN {
             if !src_account_initialised.unwrap() { // UNTESTED
                 assert_eq!(result, Err(ProgramError::UninitializedAccount));
                 return result;
@@ -3122,7 +3087,7 @@ fn test_process_withdraw_excess_lamports(accounts: &[AccountInfo]) -> ProgramRes
                     return result;
                 }
                 // Line 106-108
-                else if accounts[2].data_len() == multisig::Multisig::LEN && accounts[2].is_owned_by(&ID) {
+                else if accounts[2].data_len() == Multisig::LEN && accounts[2].is_owned_by(&ID) {
                     // Line 114
                     if multisig_is_initialised.is_err() {
                         assert_eq!(result, Err(ProgramError::InvalidAccountData));
@@ -3180,7 +3145,7 @@ fn test_process_withdraw_excess_lamports(accounts: &[AccountInfo]) -> ProgramRes
             assert_eq!(accounts[0].lamports(), minimum_balance);
             assert_eq!(accounts[1].lamports(), dst_init_lamports + src_init_lamports - minimum_balance);
             assert!(result.is_ok())
-        } else if src_data_len == mint::Mint::LEN {
+        } else if src_data_len == Mint::LEN {
             if !src_mint_initialised.unwrap() { // UNTESTED
                 assert_eq!(result, Err(ProgramError::UninitializedAccount));
                 return result;
@@ -3192,7 +3157,7 @@ fn test_process_withdraw_excess_lamports(accounts: &[AccountInfo]) -> ProgramRes
                         return result;
                     }
                     // Line 106-108
-                    else if accounts[2].data_len() == multisig::Multisig::LEN && accounts[2].is_owned_by(&ID) {
+                    else if accounts[2].data_len() == Multisig::LEN && accounts[2].is_owned_by(&ID) {
                         // Line 114
                         if multisig_is_initialised.is_err() {
                             assert_eq!(result, Err(ProgramError::InvalidAccountData));
@@ -3257,7 +3222,7 @@ fn test_process_withdraw_excess_lamports(accounts: &[AccountInfo]) -> ProgramRes
             assert_eq!(accounts[0].lamports(), minimum_balance);
             assert_eq!(accounts[1].lamports(), dst_init_lamports + src_init_lamports - minimum_balance);
             assert!(result.is_ok())
-        } else { // src_data_len == multisig::Multisig::LEN
+        } else { // src_data_len == Multisig::LEN
             { // Validate Owner
                 // Line 102-104 of validate_owner function in mod.rs
                 if accounts[0].key() != accounts[2].key() {
@@ -3265,7 +3230,7 @@ fn test_process_withdraw_excess_lamports(accounts: &[AccountInfo]) -> ProgramRes
                     return result;
                 }
                 // Line 106-108
-                else if accounts[2].data_len() == multisig::Multisig::LEN && accounts[2].is_owned_by(&ID) {
+                else if accounts[2].data_len() == Multisig::LEN && accounts[2].is_owned_by(&ID) {
                     // Line 114
                     if multisig_is_initialised.is_err() {
                         assert_eq!(result, Err(ProgramError::InvalidAccountData));
