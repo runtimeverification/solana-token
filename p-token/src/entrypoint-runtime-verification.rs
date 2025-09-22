@@ -292,6 +292,16 @@ fn inner_process_remaining_instruction(
     }
 }
 
+// Cheatcodes to inject AccountInfo assumptions
+#[inline(never)]
+fn cheatcode_is_account(_: &AccountInfo) {}
+#[inline(never)]
+fn cheatcode_is_mint(_: &AccountInfo) {}
+#[inline(never)]
+fn cheatcode_is_multisig(_: &AccountInfo) {} // TODO: implement multisig cheatcode
+#[inline(never)]
+fn cheatcode_is_rent(_: &AccountInfo) {}
+
 use pinocchio_token_interface::state::mint::Mint;
 use pinocchio_token_interface::state::account::Account;
 use pinocchio_token_interface::state::multisig::Multisig;
@@ -332,6 +342,8 @@ fn get_rent(account_info: &AccountInfo) -> &Rent {
 /// instruction_data[34..66] // instruction_data[33] == 1 ==> Freeze Authority Pubkey
 #[inline(never)]
 pub fn test_process_initialize_mint_freeze(accounts: &[AccountInfo; 2], instruction_data: &[u8; 66]) -> ProgramResult {
+    cheatcode_is_mint(&accounts[0]);
+    cheatcode_is_rent(&accounts[1]);
 
     //-Initial State-----------------------------------------------------------
     let minimum_balance = get_rent(&accounts[1]).minimum_balance(accounts[0].data_len()); // TODO float problem
@@ -375,6 +387,8 @@ pub fn test_process_initialize_mint_freeze(accounts: &[AccountInfo; 2], instruct
 /// instruction_data[33]     // Freeze Authority Exists? 0 for no freeze
 #[inline(never)]
 pub fn test_process_initialize_mint_no_freeze(accounts: &[AccountInfo; 2], instruction_data: &[u8; 34]) -> ProgramResult {
+    cheatcode_is_mint(&accounts[0]);
+    cheatcode_is_rent(&accounts[1]);
 
     //-Initial State-----------------------------------------------------------
     let minimum_balance = get_rent(&accounts[1]).minimum_balance(accounts[0].data_len()); // TODO float problem
@@ -420,6 +434,10 @@ pub fn test_process_initialize_account(accounts: &[AccountInfo; 4]) -> ProgramRe
     use pinocchio_token_interface::state::account_state;
 
     // TODO: requires accounts[..] are all valid ptrs
+    cheatcode_is_account(&accounts[0]);
+    cheatcode_is_mint(&accounts[1]);
+    cheatcode_is_account(&accounts[2]);
+    cheatcode_is_rent(&accounts[3]);
 
     //-Initial State-----------------------------------------------------------
     let initial_state_new_account =  get_account(&accounts[0])
@@ -479,6 +497,9 @@ pub fn test_process_transfer(accounts: &[AccountInfo; 3], instruction_data: &[u8
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
+    cheatcode_is_account(&accounts[0]);
+    cheatcode_is_account(&accounts[1]);
+    cheatcode_is_account(&accounts[2]);
 
     //-Initial State-----------------------------------------------------------
     let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
@@ -689,6 +710,9 @@ pub fn test_process_mint_to(accounts: &[AccountInfo; 3], instruction_data: &[u8;
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
+    cheatcode_is_mint(&accounts[0]);
+    cheatcode_is_account(&accounts[1]);
+    cheatcode_is_account(&accounts[2]);
 
     //-Initial State-----------------------------------------------------------
     let initial_supply = get_mint(&accounts[0]).supply();
@@ -820,6 +844,9 @@ pub fn test_process_burn(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
+    cheatcode_is_account(&accounts[0]);
+    cheatcode_is_mint(&accounts[1]);
+    cheatcode_is_account(&accounts[2]);
 
     //-Initial State-----------------------------------------------------------
     let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
@@ -1012,6 +1039,9 @@ pub fn test_process_close_account(accounts: &[AccountInfo; 3]) -> ProgramResult 
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
+    cheatcode_is_account(&accounts[0]);
+    cheatcode_is_account(&accounts[1]);
+    cheatcode_is_account(&accounts[2]);
 
     //-Initial State-----------------------------------------------------------
     let src_initialised = get_account(&accounts[0]).is_initialized();
@@ -1124,6 +1154,10 @@ pub fn test_process_transfer_checked(accounts: &[AccountInfo; 4], instruction_da
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
+    cheatcode_is_account(&accounts[0]);
+    cheatcode_is_mint(&accounts[1]);
+    cheatcode_is_account(&accounts[2]);
+    cheatcode_is_account(&accounts[3]);
 
     //-Initial State-----------------------------------------------------------
     let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
@@ -1347,6 +1381,9 @@ pub fn test_process_burn_checked(accounts: &[AccountInfo; 3], instruction_data: 
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
+    cheatcode_is_account(&accounts[0]);
+    cheatcode_is_mint(&accounts[1]);
+    cheatcode_is_account(&accounts[2]);
 
     //-Initial State-----------------------------------------------------------
     let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
@@ -1541,6 +1578,9 @@ pub fn test_process_initialize_account2(accounts: &[AccountInfo; 3], instruction
     use pinocchio_token_interface::state::account_state;
 
     // TODO: requires accounts[..] are all valid ptrs
+    cheatcode_is_account(&accounts[0]);
+    cheatcode_is_mint(&accounts[1]);
+    cheatcode_is_rent(&accounts[2]);
 
     //-Initial State-----------------------------------------------------------
     let initial_state_new_account =  get_account(&accounts[0])
@@ -1599,6 +1639,8 @@ pub fn test_process_initialize_account3(accounts: &[AccountInfo; 2], instruction
     use pinocchio_token_interface::state::account_state;
 
     // TODO: requires accounts[..] are all valid ptrs
+    cheatcode_is_account(&accounts[0]);
+    cheatcode_is_mint(&accounts[1]);
 
     //-Initial State-----------------------------------------------------------
     let initial_state_new_account =  get_account(&accounts[0])
@@ -1656,6 +1698,7 @@ pub fn test_process_initialize_account3(accounts: &[AccountInfo; 2], instruction
 /// instruction_data[34..66] // instruction_data[33] == 1 ==> Freeze Authority Pubkey
 #[inline(never)]
 pub fn test_process_initialize_mint2_freeze(accounts: &[AccountInfo; 1], instruction_data: &[u8; 66]) -> ProgramResult {
+    cheatcode_is_mint(&accounts[0]);
 
     //-Initial State-----------------------------------------------------------
     // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
@@ -1700,6 +1743,7 @@ pub fn test_process_initialize_mint2_freeze(accounts: &[AccountInfo; 1], instruc
 /// instruction_data[33]     // Freeze Authority Exists? 0 for no freeze
 #[inline(never)]
 pub fn test_process_initialize_mint2_no_freeze(accounts: &[AccountInfo; 1], instruction_data: &[u8; 34]) -> ProgramResult {
+    cheatcode_is_mint(&accounts[0]);
 
     //-Initial State-----------------------------------------------------------
     // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
@@ -1747,6 +1791,11 @@ pub fn test_process_initialize_mint2_no_freeze(accounts: &[AccountInfo; 1], inst
 fn test_process_initialize_multisig(accounts: &[AccountInfo; 5], instruction_data: &[u8; 1]) -> ProgramResult {
                                                           // ^ FIXME: totally arbitrary for the tests
     // TODO: requires accounts[..] are all valid ptrs
+    cheatcode_is_multisig(&accounts[0]);
+    cheatcode_is_rent(&accounts[1]);
+    // cheatcode_is_account(&accounts[2]); // Signer
+    // cheatcode_is_account(&accounts[3]); // Signer
+    // cheatcode_is_account(&accounts[4]); // Signer
 
     //-Initial State-----------------------------------------------------------
     let multisig_already_initialised = get_multisig(&accounts[0]).is_initialized();
@@ -1808,6 +1857,9 @@ fn test_process_approve(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8])
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
+    cheatcode_is_account(&accounts[0]); // Source Account
+    cheatcode_is_account(&accounts[1]); // Delegate
+    cheatcode_is_account(&accounts[2]); // Owner
 
     //-Initial State-----------------------------------------------------------
     let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
@@ -1900,6 +1952,8 @@ fn test_process_revoke(accounts: &[AccountInfo; 2]) -> ProgramResult {
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
+    cheatcode_is_account(&accounts[0]); // Source Account
+    cheatcode_is_account(&accounts[1]); // Owner
 
     //-Initial State-----------------------------------------------------------
     let src_initialised = get_account(&accounts[0]).is_initialized();
@@ -1998,6 +2052,12 @@ fn test_process_set_authority(accounts: &[AccountInfo; 2], instruction_data: &[u
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
+    // accounts[0] can be either Account or Mint based on its data_len
+    // accounts[1] is Authority
+    // Note: We cannot determine the type at compile time, so we call both cheatcodes
+    cheatcode_is_account(&accounts[0]); // Could be Account
+    cheatcode_is_mint(&accounts[0]);     // Could be Mint
+    cheatcode_is_account(&accounts[1]); // Authority
 
     //-Initial State-----------------------------------------------------------
     let src_initialised = get_account(&accounts[0]).is_initialized();
@@ -2336,6 +2396,9 @@ fn test_process_freeze_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
+    cheatcode_is_account(&accounts[0]);
+    cheatcode_is_mint(&accounts[1]);
+    cheatcode_is_account(&accounts[2]);
 
     //-Initial State-----------------------------------------------------------
     let src_initialised = get_account(&accounts[0]).is_initialized();
@@ -2442,6 +2505,9 @@ fn test_process_thaw_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
+    cheatcode_is_account(&accounts[0]);
+    cheatcode_is_mint(&accounts[1]);
+    cheatcode_is_account(&accounts[2]);
 
     //-Initial State-----------------------------------------------------------
     let src_initialised = get_account(&accounts[0]).is_initialized();
@@ -2551,6 +2617,10 @@ fn test_process_approve_checked(accounts: &[AccountInfo; 4], instruction_data: &
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
+    cheatcode_is_account(&accounts[0]); // Source Account
+    cheatcode_is_mint(&accounts[1]);    // Expected Mint
+    cheatcode_is_account(&accounts[2]); // Delegate
+    cheatcode_is_account(&accounts[3]); // Owner
 
     //-Initial State-----------------------------------------------------------
     let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
@@ -2654,6 +2724,9 @@ fn test_process_mint_to_checked(accounts: &[AccountInfo; 3], instruction_data: &
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
+    cheatcode_is_mint(&accounts[0]);
+    cheatcode_is_account(&accounts[1]);
+    cheatcode_is_account(&accounts[2]);
 
     //-Initial State-----------------------------------------------------------
     let initial_supply = get_mint(&accounts[0]).supply();
@@ -2781,6 +2854,7 @@ fn test_process_sync_native(accounts: &[AccountInfo; 1]) -> ProgramResult {
     use pinocchio_token_interface::program;
 
     // TODO: requires accounts[..] are all valid ptrs
+    cheatcode_is_account(&accounts[0]);
 
     //-Initial State-----------------------------------------------------------
     let src_owner = accounts[0].owner();
@@ -2823,6 +2897,10 @@ fn test_process_initialize_multisig2(accounts: &[AccountInfo; 4], instruction_da
                                                            // ^ FIXME: totally arbitrary for the tests
 
     // TODO: requires accounts[..] are all valid ptrs
+    cheatcode_is_multisig(&accounts[0]);
+    // cheatcode_is_account(&accounts[1]); // Signer
+    // cheatcode_is_account(&accounts[2]); // Signer
+    // cheatcode_is_account(&accounts[3]); // Signer
 
     //-Initial State-----------------------------------------------------------
     let multisig_already_initialised = get_multisig(&accounts[0]).is_initialized();
@@ -2877,6 +2955,7 @@ fn test_process_initialize_multisig2(accounts: &[AccountInfo; 4], instruction_da
 #[inline(never)]
 fn test_process_get_account_data_size(accounts: &[AccountInfo; 1]) -> ProgramResult {
     // TODO: requires accounts[..] are all valid ptrs
+    cheatcode_is_mint(&accounts[0]);
 
     //-Process Instruction-----------------------------------------------------
     let result = process_get_account_data_size(accounts);
@@ -2902,6 +2981,7 @@ fn test_process_get_account_data_size(accounts: &[AccountInfo; 1]) -> ProgramRes
 #[inline(never)]
 fn test_process_initialize_immutable_owner(accounts: &[AccountInfo; 1]) -> ProgramResult {
     // TODO: requires accounts[..] are all valid ptrs
+    cheatcode_is_account(&accounts[0]);
 
     //-Initial State-----------------------------------------------------------
     let src_initialised = get_account(&accounts[0]).is_initialized();
@@ -2925,6 +3005,7 @@ fn test_process_initialize_immutable_owner(accounts: &[AccountInfo; 1]) -> Progr
 #[inline(never)]
 fn test_process_amount_to_ui_amount(accounts: &[AccountInfo; 1], instruction_data: &[u8; 8]) -> ProgramResult {
     // TODO: requires accounts[..] are all valid ptrs
+    cheatcode_is_mint(&accounts[0]);
 
     //-Initial State-----------------------------------------------------------
 
@@ -2952,6 +3033,7 @@ fn test_process_amount_to_ui_amount(accounts: &[AccountInfo; 1], instruction_dat
 #[inline(never)]
 fn test_process_ui_amount_to_amount(accounts: &[AccountInfo; 1], instruction_data: &[u8]) -> ProgramResult {
     // TODO: requires accounts[..] are all valid ptrs
+    cheatcode_is_mint(&accounts[0]);
 
     // //-Initial State-----------------------------------------------------------
     let ui_amount = core::str::from_utf8(instruction_data);
@@ -3045,6 +3127,9 @@ fn test_process_withdraw_excess_lamports(accounts: &[AccountInfo; 3]) -> Program
     use pinocchio_token_interface::program::ID;
 
     // TODO: requires accounts[..] are all valid ptrs
+    cheatcode_is_account(&accounts[0]); // Source Account
+    cheatcode_is_account(&accounts[1]); // Destination
+    cheatcode_is_account(&accounts[2]); // Authority
 
     //-Initial State-----------------------------------------------------------
     let src_data_len = accounts[0].data_len();
