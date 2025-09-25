@@ -1239,7 +1239,7 @@ pub fn test_process_transfer_checked(accounts: &[AccountInfo; 4], instruction_da
     } else if get_account(&accounts[0]).account_state().unwrap() == account_state::AccountState::Frozen {
         assert_eq!(result, Err(ProgramError::Custom(17)));
         return result;
-    } else if get_account(&accounts[0]).account_state().unwrap() == account_state::AccountState::Frozen {
+    } else if accounts[0] != accounts[2] && get_account(&accounts[2]).account_state().unwrap() == account_state::AccountState::Frozen {
         assert_eq!(result, Err(ProgramError::Custom(17)));
         return result;
     }  else if src_initial_amount < amount {
