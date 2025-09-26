@@ -44,33 +44,13 @@ jobs:
       - name: "Set up nix shell"
         uses: rrbutani/use-nix-shell-action@v1
         with:
-          flakes: nixpkgs#hello,nixpkgs#docker,github:runtimeverification/stable-mir-json/${{ env.smir }}
-      - name: "Use things from nix shell"
-        run: |
-          hello
-          command -v docker
-          which stable_mir_json
+          flakes: github:runtimeverification/stable-mir-json/${{ inputs.smir }}
+
       - name: "Build with stable_mir_json"      
         run: |
           cd p-token
           RUSTC=stable_mir_json cargo build --features runtime-verification
 
-      # - name: "Test nix action"
-      #   uses: workflow/nix-shell-action@v3
-      #   with:
-      #     flakes: nixpkgs#hello,nixpkgs#docker
-      #     script: |
-      #       hello
-      #       command -v docker
-
-      # - name: "Build with stable_mir_json"
-      #   uses: workflow/nix-shell-action@v3
-      #   with:
-      #     flakes: github:runtimeverification/stable-mir-json/${{ env.smir }}
-      #     script: |
-      #       which stable_mir_json
-      #       cd p-token
-      #       RUSTC=stable_mir_json cargo build --features runtime-verification
       - name: "Store SMIR JSON files"
         uses: actions/upload-artifact@v4
         with:
@@ -88,8 +68,8 @@ jobs:
       - name: "Create Proof Array"
         id: split
         run: |
-          echo "proofs = '${{ env.proofs }}'"
-          echo "matrix=${{ env.proofs }}" >> $GITHUB_OUTPUT
+          echo "proofs = '${{ inputs.proofs }}'"
+          echo "matrix=${{ inputs.proofs }}" >> $GITHUB_OUTPUT
 
   run_proof:
     name: "Link SMIR and Run Proofs"
@@ -108,40 +88,39 @@ jobs:
       - name: debug matrix and docker image
         run: |
           echo "This is proof ${{ matrix.proof }}"
-          echo "Running with docker image runtimeverificationinc/kmir:${{ env.kmir }}"
-      - name: Fail
-        run: exit 1
-      # - name: "Checkout"
-      #   uses: actions/checkout@v4
+          echo "Running with docker image runtimeverificationinc/kmir:${{ inputs.kmir }}"
 
-      # - name: "Set up Docker host"
-      #   run: |
-      #     docker run --rm --detach \
-      #       --user github-user \
-      #       -v $PWD:/workdir --workdir /workdir \
-      #       --name "${RUNNER_NAME}" \
-      #       runtimeverificationinc/kmir:${{ inputs.kmir }}
-      #     sleep 10
+      - name: "Checkout"
+        uses: actions/checkout@v4
 
-      # - name: "Get SMIR Files"
-      #   uses: actions/download-artifact@v5
-      #   with:
-      #     name: p-token.smir
-      #     path: p-token/test-properties/artefacts/
+      - name: "Set up Docker host"
+        run: |
+          docker run --rm --detach \
+            --user github-user \
+            -v $PWD:/workdir --workdir /workdir \
+            --name "${RUNNER_NAME}" \
+            runtimeverificationinc/kmir:${{ inputs.kmir }}
+          sleep 10
 
-      # - name: "Link SMIR Files"
-      #   run: |
-      #     docker exec --user github-user --workdir /workdir/p-token/test-properties/artefacts/ "${RUNNER_NAME}" \
-      #       bash -c 'kmir link -o p-token.smir.json *.smir.json'
+      - name: "Get SMIR Files"
+        uses: actions/download-artifact@v5
+        with:
+          name: p-token.smir
+          path: p-token/test-properties/artefacts/
 
-      # - name: "Run Proof ${{ matrix.proof }} with default proof settings"
-      #   run: |
-      #     docker exec --user github-user --workdir /workdir/p-token/test-properties/ "${RUNNER_NAME}" \
-      #       ./run-proofs.sh ${{ matrix.proof }}'
+      - name: "Link SMIR Files"
+        run: |
+          docker exec --user github-user --workdir /workdir/p-token/test-properties/artefacts/ "${RUNNER_NAME}" \
+            bash -c 'kmir link -o p-token.smir.json *.smir.json'
 
-      # - name: "Shut down docker image"
-      #   if: always
-      #   run: |
-      #     docker stop ${RUNNER_NAME}
-      #     sleep 5
-      #     docker rm -f ${RUNNER_NAME}
+      - name: "Run Proof ${{ matrix.proof }} with default proof settings"
+        run: |
+          docker exec --user github-user --workdir /workdir/p-token/test-properties/ "${RUNNER_NAME}" \
+            ./run-proofs.sh ${{ matrix.proof }}'
+
+      - name: "Shut down docker image"
+        if: always()
+        run: |
+          docker stop ${RUNNER_NAME}
+          sleep 5
+          docker rm -f ${RUNNER_NAME}
