@@ -83,12 +83,12 @@ jobs:
       matrix:
         proof: ${{ fromJSON(needs.prepare_matrix.outputs.proofs) }}
     env:
-      RUNNER_NAME: "kmir-${{ github.sha }}"
+      KMIR_CONTAINER_NAME: "kmir-${{ github.sha }}"
     steps:
       - name: debug matrix and docker image
         run: |
           echo "This is proof ${{ matrix.proof }}"
-          echo "Running with docker image runtimeverificationinc/kmir:${{ inputs.kmir }}"
+          echo "Running with $KMIR_CONTAINER_NAME, docker image runtimeverificationinc/kmir:${{ inputs.kmir }}"
 
       - name: "Checkout"
         uses: actions/checkout@v4
@@ -98,7 +98,7 @@ jobs:
           docker run --rm --detach \
             --user github-user \
             -v $PWD:/workdir --workdir /workdir \
-            --name "${RUNNER_NAME}" \
+            --name "${KMIR_CONTAINER_NAME}" \
             runtimeverificationinc/kmir:${{ inputs.kmir }}
           sleep 10
 
@@ -110,17 +110,17 @@ jobs:
 
       - name: "Link SMIR Files"
         run: |
-          docker exec --user github-user --workdir /workdir/p-token/test-properties/artefacts/ "${RUNNER_NAME}" \
+          docker exec --user github-user --workdir /workdir/p-token/test-properties/artefacts/ "${KMIR_CONTAINER_NAME}" \
             bash -c 'kmir link -o p-token.smir.json *.smir.json'
 
       - name: "Run Proof ${{ matrix.proof }} with default proof settings"
         run: |
-          docker exec --user github-user --workdir /workdir/p-token/test-properties/ "${RUNNER_NAME}" \
+          docker exec --user github-user --workdir /workdir/p-token/test-properties/ "${KMIR_CONTAINER_NAME}" \
             ./run-proofs.sh ${{ matrix.proof }}'
 
       - name: "Shut down docker image"
         if: always()
         run: |
-          docker stop ${RUNNER_NAME}
+          docker stop ${KMIR_CONTAINER_NAME}
           sleep 5
-          docker rm -f ${RUNNER_NAME}
+          docker rm -f ${KMIR_CONTAINER_NAME}
