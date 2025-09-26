@@ -27,75 +27,110 @@ on:
         type: boolean
         default: true
 
+# DEBUGGING NEW WORKFLOW, RESTORE THIS FILE AFTER IT IS FINISHED
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  smir: ""
+  kmir: "p-token-f8c403f"
+  proofs: "['test_ptoken_domain_data', 'this_will_fail']"
+
 jobs:
-  test_js:
-    name: Test JS client
+  compile:
+    name: "Compile P-Token to SMIR JSON"
     runs-on: ubuntu-latest
     steps:
-      - name: Git Checkout
+      - name: "Git Checkout"
         uses: actions/checkout@v4
 
-      - name: Setup Environment
-        uses: ./.github/actions/setup
+      - name: "Provide nightly Rust" # https://github.com/rust-lang/rustup/issues/3409
+        uses: dtolnay/rust-toolchain@master
         with:
-          cargo-cache-key: cargo-programs
-          solana: true
+          toolchain: nightly-2024-11-29 # Hardcoded version for stable-mir-json. TODO can we use nix?
 
-      - name: Format JS Client
-        run: pnpm clients:js:format
+      - name: "Provide Nix"
+        uses: cachix/install-nix-action@v18
 
-      - name: Lint JS Client
-        run: pnpm clients:js:lint
+      - name: "Build with stable_mir_json"
+        uses: workflow/nix-shell-action@v3
+        with:
+          flakes: github:runtimeverification/stable-mir-json/${{ env.smir }}
+          script: |
+            cd p-token
+            RUSTC=stable_mir_json cargo build --features runtime-verification
+      - name: "Store SMIR JSON files"
+        uses: actions/upload-artifact@v4
+        with:
+          name: p-token.smir
+          path: ./target/debug/deps/*.smir.json
+          if-no-files-found: error
+          retention-days: 1 # only important during workflow run
 
-      - name: Build Programs
-        run: pnpm programs:build
-
-      - name: Test JS Client
-        run: pnpm clients:js:test
-
-  publish_js:
-    name: Publish JS client
+  prepare_matrix:
+    name: "Prepare proof matrix"
     runs-on: ubuntu-latest
-    needs: test_js
-    permissions:
-      contents: write
+    outputs:
+      proofs: ${{ steps.split.outputs.matrix }}
     steps:
-      - name: Git Checkout
-        uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.ANZA_TEAM_PAT }}
-
-      - name: Setup Environment
-        uses: ./.github/actions/setup
-
-      - name: Ensure NPM_TOKEN variable is set
-        env:
-          token: ${{ secrets.NPM_TOKEN }}
-        if: ${{ env.token == '' }}
+      - name: "Create Proof Array"
         run: |
-          echo "The NPM_TOKEN secret variable is not set"
-          echo "Go to \"Settings\" -> \"Secrets and variables\" -> \"Actions\" -> \"New repository secret\"."
-          exit 1
+          echo "proofs = '${{ env.proofs }}'"
+          echo "matrix=${{ env.proofs }}" >> $GITHUB_OUTPUT
 
-      - name: NPM Authentication
-        run: pnpm config set '//registry.npmjs.org/:_authToken' "${NODE_AUTH_TOKEN}"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-
-      - name: Set Git Author
+  run_proof:
+    name: "Link SMIR and Run Proofs"
+    needs: 
+      - compile
+      - prepare_matrix
+    runs-on: ubuntu-latest
+    # container:
+    #   image: runtimeverificationinc/kmir:${{ inputs.kmir }}
+    strategy:
+      matrix:
+        proof: ${{ fromJSON(needs.prepare_matrix.outputs.proofs) }}
+    env:
+      RUNNER_NAME: "kmir-${{ github.sha }}"
+    steps:
+      - name: debug matrix and docker image
         run: |
-          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config --global user.name "github-actions[bot]"
+          echo "This is proof ${{ matrix.proof }}"
+          echo "Running with docker image runtimeverificationinc/kmir:${{ env.kmir }}"
+      - name: Fail
+        run: exit 1
+      # - name: "Checkout"
+      #   uses: actions/checkout@v4
 
-      - name: Publish JS Client
-        id: publish
-        run: pnpm clients:js:publish ${{ inputs.level }} ${{ inputs.tag }}
+      # - name: "Set up Docker host"
+      #   run: |
+      #     docker run --rm --detach \
+      #       --user github-user \
+      #       -v $PWD:/workdir --workdir /workdir \
+      #       --name "${RUNNER_NAME}" \
+      #       runtimeverificationinc/kmir:${{ inputs.kmir }}
+      #     sleep 10
 
-      - name: Push Commit and Tag
-        run: git push origin --follow-tags
+      # - name: "Get SMIR Files"
+      #   uses: actions/download-artifact@v5
+      #   with:
+      #     name: p-token.smir
+      #     path: p-token/test-properties/artefacts/
 
-      - name: Create GitHub release
-        if: github.event.inputs.create_release == 'true'
-        uses: ncipollo/release-action@v1
-        with:
-          tag: js@v${{ steps.publish.outputs.new_version }}
+      # - name: "Link SMIR Files"
+      #   run: |
+      #     docker exec --user github-user --workdir /workdir/p-token/test-properties/artefacts/ "${RUNNER_NAME}" \
+      #       bash -c 'kmir link -o p-token.smir.json *.smir.json'
+
+      # - name: "Run Proof ${{ matrix.proof }} with default proof settings"
+      #   run: |
+      #     docker exec --user github-user --workdir /workdir/p-token/test-properties/ "${RUNNER_NAME}" \
+      #       ./run-proofs.sh ${{ matrix.proof }}'
+
+      # - name: "Shut down docker image"
+      #   if: always
+      #   run: |
+      #     docker stop ${RUNNER_NAME}
+      #     sleep 5
+      #     docker rm -f ${RUNNER_NAME}
