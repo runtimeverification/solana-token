@@ -86,6 +86,7 @@ jobs:
       proofs: ${{ steps.split.outputs.matrix }}
     steps:
       - name: "Create Proof Array"
+        id: split
         run: |
           echo "proofs = '${{ env.proofs }}'"
           echo "matrix=${{ env.proofs }}" >> $GITHUB_OUTPUT
