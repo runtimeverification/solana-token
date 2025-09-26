@@ -6,8 +6,8 @@ on:
       proofs:
         description: Start Symbols for proofs to run
         required: true
-        type: string # TODO how to use an array?
-        default: "test_ptoken_domain_data"
+        type: string
+        default: "['test_ptoken_domain_data', 'this_will_fail']"
       kmir:
         description: KMIR to work with (must exist as a docker image tag, optional)
         required: false
@@ -55,15 +55,25 @@ jobs:
           if-no-files-found: error
           retention-days: 1 # only important during workflow run
 
-  run:
+  prepare_matrix:
+    name: "Prepare proof matrix"
+    runs-on: ubuntu-latest
+    outputs:
+      proofs: ${{ steps.split.outputs.matrix }}
+    steps:
+      - name: "Create Proof Array"
+        run: |
+          echo "matrix=${{ inputs.proofs }}" >> $GITHUB_OUTPUT
+
+  run_proof:
     name: "Link SMIR and Run Proofs"
-    needs: compile
+    needs: compile, prepare_matrix
     runs-on: ubuntu-latest
     # container:
     #   image: runtimeverificationinc/kmir:${{ inputs.kmir }}
     strategy:
       matrix:
-        proof: ${{ inputs.proofs }}
+        proof: ${{ fromJSON(needs.prepare_matrix.outputs.proofs) }}
     env:
       - RUNNER_NAME: "kmir-${{ github.sha }}"
     steps:
