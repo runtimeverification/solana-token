@@ -39,7 +39,7 @@ jobs:
           toolchain: nightly-2024-11-29 # Hardcoded version for stable-mir-json. TODO can we use nix?
 
       - name: "Provide Nix"
-        uses: cachix/install-nix-action@v31
+        uses: cachix/install-nix-action@v30
 
       - name: "Test nix action"
         uses: workflow/nix-shell-action@v3
