@@ -59,6 +59,7 @@ jobs:
         with:
           flakes: github:runtimeverification/stable-mir-json/${{ env.smir }}
           script: |
+            which stable_mir_json
             cd p-token
             RUSTC=stable_mir_json cargo build --features runtime-verification
       - name: "Store SMIR JSON files"
