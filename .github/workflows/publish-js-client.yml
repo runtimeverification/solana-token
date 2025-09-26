@@ -3,29 +3,21 @@ name: Publish JS Client
 on:
   workflow_dispatch:
     inputs:
-      level:
-        description: Version level
-        required: true
-        default: patch
-        type: choice
-        options:
-          - patch
-          - minor
-          - major
-          - prerelease
-          - prepatch
-          - preminor
-          - premajor
-      tag:
-        description: NPM Tag (and preid for pre-releases)
+      proofs:
+        description: Start Symbols for proofs to run
         required: true
         type: string
-        default: latest
-      create_release:
-        description: Create a GitHub release
-        required: true
-        type: boolean
-        default: true
+        default: "['test_ptoken_domain_data', 'this_will_fail']"
+      kmir:
+        description: KMIR to work with (must exist as a docker image tag, optional)
+        required: false
+        type: string
+        default: p-token-f8c403f # hard-wired now, retrieve from submodule later
+      smir:
+        description: Stable MIR JSON to work with (commit hash, optional)
+        required: false
+        type: string
+        default:  # empty = master
 
 # DEBUGGING NEW WORKFLOW, RESTORE THIS FILE AFTER IT IS FINISHED
 
