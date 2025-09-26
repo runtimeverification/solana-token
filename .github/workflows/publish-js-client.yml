@@ -93,8 +93,9 @@ jobs:
       - name: "Checkout"
         uses: actions/checkout@v4
 
-      - name: "Set up Docker host"
+      - name: "Set up Docker Host"
         run: |
+          chmod a+rw $PWD/p-token/test-properties/artefacts
           docker run --rm --detach \
             -v $PWD:/workdir --workdir /workdir \
             --name "${KMIR_CONTAINER_NAME}" \
