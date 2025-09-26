@@ -37,16 +37,18 @@ jobs:
           toolchain: nightly-2024-11-29 # Hardcoded version for stable-mir-json. TODO can we use nix?
 
       - name: "Provide Nix"
-        uses: cachix/install-nix-action@v18
+        uses: cachix/install-nix-action@v30
 
-      - name: "Build with stable_mir_json"
-        uses: cachix/nix-shell-action@v3
+      - name: "Set up nix shell"
+        uses: rrbutani/use-nix-shell-action@v1
         with:
           flakes: github:runtimeverification/stable-mir-json/${{ inputs.smir }}
-          script: |
-            cd p-token
-            # build p-token SMIR JSON files
-            RUSTC=stable_mir_json cargo build --features runtime-verification
+
+      - name: "Build with stable_mir_json"      
+        run: |
+          cd p-token
+          RUSTC=stable_mir_json cargo build --features runtime-verification
+
       - name: "Store SMIR JSON files"
         uses: actions/upload-artifact@v4
         with:
@@ -62,12 +64,16 @@ jobs:
       proofs: ${{ steps.split.outputs.matrix }}
     steps:
       - name: "Create Proof Array"
+        id: split
         run: |
+          echo "proofs = '${{ inputs.proofs }}'"
           echo "matrix=${{ inputs.proofs }}" >> $GITHUB_OUTPUT
 
   run_proof:
     name: "Link SMIR and Run Proofs"
-    needs: compile, prepare_matrix
+    needs: 
+      - compile
+      - prepare_matrix
     runs-on: ubuntu-latest
     # container:
     #   image: runtimeverificationinc/kmir:${{ inputs.kmir }}
@@ -75,42 +81,60 @@ jobs:
       matrix:
         proof: ${{ fromJSON(needs.prepare_matrix.outputs.proofs) }}
     env:
-      - RUNNER_NAME: "kmir-${{ github.sha }}"
+      KMIR_CONTAINER_NAME: "kmir-${{ github.sha }}"
     steps:
-      - name: "Checkout"
-        uses: actions/checkout@v4
-
-      - name: "Set up Docker host"
+      - name: debug matrix and docker image
         run: |
+          echo "This is proof ${{ matrix.proof }}"
+          echo "Running with $KMIR_CONTAINER_NAME, docker image runtimeverificationinc/kmir:${{ inputs.kmir }}"
+
+      - name: "Set up Docker Host"
+        run: |
+          mkdir -p $PWD/artefacts
+          chmod a+rwx $PWD/artefacts
           docker run --rm --detach \
-            --user github-user \
             -v $PWD:/workdir --workdir /workdir \
-            --name "${RUNNER_NAME}" \
-            runtimeverificationinc/kmir:${{ inputs.kmir }} 
+            --name "${KMIR_CONTAINER_NAME}" \
+            runtimeverificationinc/kmir:${{ inputs.kmir }} \
+            sleep 3600
           sleep 10
 
       - name: "Get SMIR Files"
         uses: actions/download-artifact@v5
         with:
           name: p-token.smir
-          path: p-token/test-properties/artefacts/
+          path: artefacts/
 
       - name: "Link SMIR Files"
         run: |
-          docker exec --user github-user --workdir /workdir/p-token/test-properties/artefacts/ "${RUNNER_NAME}" \
+          docker exec --workdir /workdir/artefacts/ "${KMIR_CONTAINER_NAME}" \
             bash -c 'kmir link -o p-token.smir.json *.smir.json'
 
-      - name: "Run Proof ${{ matrix.proof }} with default proof settings"
+      - name: "Run Proof ${{ matrix.proof }} and store resulting tree"
         run: |
-          docker exec --user github-user --workdir /workdir/p-token/test-properties/ "${RUNNER_NAME}" \
-            ./run-proofs.sh ${{ matrix.proof }}'
+          timeout 3600 \
+            docker exec --workdir /workdir "${KMIR_CONTAINER_NAME}" \
+              kmir prove-rs --smir artefacts/p-token.smir.json \
+              --start-symbol 'pinocchio_token_program::entrypoint::${{ matrix.proof }}' \
+              --verbose \
+              --max-iterations 100 \
+              --proof-dir artefacts/proof
+          docker exec --workdir /workdir "${KMIR_CONTAINER_NAME}" \
+            kmir show --full-printer --proof-dir artefacts/proof \
+            'p-token.smir.pinocchio_token_program::entrypoint::${{ matrix.proof }}' \
+            > artefacts/proof/${{ matrix.proof }}-full.txt
+
+      - name: "Save proof tree and smir"
+        uses: actions/upload-artifact@v4
+        with:
+          name: $artefacts-{{ matrix.proof }}
+          path: |
+            artefacts/p-token.smir.json
+            artefacts/proof/*-full.txt
 
       - name: "Shut down docker image"
-        if: always
+        if: always()
         run: |
-          docker stop ${RUNNER_NAME}
+          docker stop ${KMIR_CONTAINER_NAME}
           sleep 5
-          docker rm -f ${RUNNER_NAME}
-
-
-
+          docker rm -f ${KMIR_CONTAINER_NAME}
