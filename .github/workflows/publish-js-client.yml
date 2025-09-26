@@ -90,13 +90,10 @@ jobs:
           echo "This is proof ${{ matrix.proof }}"
           echo "Running with $KMIR_CONTAINER_NAME, docker image runtimeverificationinc/kmir:${{ inputs.kmir }}"
 
-      - name: "Checkout"
-        uses: actions/checkout@v4
-
       - name: "Set up Docker Host"
         run: |
-          mkdir -p $PWD/p-token/test-properties/artefacts
-          chmod a+rwx $PWD/p-token/test-properties/artefacts
+          mkdir -p $PWD/artefacts
+          chmod a+rwx $PWD/artefacts
           docker run --rm --detach \
             -v $PWD:/workdir --workdir /workdir \
             --name "${KMIR_CONTAINER_NAME}" \
@@ -108,17 +105,34 @@ jobs:
         uses: actions/download-artifact@v5
         with:
           name: p-token.smir
-          path: p-token/test-properties/artefacts/
+          path: artefacts/
 
       - name: "Link SMIR Files"
         run: |
-          docker exec --workdir /workdir/p-token/test-properties/artefacts/ "${KMIR_CONTAINER_NAME}" \
+          docker exec --workdir /workdir/artefacts/ "${KMIR_CONTAINER_NAME}" \
             bash -c 'kmir link -o p-token.smir.json *.smir.json'
 
-      - name: "Run Proof ${{ matrix.proof }} with default proof settings"
+      - name: "Run Proof ${{ matrix.proof }} and store resulting tree"
         run: |
-          docker exec --workdir /workdir/p-token/test-properties/ "${KMIR_CONTAINER_NAME}" \
-            ./run-proofs.sh ${{ matrix.proof }}
+          timeout 3600 \
+            docker exec --workdir /workdir "${KMIR_CONTAINER_NAME}" \
+              kmir prove-rs --smir artefacts/p-token.smir.json \
+              --start-symbol 'pinocchio_token_program::entrypoint::${{ matrix.proof }}' \
+              --verbose \
+              --max-iterations 100 \
+              --proof-dir artefacts/proof
+          docker exec --workdir /workdir "${KMIR_CONTAINER_NAME}" \
+            kmir show --full-printer --proof-dir artefacts/proof \
+            'p-token.smir.pinocchio_token_program::entrypoint::${{ matrix.proof }}' \
+            > artefacts/proof/${{ matrix.proof }}-full.txt
+
+      - name: "Save proof tree and smir"
+        uses: actions/upload-artifact@v4
+        with:
+          name: $artefacts-{{ matrix.proof }}
+          path: |
+            artefacts/p-token.smir.json
+            artefacts/proof/*-full.txt
 
       - name: "Shut down docker image"
         if: always()
