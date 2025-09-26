@@ -95,7 +95,8 @@ jobs:
 
       - name: "Set up Docker Host"
         run: |
-          chmod a+rw $PWD/p-token/test-properties/artefacts
+          mkdir -p $PWD/p-token/test-properties/artefacts
+          chmod a+rwx $PWD/p-token/test-properties/artefacts
           docker run --rm --detach \
             -v $PWD:/workdir --workdir /workdir \
             --name "${KMIR_CONTAINER_NAME}" \
@@ -117,7 +118,7 @@ jobs:
       - name: "Run Proof ${{ matrix.proof }} with default proof settings"
         run: |
           docker exec --workdir /workdir/p-token/test-properties/ "${KMIR_CONTAINER_NAME}" \
-            ./run-proofs.sh ${{ matrix.proof }}'
+            ./run-proofs.sh ${{ matrix.proof }}
 
       - name: "Shut down docker image"
         if: always()
