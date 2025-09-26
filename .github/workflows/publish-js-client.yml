@@ -41,22 +41,37 @@ jobs:
       - name: "Provide Nix"
         uses: cachix/install-nix-action@v30
 
-      - name: "Test nix action"
-        uses: workflow/nix-shell-action@v3
+      - name: "Set up nix shell"
+        uses: rrbutani/use-nix-shell-action@v1
         with:
-          flakes: nixpkgs#hello,nixpkgs#docker
-          script: |
-            hello
-            command -v docker
+          devShell: .#default # this is the default
+          flakes: nixpkgs#hello,nixpkgs#docker,github:runtimeverification/stable-mir-json/${{ env.smir }}
+      - name: "Use things from nix shell"
+        run: |
+          hello
+          command -v docker
+          which stable_mir_json
+      - name: "Build with stable_mir_json"      
+        run: |
+          cd p-token
+          RUSTC=stable_mir_json cargo build --features runtime-verification
 
-      - name: "Build with stable_mir_json"
-        uses: workflow/nix-shell-action@v3
-        with:
-          flakes: github:runtimeverification/stable-mir-json/${{ env.smir }}
-          script: |
-            which stable_mir_json
-            cd p-token
-            RUSTC=stable_mir_json cargo build --features runtime-verification
+      # - name: "Test nix action"
+      #   uses: workflow/nix-shell-action@v3
+      #   with:
+      #     flakes: nixpkgs#hello,nixpkgs#docker
+      #     script: |
+      #       hello
+      #       command -v docker
+
+      # - name: "Build with stable_mir_json"
+      #   uses: workflow/nix-shell-action@v3
+      #   with:
+      #     flakes: github:runtimeverification/stable-mir-json/${{ env.smir }}
+      #     script: |
+      #       which stable_mir_json
+      #       cd p-token
+      #       RUSTC=stable_mir_json cargo build --features runtime-verification
       - name: "Store SMIR JSON files"
         uses: actions/upload-artifact@v4
         with:
