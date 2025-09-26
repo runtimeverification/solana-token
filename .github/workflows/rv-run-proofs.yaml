@@ -1,0 +1,106 @@
+name: RV Run Proofs
+
+on:
+  workflow_dispatch:
+    inputs:
+      proofs:
+        description: Start Symbols for proofs to run
+        required: true
+        type: string # TODO how to use an array?
+        default: "test_ptoken_domain_data"
+      kmir:
+        description: KMIR to work with (must exist as a docker image tag, optional)
+        required: false
+        type: string
+        default: p-token-f8c403f # hard-wired now, retrieve from submodule later
+      smir:
+        description: Stable MIR JSON to work with (commit hash, optional)
+        required: false
+        type: string
+        default:  # empty = master
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+
+jobs:
+  compile:
+    name: "Compile P-Token to SMIR JSON"
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Git Checkout"
+        uses: actions/checkout@v4
+
+      - name: "Provide nightly Rust" # https://github.com/rust-lang/rustup/issues/3409
+        uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: nightly-2024-11-29 # Hardcoded version for stable-mir-json. TODO can we use nix?
+
+      - name: "Provide Nix"
+        uses: cachix/install-nix-action@v18
+
+      - name: "Build with stable_mir_json"
+        uses: cachix/nix-shell-action@v3
+        with:
+          flakes: github:runtimeverification/stable-mir-json/${{ inputs.smir }}
+          script: |
+            cd p-token
+            # build p-token SMIR JSON files
+            RUSTC=stable_mir_json cargo build --features runtime-verification
+      - name: "Store SMIR JSON files"
+        uses: actions/upload-artifact@v4
+        with:
+          name: p-token.smir
+          path: ./target/debug/deps/*.smir.json
+          if-no-files-found: error
+          retention-days: 1 # only important during workflow run
+
+  run:
+    name: "Link SMIR and Run Proofs"
+    needs: compile
+    runs-on: ubuntu-latest
+    # container:
+    #   image: runtimeverificationinc/kmir:${{ inputs.kmir }}
+    strategy:
+      matrix:
+        proof: ${{ inputs.proofs }}
+    env:
+      - RUNNER_NAME: "kmir-${{ github.sha }}"
+    steps:
+      - name: "Checkout"
+        uses: actions/checkout@v4
+
+      - name: "Set up Docker host"
+        run: |
+          docker run --rm --detach \
+            --user github-user \
+            -v $PWD:/workdir --workdir /workdir \
+            --name "${RUNNER_NAME}" \
+            runtimeverificationinc/kmir:${{ inputs.kmir }} 
+          sleep 10
+
+      - name: "Get SMIR Files"
+        uses: actions/download-artifact@v5
+        with:
+          name: p-token.smir
+          path: p-token/test-properties/artefacts/
+
+      - name: "Link SMIR Files"
+        run: |
+          docker exec --user github-user --workdir /workdir/p-token/test-properties/artefacts/ "${RUNNER_NAME}" \
+            bash -c 'kmir link -o p-token.smir.json *.smir.json'
+
+      - name: "Run Proof ${{ matrix.proof }} with default proof settings"
+        run: |
+          docker exec --user github-user --workdir /workdir/p-token/test-properties/ "${RUNNER_NAME}" \
+            ./run-proofs.sh ${{ matrix.proof }}'
+
+      - name: "Shut down docker image"
+        if: always
+        run: |
+          docker stop ${RUNNER_NAME}
+          sleep 5
+          docker rm -f ${RUNNER_NAME}
+
+
+
