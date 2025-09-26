@@ -44,7 +44,6 @@ jobs:
       - name: "Set up nix shell"
         uses: rrbutani/use-nix-shell-action@v1
         with:
-          devShell: .#default # this is the default
           flakes: nixpkgs#hello,nixpkgs#docker,github:runtimeverification/stable-mir-json/${{ env.smir }}
       - name: "Use things from nix shell"
         run: |
