@@ -96,10 +96,10 @@ jobs:
       - name: "Set up Docker host"
         run: |
           docker run --rm --detach \
-            --user github-user \
             -v $PWD:/workdir --workdir /workdir \
             --name "${KMIR_CONTAINER_NAME}" \
-            runtimeverificationinc/kmir:${{ inputs.kmir }}
+            runtimeverificationinc/kmir:${{ inputs.kmir }} \
+            sleep 3600
           sleep 10
 
       - name: "Get SMIR Files"
@@ -110,12 +110,12 @@ jobs:
 
       - name: "Link SMIR Files"
         run: |
-          docker exec --user github-user --workdir /workdir/p-token/test-properties/artefacts/ "${KMIR_CONTAINER_NAME}" \
+          docker exec --workdir /workdir/p-token/test-properties/artefacts/ "${KMIR_CONTAINER_NAME}" \
             bash -c 'kmir link -o p-token.smir.json *.smir.json'
 
       - name: "Run Proof ${{ matrix.proof }} with default proof settings"
         run: |
-          docker exec --user github-user --workdir /workdir/p-token/test-properties/ "${KMIR_CONTAINER_NAME}" \
+          docker exec --workdir /workdir/p-token/test-properties/ "${KMIR_CONTAINER_NAME}" \
             ./run-proofs.sh ${{ matrix.proof }}'
 
       - name: "Shut down docker image"
