@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       proofs:
-        description: Start Symbols for proofs to run
+        description: Start symbols for proofs to run
         required: true
         type: string
         default: "['test_ptoken_domain_data', 'this_will_fail']"
