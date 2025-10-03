@@ -58,6 +58,14 @@ fn inner_process_instruction(
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
         }
+        // 21 - GetAccountDataSize
+        21 => {
+            test_process_get_account_data_size(
+                program_id,
+                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?,
+                instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
+            )
+        }
         // For all other instructions, just call the regular processor
         _ => {
             Processor::process(program_id, accounts, instruction_data)
@@ -85,6 +93,36 @@ fn test_process_transfer(
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 8] = instruction_data.last_chunk().unwrap();
+
+    //-Initial State-----------------------------------------------------------
+
+    //-Process Instruction-----------------------------------------------------
+    let result = Processor::process(program_id, accounts, instruction_data_with_discriminator);
+
+    //-Assert Postconditions---------------------------------------------------
+
+    // Ensure instruction_data was not mutated
+    assert_eq!(*instruction_data, instruction_data_with_discriminator[1..]);
+
+    result
+}
+
+/// program_id               // Token Program ID
+/// accounts[0]              // Mint Info
+/// instruction_data[0]      // Discriminator 21 (GetAccountDataSize)
+#[inline(never)]
+fn test_process_get_account_data_size(
+    program_id: &Pubkey,
+    accounts: &[AccountInfo; 1],
+    instruction_data: &[u8; 1],
+) -> ProgramResult {
+    // Set descriminator and program id to concrete value
+    cheatcode_set_descriminator(21, instruction_data);
+    cheatcode_set_program_id(program_id);
+
+    // Strip discriminator so instruction data is equivalent p-token harness
+    let instruction_data_with_discriminator = &instruction_data.clone();
+    let instruction_data: &[u8; 0] = instruction_data.last_chunk().unwrap();
 
     //-Initial State-----------------------------------------------------------
 
