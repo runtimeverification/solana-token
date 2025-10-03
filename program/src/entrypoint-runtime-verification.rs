@@ -32,6 +32,12 @@ fn cheatcode_set_descriminator(discriminator: u8, instruction_data: &[u8]) {
     assert_eq!(discriminator, instruction_data[0]);
 }
 
+/// A runtime verification cheatcode to set the program ID.
+/// TODO: Currently calling assert for concrete testing but needs backend support in K.
+fn cheatcode_set_program_id(program_id: &Pubkey) {
+    assert_eq!(program_id, &crate::id());
+}
+
 /// Inner instruction processor that dispatches to proof harnesses
 fn inner_process_instruction(
     program_id: &Pubkey,
@@ -74,7 +80,7 @@ fn test_process_transfer(
 ) -> ProgramResult {
     // Set descriminator and program id to concrete value
     cheatcode_set_descriminator(3, instruction_data);
-    // cheatcode_set_program_id(program_id);
+    cheatcode_set_program_id(program_id);
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
