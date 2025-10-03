@@ -1,12 +1,12 @@
 //! Program entrypoint for runtime verification proofs of original spl token implmentation
 
 use {
-    crate::processor::Processor,
+    crate::{processor::Processor, state::{Account, AccountState, Mint, Multisig}},
     solana_account_info::AccountInfo,
     solana_program_error::{ProgramError, ProgramResult},
     solana_program_pack::Pack,
     solana_pubkey::Pubkey,
-    spl_token_interface::{error::TokenError, state::Mint},
+    spl_token_interface::error::TokenError,
 };
 
 solana_program_entrypoint::entrypoint!(process_instruction);
@@ -41,6 +41,107 @@ impl MintWrapper {
 fn get_mint(account_info: &AccountInfo) -> MintWrapper {
     MintWrapper(Mint::unpack(&account_info.data.borrow()))
 }
+
+/// A wrapper struct as middleware so that the same functions called
+/// on the p-token Account are called on the spl Account. However,
+/// this means that fields have to be accessed through functions.
+struct AccountWrapper(Result<Account, ProgramError>);
+
+impl AccountWrapper {
+    fn is_initialized(&self) -> Result<bool, ProgramError> {
+        match &self.0 {
+            Ok(a) => Ok(a.state != AccountState::Uninitialized),
+            Err(e) => Err(e.clone()),
+        }
+    }
+
+    fn amount(&self) -> u64 {
+        self.0.as_ref().map(|a| a.amount).unwrap()
+    }
+
+    fn mint(&self) -> Pubkey {
+        self.0.as_ref().map(|a| a.mint).unwrap()
+    }
+
+    fn owner(&self) -> Pubkey {
+        self.0.as_ref().map(|a| a.owner).unwrap()
+    }
+
+    fn delegate(&self) -> Option<&Pubkey> {
+        match self.0.as_ref().unwrap().delegate.as_ref() {
+            solana_program_option::COption::None => None,
+            solana_program_option::COption::Some(delegate) => Some(delegate),
+        }
+    }
+
+    fn delegated_amount(&self) -> u64 {
+        self.0.as_ref().map(|a| a.delegated_amount).unwrap()
+    }
+
+    fn account_state(&self) -> Result<AccountState, ProgramError> {
+        self.0.as_ref().map(|a| a.state).map_err(|e| e.clone())
+    }
+
+    fn is_native(&self) -> bool {
+        self.0.as_ref().map(|a| a.is_native.is_some()).unwrap()
+    }
+}
+
+/// So the AccountWrapper derefs the wrapped Account
+impl core::ops::Deref for AccountWrapper {
+    type Target = Result<Account, ProgramError>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+/// Helper function from p-token must be implemented on AccountWrapper
+fn get_account(account_info: &AccountInfo) -> AccountWrapper {
+    AccountWrapper(Account::unpack(&account_info.data.borrow()))
+}
+
+/// A wrapper struct as middleware so that the same functions called
+/// on the p-token Multisig are called on the spl Multisig. However,
+/// this means that fields have to be accessed through functions.
+struct MultisigWrapper(Result<Multisig, ProgramError>);
+
+impl MultisigWrapper {
+    fn is_initialized(&self) -> Result<bool, ProgramError> {
+        match &self.0 {
+            Ok(m) => Ok(m.is_initialized),
+            Err(e) => Err(e.clone()),
+        }
+    }
+
+    fn signers(&self) -> &[Pubkey] {
+        match &self.0 {
+            Ok(m) => &m.signers[..],
+            Err(_) => &[],
+        }
+    }
+
+    fn m(&self) -> u8 {
+        self.0.as_ref().map(|m| m.m).unwrap_or(0) // FIXME: Change to stright unwrap?
+    }
+}
+
+/// So the MultisigWrapper derefs the wrapped Multisig
+impl core::ops::Deref for MultisigWrapper {
+    type Target = Result<Multisig, ProgramError>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
+/// Helper function from p-token must be implemented on MultisigWrapper
+fn get_multisig(account_info: &AccountInfo) -> MultisigWrapper {
+    MultisigWrapper(Multisig::unpack(&account_info.data.borrow()))
+}
+
+// TODO: Not sure if these are needed since there is no UB like p-token
+// fn cheatcode_is_account(_: &AccountInfo) {}
+// fn cheatcode_is_mint(_: &AccountInfo) {}
+// fn cheatcode_is_multisig(_: &AccountInfo) {}
 
 /// A runtime verification cheatcode to set the instruction discriminator.
 /// TODO: Currently calling assert for concrete testing but needs backend support in K.
@@ -102,6 +203,8 @@ fn test_process_transfer(
     accounts: &[AccountInfo], // TODO Daniel: Change type
     instruction_data: &[u8; 9],
 ) -> ProgramResult {
+    use spl_token_interface::state::AccountState;
+
     // Set descriminator and program id to concrete value
     cheatcode_set_descriminator(3, instruction_data);
     cheatcode_set_program_id(program_id);
@@ -110,12 +213,190 @@ fn test_process_transfer(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 8] = instruction_data.last_chunk().unwrap();
 
+    // cheatcode_is_account(&accounts[0]);
+    // cheatcode_is_account(&accounts[1]);
+    // #[cfg(not(feature="multisig"))]
+    // cheatcode_is_account(&accounts[2]);
+    // #[cfg(feature="multisig")]
+    // cheatcode_is_multisig(&accounts[2]);
+
     //-Initial State-----------------------------------------------------------
+    let amount = u64::from_le_bytes(*instruction_data);
+    let src_initialised = get_account(&accounts[0]).is_initialized();
+    let dst_initialised = get_account(&accounts[1]).is_initialized();
+    let src_initial_amount = get_account(&accounts[0]).amount();
+    let dst_initial_amount = get_account(&accounts[1]).amount();
+    let src_initial_lamports = accounts[0].lamports(); // TODO Daniel: CHANGE .lamports to lamports()
+    let dst_initial_lamports = accounts[1].lamports(); // TODO Daniel: CHANGE .lamports to lamports()
+    let src_owner = get_account(&accounts[0]).owner(); // TODO Daniel: CHANGE .owner to owner()
+    let old_src_delgate = get_account(&accounts[0]).delegate().cloned();
+    let old_src_delgated_amount = get_account(&accounts[0]).delegated_amount();
+    // #[cfg(feature="multisig")]
+    let multisig_is_initialised = get_multisig(&accounts[2]).is_initialized();
 
     //-Process Instruction-----------------------------------------------------
     let result = Processor::process(program_id, accounts, instruction_data_with_discriminator);
 
     //-Assert Postconditions---------------------------------------------------
+    if instruction_data.len() < 8 {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if accounts.len() < 3 {
+        assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
+        return result;
+    } else if src_initialised.is_err() {
+        assert_eq!(result, Err(ProgramError::InvalidAccountData));
+        return result;
+    }  else if !src_initialised.unwrap() {
+        assert_eq!(result, Err(ProgramError::UninitializedAccount));
+        return result;
+    } else if accounts[0].key != accounts[1].key && dst_initialised.is_err() { // TODO Daniel: CHANGE comparing keys
+        assert_eq!(result, Err(ProgramError::InvalidAccountData));
+        return result;
+    } else if accounts[0].key != accounts[1].key && !dst_initialised.unwrap() { // TODO Daniel: CHANGE comparing keys
+        assert_eq!(result, Err(ProgramError::UninitializedAccount));
+        return result;
+    } else if get_account(&accounts[0]).account_state().unwrap() == AccountState::Frozen {
+        assert_eq!(result, Err(ProgramError::Custom(17)));
+        return result;
+    } else if accounts[0].key != accounts[1].key && get_account(&accounts[1]).account_state().unwrap() == AccountState::Frozen { // TODO Daniel: CHANGE comparing keys
+        assert_eq!(result, Err(ProgramError::Custom(17)));
+        return result;
+    } else if src_initial_amount < amount {
+        assert_eq!(result, Err(ProgramError::Custom(1)));
+        return result;
+    } else if accounts[0].key != accounts[1].key && get_account(&accounts[0]).mint() != get_account(&accounts[1]).mint() { // TODO Daniel: CHANGE comparing keys, changed mint to mint()
+        assert_eq!(result, Err(ProgramError::Custom(3)));
+        return result;
+    } else {
+        if old_src_delgate == Some(*accounts[2].key) {
+            // Validate Owner for delegate case
+            if accounts[2].data_len() == Multisig::LEN && accounts[2].owner == &crate::id() {
+                // #[cfg(feature="multisig")]
+                {
+                    if multisig_is_initialised.is_err() {
+                        assert_eq!(result, Err(ProgramError::InvalidAccountData));
+                        return result;
+                    } else if !multisig_is_initialised.unwrap() {
+                        assert_eq!(result, Err(ProgramError::UninitializedAccount));
+                        return result;
+                    } else {
+                        let multisig = get_multisig(&accounts[2]);
+
+                         let unsigned_exists = accounts[3..].iter()
+                             .any(|potential_signer| {
+                                 multisig.signers() // TODO Daniel: CHANGE .signers to signers()
+                                     .iter()
+                                     .any(|registered_key| registered_key == potential_signer.key && !potential_signer.is_signer)
+                             });
+
+                        if unsigned_exists {
+                            assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                            return result;
+                        }
+
+                        let signers_count = multisig.signers().iter() // TODO Daniel: CHANGE .signers to signers()
+                            .filter_map(|registered_key| {
+                                accounts[3..].iter()
+                                    .find(|potential_signer| potential_signer.key == registered_key && potential_signer.is_signer)
+                            })
+                            .count();
+
+                        if signers_count < multisig.m() as usize { // TODO Daniel: CHANGE .m to m()
+                            assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                            return result;
+                        }
+                    }
+                }
+            } else if !accounts[2].is_signer {
+                assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                return result;
+            }
+
+            if old_src_delgated_amount < amount {
+                assert_eq!(result, Err(ProgramError::Custom(1)));
+                return result;
+            }
+        } else {
+            // Validate Owner for non-delegate case
+            if src_owner != *accounts[2].key { // TODO Daniel: CHANGE deref keys
+                assert_eq!(result, Err(ProgramError::Custom(4)));
+                return result;
+            } else if accounts[2].data_len() == Multisig::LEN && accounts[2].owner == &crate::id() {
+                // #[cfg(feature="multisig")]
+                {
+                    if multisig_is_initialised.is_err() {
+                        assert_eq!(result, Err(ProgramError::InvalidAccountData));
+                        return result;
+                    } else if !multisig_is_initialised.unwrap() {
+                        assert_eq!(result, Err(ProgramError::UninitializedAccount));
+                        return result;
+                    } else {
+                        let multisig = get_multisig(&accounts[2]);
+
+                        let unsigned_exists = accounts[3..].iter()
+                            .any(|potential_signer| {
+                                multisig.signers() // TODO Daniel: CHANGE .signers to .signers()
+                                    .iter()
+                                    .any(|registered_key| registered_key == potential_signer.key && !potential_signer.is_signer)
+                            });
+
+                        if unsigned_exists {
+                            assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                            return result;
+                        }
+
+                        let signers_count = multisig.signers().iter() // TODO Daniel: CHANGE .signers to signers()
+                            .filter_map(|registered_key| {
+                                accounts[3..].iter()
+                                    .find(|potential_signer| potential_signer.key == registered_key && potential_signer.is_signer)
+                            })
+                            .count();
+
+                        if signers_count < multisig.m() as usize { // TODO Daniel: CHANGE .m to m()
+                            assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                            return result;
+                        }
+                    }
+                }
+            } else if !accounts[2].is_signer {
+                assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                return result;
+            }
+        }
+
+        if (accounts[0].key == accounts[1].key || amount == 0) && accounts[0].owner != &crate::id() { // TODO Daniel: CHANGE comparing keys
+            assert_eq!(result, Err(ProgramError::IncorrectProgramId));
+            return result;
+        } else if (accounts[0].key == accounts[1].key || amount == 0) && accounts[1].owner != &crate::id() { // TODO Daniel: CHANGE comparing keys
+            assert_eq!(result, Err(ProgramError::IncorrectProgramId));
+            return result;
+        } else if accounts[0].key != accounts[1].key && amount != 0 && get_account(&accounts[0]).is_native() && src_initial_lamports < amount { // TODO Daniel: CHANGE comparing keys
+            assert_eq!(result, Err(ProgramError::Custom(14)));
+            return result;
+        } else if accounts[0].key != accounts[1].key && amount != 0 && get_account(&accounts[0]).is_native() && u64::MAX - amount < dst_initial_lamports { // TODO Daniel: CHANGE comparing keys
+            assert_eq!(result, Err(ProgramError::Custom(14)));
+            return result;
+        } else if accounts[0].key != accounts[1].key && amount != 0 { // TODO Daniel: CHANGE comparing keys
+            assert_eq!(get_account(&accounts[0]).amount(), src_initial_amount - amount);
+            assert_eq!(get_account(&accounts[1]).amount(), dst_initial_amount + amount);
+
+            if get_account(&accounts[0]).is_native() {
+                assert_eq!(accounts[0].lamports(), src_initial_lamports - amount); // TODO Daniel: CHANGE .lamports to lamports()
+                assert_eq!(accounts[1].lamports(), dst_initial_lamports + amount); // TODO Daniel: CHANGE .lamports to lamports()
+            }
+        }
+
+        assert!(result.is_ok());
+
+        // Delegate updates
+        if old_src_delgate == Some(*accounts[2].key) && accounts[0].key != accounts[1].key { // TODO Daniel: CHANGE comparing keys
+            assert_eq!(get_account(&accounts[0]).delegated_amount(), old_src_delgated_amount - amount);
+            if old_src_delgated_amount - amount == 0 {
+                assert_eq!(get_account(&accounts[0]).delegate(), None);
+            }
+        }
+    }
 
     // Ensure instruction_data was not mutated
     assert_eq!(*instruction_data, instruction_data_with_discriminator[1..]);
