@@ -3,9 +3,10 @@
 use {
     crate::processor::Processor,
     solana_account_info::AccountInfo,
-    solana_program_error::{ProgramResult},
+    solana_program_error::{ProgramError, ProgramResult},
+    solana_program_pack::Pack,
     solana_pubkey::Pubkey,
-    spl_token_interface::error::TokenError,
+    spl_token_interface::{error::TokenError, state::Mint},
 };
 
 solana_program_entrypoint::entrypoint!(process_instruction);
@@ -24,6 +25,21 @@ fn process_instruction(
     }
 
     result
+}
+
+struct MintWrapper(Result<Mint, ProgramError>);
+
+impl MintWrapper {
+    fn is_initialized(&self) -> Result<bool, ProgramError> {
+        match &self.0 {
+            Ok(m) => Ok(m.is_initialized),
+            Err(e) => Err(e.clone()),
+        }
+    }
+}
+
+fn get_mint(account_info: &AccountInfo) -> MintWrapper {
+    MintWrapper(Mint::unpack(&account_info.data.borrow()))
 }
 
 /// A runtime verification cheatcode to set the instruction discriminator.
@@ -125,11 +141,28 @@ fn test_process_get_account_data_size(
     let instruction_data: &[u8; 0] = instruction_data.last_chunk().unwrap();
 
     //-Initial State-----------------------------------------------------------
+    // cheatcode_is_mint(&accounts[0]);
+
+    let mint_initialised = get_mint(&accounts[0]).is_initialized();
 
     //-Process Instruction-----------------------------------------------------
     let result = Processor::process(program_id, accounts, instruction_data_with_discriminator);
 
     //-Assert Postconditions---------------------------------------------------
+    if accounts.len() < 1 {
+        assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys))
+    } else if accounts[0].owner != &crate::id() {
+        assert_eq!(result, Err(ProgramError::IncorrectProgramId))
+    } else if accounts[0].data_len() != Mint::LEN {
+         assert_eq!(result, Err(ProgramError::Custom(2)))
+    } else if mint_initialised.is_err() {
+        assert_eq!(result, Err(ProgramError::Custom(2)))
+    } else if !mint_initialised.unwrap() {
+        assert_eq!(result, Err(ProgramError::Custom(2)))
+    } else {
+        // NOTE: This uses syscalls::sol_set_return_data
+        assert!(result.is_ok())
+    }
 
     // Ensure instruction_data was not mutated
     assert_eq!(*instruction_data, instruction_data_with_discriminator[1..]);
