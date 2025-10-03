@@ -26,6 +26,12 @@ fn process_instruction(
     result
 }
 
+/// A runtime verification cheatcode to set the instruction discriminator.
+/// TODO: Currently calling assert for concrete testing but needs backend support in K.
+fn cheatcode_set_descriminator(discriminator: u8, instruction_data: &[u8]) {
+    assert_eq!(discriminator, instruction_data[0]);
+}
+
 /// Inner instruction processor that dispatches to proof harnesses
 fn inner_process_instruction(
     program_id: &Pubkey,
@@ -67,7 +73,7 @@ fn test_process_transfer(
     instruction_data: &[u8; 9],
 ) -> ProgramResult {
     // Set descriminator and program id to concrete value
-    // cheatcode_set_descriminator(3, instruction_data);
+    cheatcode_set_descriminator(3, instruction_data);
     // cheatcode_set_program_id(program_id);
 
     // Strip discriminator so instruction data is equivalent p-token harness
