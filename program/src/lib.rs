@@ -10,7 +10,11 @@ pub mod native_mint;
 pub mod processor;
 pub mod state;
 
-#[cfg(not(feature = "no-entrypoint"))]
+#[cfg(all(not(feature = "no-entrypoint"), not(feature = "runtime-verification")))]
+mod entrypoint;
+
+#[cfg(all(not(feature = "no-entrypoint"), feature = "runtime-verification"))]
+#[path = "entrypoint-runtime-verification.rs"]
 mod entrypoint;
 
 #[cfg(feature = "test-against-pinocchio")]
