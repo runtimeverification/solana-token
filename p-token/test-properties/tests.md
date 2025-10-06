@@ -8,8 +8,8 @@ max-depth 500, max-iterations 100, timeout 2h min (7200), iterated on timeout
 | test_process_withdraw_excess_lamports   | 140  | 4x stuck 2x vac  | non-det branches (stuck) on `Rent::get()`/`ptrExposeAddress`      |
 | test_process_initialize_mint_freeze     | 70   | 7x stuck         | 3x overflow, 4x `binOpOffset` (non-trivial)                       |
 | test_process_initialize_mint_no_freeze  | 77   | 7x stuck         | 3x overflow, 4x `binOpOffset` (non-trivial) + `*[u8] -> [u8;32]`  |
-| test_process_initialize_account         | 600+ | CONTINUE         | non-det branches                                                  |
-| test_process_initialize_account2        | 360+ | CONTINUE         |                                                                   |
+| test_process_initialize_account         | 600+ | TIMEOUTS         | non-det branches on an IAccount with a wrong field                |
+| test_process_initialize_account2        | 360+ | TIMEOUTS         | non-det branches on an IAccount with a wrong field                |
 | test_process_transfer                   | 67   | 8x stuck         | 8x stuck decoding `Result<(), ProgramError>`                      |
 | test_process_mint_to                    | 80   | 4x stuck         | 4x stuck decoding `Result<(), ProgramError>`                      |
 | test_process_burn                       | 320  | 16x stuck        | 16x stuck decoding `Result<(), ProgramError>`                     |
