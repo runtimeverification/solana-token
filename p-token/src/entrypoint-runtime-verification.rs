@@ -3485,7 +3485,7 @@ fn test_process_withdraw_excess_lamports_account(accounts: &[AccountInfo; 3]) ->
                         } else {
                             // Lines 116-117
                             let multisig = get_multisig(&accounts[2]);
-                        
+
                             // Lines 119-129: Did all declared and allowed signers sign?
                             let unsigned_exists = accounts[3..].iter()
                                 .any(|potential_signer| {
@@ -3493,12 +3493,12 @@ fn test_process_withdraw_excess_lamports_account(accounts: &[AccountInfo; 3]) ->
                                         .iter()
                                         .any(|registered_key| registered_key == potential_signer.key() && !potential_signer.is_signer())
                                 });
-                            
+
                             if unsigned_exists {
                                 assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                                 return result;
                             }
-                        
+
                             // Lines 130-132: Were enough signatures received?
                             let signers_count = multisig.signers.iter()
                                 .filter_map(|registered_key| {
@@ -3506,7 +3506,7 @@ fn test_process_withdraw_excess_lamports_account(accounts: &[AccountInfo; 3]) ->
                                         .find(|potential_signer| potential_signer.key() == registered_key && potential_signer.is_signer())
                                 })
                                 .count();
-                            
+
                             // Line 130-132: Check if we have enough signers (singers_count < multisig.m)
                             if signers_count < multisig.m as usize {
                                 assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
@@ -3604,7 +3604,7 @@ fn test_process_withdraw_excess_lamports_mint(accounts: &[AccountInfo; 3]) -> Pr
                             } else {
                                 // Lines 116-117
                                 let multisig = get_multisig(&accounts[2]);
-                            
+
                                 // Lines 119-129: Did all declared and allowed signers sign?
                                 let unsigned_exists = accounts[3..].iter()
                                     .any(|potential_signer| {
@@ -3612,12 +3612,12 @@ fn test_process_withdraw_excess_lamports_mint(accounts: &[AccountInfo; 3]) -> Pr
                                             .iter()
                                             .any(|registered_key| registered_key == potential_signer.key() && !potential_signer.is_signer())
                                     });
-                                
+
                                 if unsigned_exists {
                                     assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                                     return result;
                                 }
-                            
+
                                 // Lines 130-132: Were enough signatures received?
                                 let signers_count = multisig.signers.iter()
                                     .filter_map(|registered_key| {
@@ -3625,7 +3625,7 @@ fn test_process_withdraw_excess_lamports_mint(accounts: &[AccountInfo; 3]) -> Pr
                                             .find(|potential_signer| potential_signer.key() == registered_key && potential_signer.is_signer())
                                     })
                                     .count();
-                                
+
                                 // Line 130-132: Check if we have enough signers (singers_count < multisig.m)
                                 if signers_count < multisig.m as usize {
                                     assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
@@ -3723,7 +3723,7 @@ fn test_process_withdraw_excess_lamports_multisig(accounts: &[AccountInfo; 3]) -
                     } else {
                         // Lines 116-117
                         let multisig = get_multisig(&accounts[2]);
-                    
+
                         // Lines 119-129: Did all declared and allowed signers sign?
                         let unsigned_exists = accounts[3..].iter()
                             .any(|potential_signer| {
@@ -3731,12 +3731,12 @@ fn test_process_withdraw_excess_lamports_multisig(accounts: &[AccountInfo; 3]) -
                                     .iter()
                                     .any(|registered_key| registered_key == potential_signer.key() && !potential_signer.is_signer())
                             });
-                        
+
                         if unsigned_exists {
                             assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                             return result;
                         }
-                    
+
                         // Lines 130-132: Were enough signatures received?
                         let signers_count = multisig.signers.iter()
                             .filter_map(|registered_key| {
@@ -3744,7 +3744,7 @@ fn test_process_withdraw_excess_lamports_multisig(accounts: &[AccountInfo; 3]) -
                                     .find(|potential_signer| potential_signer.key() == registered_key && potential_signer.is_signer())
                             })
                             .count();
-                        
+
                         // Line 130-132: Check if we have enough signers (singers_count < multisig.m)
                         if signers_count < multisig.m as usize {
                             assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
