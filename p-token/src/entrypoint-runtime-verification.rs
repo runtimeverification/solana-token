@@ -290,9 +290,12 @@ fn inner_process_remaining_instruction(
                 match acc.data_len() {
                     Account::LEN => test_process_withdraw_excess_lamports_account(accounts.first_chunk().unwrap()),
                     Mint::LEN => test_process_withdraw_excess_lamports_mint(accounts.first_chunk().unwrap()),
+                    Multisig::LEN => test_process_withdraw_excess_lamports_multisig(accounts.first_chunk().unwrap()),
+                    // FIXME: Need harness for this
                     _other => panic!("withdraw_excess_lamports: Unexpected account data_len"),
                 }
             } else {
+                // FIXME: need to add harness isntead since instruction still accepts this case and has an error code
                 panic!("withdraw_excess_lamports: no accounts provided")
             }
         }
@@ -3597,6 +3600,116 @@ fn test_process_withdraw_excess_lamports_mint(accounts: &[AccountInfo; 3]) -> Pr
             assert_eq!(accounts[1].lamports(), dst_init_lamports + src_init_lamports - minimum_balance);
             assert!(result.is_ok())
         }
+    }
+
+    result
+}
+
+/// accounts[0] // Source Account Info
+/// accounts[1] // Destination Info
+/// accounts[2] // Authority Info
+/// accounts[3..14] // Signers
+#[inline(never)]
+fn test_process_withdraw_excess_lamports_multisig(accounts: &[AccountInfo; 3]) -> ProgramResult {
+    use pinocchio_token_interface::program::ID;
+
+    cheatcode_is_multisig(&accounts[0]); // Source Account (Multisig)
+    cheatcode_is_account(&accounts[1]); // Destination
+    #[cfg(not(feature="multisig"))]
+    cheatcode_is_account(&accounts[2]); // Authority
+    #[cfg(feature="multisig")]
+    cheatcode_is_multisig(&accounts[2]); // Authority
+
+    //-Initial State-----------------------------------------------------------
+    let src_data_len = accounts[0].data_len();
+    let src_init_lamports = accounts[0].lamports();
+    let dst_init_lamports = accounts[1].lamports();
+    let mut multisig_is_initialised: Result<bool, ProgramError> = Err(ProgramError::Custom(999));
+    if accounts[2].data_len() == Multisig::LEN {
+        multisig_is_initialised = get_multisig(&accounts[2]).is_initialized();
+    }
+
+    // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
+    let rent = pinocchio::sysvars::rent::Rent::get().unwrap();
+    let minimum_balance = rent.minimum_balance(accounts[0].data_len());
+
+    //-Process Instruction-----------------------------------------------------
+    let result = process_withdraw_excess_lamports(accounts);
+
+    //-Assert Postconditions---------------------------------------------------
+    if accounts.len() < 3 {
+        assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
+        return result;
+    } else if src_data_len != Account::LEN && src_data_len != Mint::LEN && src_data_len != Multisig::LEN {
+        assert_eq!(result, Err(ProgramError::Custom(13)));
+        return result;
+    } else {
+        assert_eq!(src_data_len, Multisig::LEN); // established by cheatcode_is_multisig
+        { // Validate Owner
+            // Line 102-104 of validate_owner function in mod.rs
+            if accounts[0].key() != accounts[2].key() {
+                assert_eq!(result, Err(ProgramError::Custom(4)));
+                return result;
+            }
+            // Line 106-108
+            else if accounts[2].data_len() == Multisig::LEN && accounts[2].is_owned_by(&ID) {
+                // Line 114
+                if multisig_is_initialised.is_err() {
+                    assert_eq!(result, Err(ProgramError::InvalidAccountData));
+                    return result;
+                } else if !multisig_is_initialised.unwrap() {
+                    assert_eq!(result, Err(ProgramError::UninitializedAccount));
+                    return result;
+                } else {
+                    // Lines 116-117
+                    let multisig = get_multisig(&accounts[2]);
+
+                    // Lines 119-129: Did all declared and allowed signers sign?
+                    let unsigned_exists = accounts[3..].iter()
+                        .any(|potential_signer| {
+                            multisig.signers
+                                .iter()
+                                .any(|registered_key| registered_key == potential_signer.key() && !potential_signer.is_signer())
+                        });
+
+                    if unsigned_exists {
+                        assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                        return result;
+                    }
+
+                    // Lines 130-132: Were enough signatures received?
+                    let signers_count = multisig.signers.iter()
+                        .filter_map(|registered_key| {
+                            accounts[3..].iter()
+                                .find(|potential_signer| potential_signer.key() == registered_key && potential_signer.is_signer())
+                        })
+                        .count();
+
+                    // Line 130-132: Check if we have enough signers (singers_count < multisig.m)
+                    if signers_count < multisig.m as usize {
+                        assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                        return result;
+                    }
+                }
+            }
+            // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+            else if !accounts[2].is_signer() {
+                assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                return result;
+            }
+        }
+
+        if src_init_lamports < minimum_balance {
+            assert_eq!(result, Err(ProgramError::Custom(0)));
+            return result;
+        } else if u64::MAX - src_init_lamports + minimum_balance < dst_init_lamports {
+            assert_eq!(result, Err(ProgramError::Custom(0)));
+            return result;
+        }
+
+        assert_eq!(accounts[0].lamports(), minimum_balance);
+        assert_eq!(accounts[1].lamports(), dst_init_lamports + src_init_lamports - minimum_balance);
+        assert!(result.is_ok())
     }
 
     result
