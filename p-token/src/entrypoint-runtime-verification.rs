@@ -205,7 +205,18 @@ fn inner_process_remaining_instruction(
             #[cfg(feature = "logging")]
             pinocchio::msg!("Instruction: SetAuthority");
 
-            test_process_set_authority(accounts.first_chunk().unwrap(), instruction_data.first_chunk().unwrap())
+            // Determine if this is an Account or Mint based on data length
+            if let Some(first_account) = accounts.first() {
+                match first_account.data_len() {
+                    Account::LEN => test_process_set_authority_account(accounts.first_chunk().unwrap(), instruction_data.first_chunk().unwrap()),
+                    Mint::LEN => test_process_set_authority_mint(accounts.first_chunk().unwrap(), instruction_data.first_chunk().unwrap()),
+                    // FIXME: Create proof harness for this
+                    _ => panic!("SetAuthority: Unexpected account data length"),
+                }
+            } else {
+                // FIXME: Create proof harness for this
+                Err(ProgramError::NotEnoughAccountKeys)
+            }
         }
         // 10 - FreezeAccount
         10 => {
@@ -2211,22 +2222,18 @@ fn test_process_revoke(accounts: &[AccountInfo; 2]) -> ProgramResult {
     result
 }
 
-/// accounts[0] // Account Info
+/// accounts[0] // Account Info - Account Case
 /// accounts[1] // Authority Info
 /// accounts[2..13] // Signers
 /// instruction_data[0] // Authority Type (instruction)
 /// instruction_data[1] // New Authority Follows (0 -> No, 1 -> Yes)
 /// instruction_data[2..34] // New Authority Pubkey
 #[inline(never)]
-fn test_process_set_authority(accounts: &[AccountInfo; 2], instruction_data: &[u8; 34]) -> ProgramResult {
+fn test_process_set_authority_account(accounts: &[AccountInfo; 2], instruction_data: &[u8; 34]) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
     use pinocchio_token_interface::program::ID;
 
-    // accounts[0] can be either Account or Mint based on its data_len
-    // accounts[1] is Authority
-    // Note: We cannot determine the type at compile time, so we call both cheatcodes
-    cheatcode_is_account(&accounts[0]); // Could be Account
-    cheatcode_is_mint(&accounts[0]);     // Could be Mint
+    cheatcode_is_account(&accounts[0]); // Assume Account
     #[cfg(not(feature="multisig"))]
     cheatcode_is_account(&accounts[1]); // Authority
     #[cfg(feature="multisig")]
@@ -2238,13 +2245,8 @@ fn test_process_set_authority(accounts: &[AccountInfo; 2], instruction_data: &[u
     let src_owner = get_account(&accounts[0]).owner;
     let authority = get_account(&accounts[0]).close_authority().cloned().unwrap_or(get_account(&accounts[0]).owner);
     let account_data_len = accounts[0].data_len();
-    let old_mint_authority_is_none = get_mint(&accounts[0]).mint_authority().is_none();
-    let old_freeze_authority_is_none = get_mint(&accounts[0]).freeze_authority().is_none();
-    let old_mint_authority = get_mint(&accounts[0]).mint_authority().cloned();
-    let old_freeze_authority = get_mint(&accounts[0]).freeze_authority().cloned();
     #[cfg(feature="multisig")]
     let multisig_is_initialised = get_multisig(&accounts[1]).is_initialized();
-    let mint_is_initialised = get_mint(&accounts[0]).is_initialized();
 
     //-Process Instruction-----------------------------------------------------
     let result = process_set_authority(accounts, instruction_data);
@@ -2269,6 +2271,7 @@ fn test_process_set_authority(accounts: &[AccountInfo; 2], instruction_data: &[u
         assert_eq!(result, Err(ProgramError::InvalidArgument));
         return result;
     } else {
+        assert_eq!(account_data_len, Account::LEN); // established by cheatcode_is_account
         if account_data_len == Account::LEN {
             if src_initialised.is_err() {
                 assert_eq!(result, Err(ProgramError::InvalidAccountData));
@@ -2422,7 +2425,62 @@ fn test_process_set_authority(accounts: &[AccountInfo; 2], instruction_data: &[u
                     assert!(result.is_ok())
                 }
             }
-        } else { // account_data_len == Mint::LEN
+        }
+    }
+
+    result
+}
+
+/// accounts[0] // Account Info - Mint Case
+/// accounts[1] // Authority Info
+/// accounts[2..13] // Signers
+/// instruction_data[0] // Authority Type (instruction)
+/// instruction_data[1] // New Authority Follows (0 -> No, 1 -> Yes)
+/// instruction_data[2..34] // New Authority Pubkey
+#[inline(never)]
+fn test_process_set_authority_mint(accounts: &[AccountInfo; 2], instruction_data: &[u8; 34]) -> ProgramResult {
+    use pinocchio_token_interface::program::ID;
+
+    cheatcode_is_mint(&accounts[0]);     // Assume Mint
+    #[cfg(not(feature="multisig"))]
+    cheatcode_is_account(&accounts[1]);  // Authority
+    #[cfg(feature="multisig")]
+    cheatcode_is_multisig(&accounts[1]); // Authority
+
+    //-Initial State-----------------------------------------------------------
+    let mint_data_len = accounts[0].data_len();
+    let old_mint_authority_is_none = get_mint(&accounts[0]).mint_authority().is_none();
+    let old_freeze_authority_is_none = get_mint(&accounts[0]).freeze_authority().is_none();
+    let old_mint_authority = get_mint(&accounts[0]).mint_authority().cloned();
+    let old_freeze_authority = get_mint(&accounts[0]).freeze_authority().cloned();
+    #[cfg(feature="multisig")]
+    let multisig_is_initialised = get_multisig(&accounts[1]).is_initialized();
+    let mint_is_initialised = get_mint(&accounts[0]).is_initialized();
+
+    //-Process Instruction-----------------------------------------------------
+    let result = process_set_authority(accounts, instruction_data);
+
+    //-Assert Postconditions---------------------------------------------------
+    if instruction_data.len() < 2 {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if !(0..=3).contains(&instruction_data[0]) {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if instruction_data[1] != 0 && instruction_data[1] != 1 {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if instruction_data[1] == 1 && instruction_data.len() < 34 {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if accounts.len() < 2 {
+        assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
+        return result;
+    } else if mint_data_len != Account::LEN && mint_data_len != Mint::LEN {
+        assert_eq!(result, Err(ProgramError::InvalidArgument));
+        return result;
+    } else {
+        assert_eq!(mint_data_len, Mint::LEN); // established by cheatcode_is_mint
             if !mint_is_initialised.unwrap() {
                 assert_eq!(result, Err(ProgramError::UninitializedAccount));
                 return result;
@@ -2570,7 +2628,7 @@ fn test_process_set_authority(accounts: &[AccountInfo; 2], instruction_data: &[u
                     assert!(result.is_ok())
                 }
             }
-        }
+
     }
 
     result
@@ -3272,7 +3330,7 @@ fn test_process_amount_to_ui_amount(accounts: &[AccountInfo; 1], instruction_dat
 fn test_process_ui_amount_to_amount(accounts: &[AccountInfo; 1], instruction_data: &[u8]) -> ProgramResult {
     cheatcode_is_mint(&accounts[0]);
 
-    // //-Initial State-----------------------------------------------------------
+    //-Initial State-----------------------------------------------------------
     let ui_amount = core::str::from_utf8(instruction_data);
     let mint_initialised = get_mint(&accounts[0]).is_initialized();
 
