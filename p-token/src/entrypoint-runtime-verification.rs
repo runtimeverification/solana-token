@@ -3514,7 +3514,7 @@ fn test_process_withdraw_excess_lamports_mint(accounts: &[AccountInfo; 3]) -> Pr
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
         return result;
     } else {
-        assert_eq!(src_data_len, Account::LEN); // established by cheatcode_is_account
+        assert_eq!(src_data_len, Mint::LEN); // established by cheatcode_is_mint
         {
             if src_mint_initialised.is_err() {
                 assert_eq!(result, Err(ProgramError::InvalidAccountData));
