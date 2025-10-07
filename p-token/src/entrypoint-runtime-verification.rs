@@ -3377,8 +3377,10 @@ fn test_process_withdraw_excess_lamports_account(accounts: &[AccountInfo; 3]) ->
     let src_account_is_native = get_account(&accounts[0]).is_native();
     let src_init_lamports = accounts[0].lamports();
     let dst_init_lamports = accounts[1].lamports();
-    #[cfg(feature="multisig")]
-    let multisig_is_initialised = get_multisig(&accounts[2]).is_initialized();
+    let mut multisig_is_initialised: Result<bool, ProgramError> = Err(ProgramError::Custom(999));
+    if accounts[2].data_len() == Multisig::LEN {
+        multisig_is_initialised = get_multisig(&accounts[2]).is_initialized();
+    }
 
     // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
     let rent = pinocchio::sysvars::rent::Rent::get().unwrap();
@@ -3412,45 +3414,42 @@ fn test_process_withdraw_excess_lamports_account(accounts: &[AccountInfo; 3]) ->
                 }
                 // Line 106-108
                 else if accounts[2].data_len() == Multisig::LEN && accounts[2].is_owned_by(&ID) {
-                    #[cfg(feature="multisig")]
-                    {
-                        // Line 114
-                        if multisig_is_initialised.is_err() {
-                            assert_eq!(result, Err(ProgramError::InvalidAccountData));
+                    // Line 114
+                    if multisig_is_initialised.is_err() {
+                        assert_eq!(result, Err(ProgramError::InvalidAccountData));
+                        return result;
+                    } else if !multisig_is_initialised.unwrap() {
+                        assert_eq!(result, Err(ProgramError::UninitializedAccount));
+                        return result;
+                    } else {
+                        // Lines 116-117
+                        let multisig = get_multisig(&accounts[2]);
+
+                        // Lines 119-129: Did all declared and allowed signers sign?
+                        let unsigned_exists = accounts[3..].iter()
+                            .any(|potential_signer| {
+                                multisig.signers
+                                    .iter()
+                                    .any(|registered_key| registered_key == potential_signer.key() && !potential_signer.is_signer())
+                            });
+
+                        if unsigned_exists {
+                            assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                             return result;
-                        } else if !multisig_is_initialised.unwrap() {
-                            assert_eq!(result, Err(ProgramError::UninitializedAccount));
+                        }
+
+                        // Lines 130-132: Were enough signatures received?
+                        let signers_count = multisig.signers.iter()
+                            .filter_map(|registered_key| {
+                                accounts[3..].iter()
+                                    .find(|potential_signer| potential_signer.key() == registered_key && potential_signer.is_signer())
+                            })
+                            .count();
+
+                        // Line 130-132: Check if we have enough signers (singers_count < multisig.m)
+                        if signers_count < multisig.m as usize {
+                            assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                             return result;
-                        } else {
-                            // Lines 116-117
-                            let multisig = get_multisig(&accounts[2]);
-
-                            // Lines 119-129: Did all declared and allowed signers sign?
-                            let unsigned_exists = accounts[3..].iter()
-                                .any(|potential_signer| {
-                                    multisig.signers
-                                        .iter()
-                                        .any(|registered_key| registered_key == potential_signer.key() && !potential_signer.is_signer())
-                                });
-
-                            if unsigned_exists {
-                                assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
-                                return result;
-                            }
-
-                            // Lines 130-132: Were enough signatures received?
-                            let signers_count = multisig.signers.iter()
-                                .filter_map(|registered_key| {
-                                    accounts[3..].iter()
-                                        .find(|potential_signer| potential_signer.key() == registered_key && potential_signer.is_signer())
-                                })
-                                .count();
-
-                            // Line 130-132: Check if we have enough signers (singers_count < multisig.m)
-                            if signers_count < multisig.m as usize {
-                                assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
-                                return result;
-                            }
                         }
                     }
                 }
@@ -3499,8 +3498,10 @@ fn test_process_withdraw_excess_lamports_mint(accounts: &[AccountInfo; 3]) -> Pr
     let src_mint_mint_authority = get_mint(&accounts[0]).mint_authority().cloned();
     let src_init_lamports = accounts[0].lamports();
     let dst_init_lamports = accounts[1].lamports();
-    #[cfg(feature="multisig")]
-    let multisig_is_initialised = get_multisig(&accounts[2]).is_initialized();
+    let mut multisig_is_initialised: Result<bool, _> = Err(ProgramError::Custom(999));
+    if accounts[2].data_len() == Multisig::LEN {
+        multisig_is_initialised = get_multisig(&accounts[2]).is_initialized();
+    }
 
     // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
     let rent = pinocchio::sysvars::rent::Rent::get().unwrap();
@@ -3531,45 +3532,42 @@ fn test_process_withdraw_excess_lamports_mint(accounts: &[AccountInfo; 3]) -> Pr
                     }
                     // Line 106-108
                     else if accounts[2].data_len() == Multisig::LEN && accounts[2].is_owned_by(&ID) {
-                        #[cfg(feature="multisig")]
-                        {
-                            // Line 114
-                            if multisig_is_initialised.is_err() {
-                                assert_eq!(result, Err(ProgramError::InvalidAccountData));
+                        // Line 114
+                        if multisig_is_initialised.is_err() {
+                            assert_eq!(result, Err(ProgramError::InvalidAccountData));
+                            return result;
+                        } else if !multisig_is_initialised.unwrap() {
+                            assert_eq!(result, Err(ProgramError::UninitializedAccount));
+                            return result;
+                        } else {
+                            // Lines 116-117
+                            let multisig = get_multisig(&accounts[2]);
+
+                            // Lines 119-129: Did all declared and allowed signers sign?
+                            let unsigned_exists = accounts[3..].iter()
+                                .any(|potential_signer| {
+                                    multisig.signers
+                                        .iter()
+                                        .any(|registered_key| registered_key == potential_signer.key() && !potential_signer.is_signer())
+                                });
+
+                            if unsigned_exists {
+                                assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                                 return result;
-                            } else if !multisig_is_initialised.unwrap() {
-                                assert_eq!(result, Err(ProgramError::UninitializedAccount));
+                            }
+
+                            // Lines 130-132: Were enough signatures received?
+                            let signers_count = multisig.signers.iter()
+                                .filter_map(|registered_key| {
+                                    accounts[3..].iter()
+                                        .find(|potential_signer| potential_signer.key() == registered_key && potential_signer.is_signer())
+                                })
+                                .count();
+
+                            // Line 130-132: Check if we have enough signers (singers_count < multisig.m)
+                            if signers_count < multisig.m as usize {
+                                assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                                 return result;
-                            } else {
-                                // Lines 116-117
-                                let multisig = get_multisig(&accounts[2]);
-
-                                // Lines 119-129: Did all declared and allowed signers sign?
-                                let unsigned_exists = accounts[3..].iter()
-                                    .any(|potential_signer| {
-                                        multisig.signers
-                                            .iter()
-                                            .any(|registered_key| registered_key == potential_signer.key() && !potential_signer.is_signer())
-                                    });
-
-                                if unsigned_exists {
-                                    assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
-                                    return result;
-                                }
-
-                                // Lines 130-132: Were enough signatures received?
-                                let signers_count = multisig.signers.iter()
-                                    .filter_map(|registered_key| {
-                                        accounts[3..].iter()
-                                            .find(|potential_signer| potential_signer.key() == registered_key && potential_signer.is_signer())
-                                    })
-                                    .count();
-
-                                // Line 130-132: Check if we have enough signers (singers_count < multisig.m)
-                                if signers_count < multisig.m as usize {
-                                    assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
-                                    return result;
-                                }
                             }
                         }
                     }
