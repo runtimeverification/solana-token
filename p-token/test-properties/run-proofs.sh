@@ -52,6 +52,11 @@ fi
 
 set -u
 
+mkdir -p proof_status
+
+REPO_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+MIR_COMMIT=$(git -C mir-semantics rev-parse --short HEAD 2>/dev/null || echo "unknown")
+
 if [ -z "${RELOAD_OPT}" ]; then
     MODE="Continuing"
 else
@@ -61,20 +66,54 @@ fi
 echo "${MODE} tests ${TESTS} with options '$PROVE_OPTS' and timeout $TIMEOUT"
 
 prefix=pinocchio_token_program::entrypoint::
-mkdir -p proof_status
 
 for name in $TESTS; do
     echo "============================== $name ============================"
     start=$prefix$name
+    status_file=proof_status/${name}.txt
+    start_time=$(date +%s)
+
     timeout --preserve-status -v ${TIMEOUT} \
             uv --project mir-semantics/kmir run -- \
             kmir prove-rs --smir artefacts/p-token.smir.json \
             --proof-dir artefacts/proof --verbose --start-symbol $start ${RELOAD_OPT} ${PROVE_OPTS}
+    prove_rc=$?
+
+    end_time=$(date +%s)
+    duration=$((end_time - start_time))
+
+    previous_duration=0
+    if [ -z "${RELOAD_OPT}" ] && [ -f "${status_file}" ]; then
+        previous_duration_line=$(grep -m1 '^total_duration_seconds:' "${status_file}" || true)
+        if [ -z "${previous_duration_line}" ]; then
+            previous_duration_line=$(grep -m1 '^duration_seconds:' "${status_file}" || true)
+        fi
+        if [ -n "${previous_duration_line}" ]; then
+            previous_duration=$(echo "${previous_duration_line}" | awk -F': *' '{print $2}')
+        fi
+        if ! [[ "${previous_duration}" =~ ^[0-9]+$ ]]; then
+            previous_duration=0
+        fi
+    fi
+
+    total_duration=$((previous_duration + duration))
+
+    {
+        echo "name: ${name}"
+        echo "timestamp: $(date -Is)"
+        echo "duration_seconds: ${duration}"
+        echo "total_duration_seconds: ${total_duration}"
+        echo "prove_exit_code: ${prove_rc}"
+        echo "repo_commit: ${REPO_COMMIT}"
+        echo "mir_semantics_commit: ${MIR_COMMIT}"
+        echo ""
+    } > "${status_file}"
+
     uv --project mir-semantics/kmir run -- \
        kmir show --proof-dir artefacts/proof p-token.smir.$start \
        --full-printer > artefacts/proof/${name}-full.txt
     uv --project mir-semantics/kmir run -- \
        kmir show --dir artefacts/proof p-token.smir.$start \
-       --statistics --leaves > proof_status/${name}.txt
+       --statistics --leaves >> "${status_file}"
     echo "==========================================================================="
 done
