@@ -61,6 +61,7 @@ fi
 echo "${MODE} tests ${TESTS} with options '$PROVE_OPTS' and timeout $TIMEOUT"
 
 prefix=pinocchio_token_program::entrypoint::
+mkdir -p proof_status
 
 for name in $TESTS; do
     echo "============================== $name ============================"
@@ -72,5 +73,8 @@ for name in $TESTS; do
     uv --project mir-semantics/kmir run -- \
        kmir show --proof-dir artefacts/proof p-token.smir.$start \
        --full-printer > artefacts/proof/${name}-full.txt
+    uv --project mir-semantics/kmir run -- \
+       kmir show --dir artefacts/proof p-token.smir.$start \
+       --statistics --leaves > proof_status/${name}.txt
     echo "==========================================================================="
 done
