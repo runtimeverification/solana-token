@@ -55,7 +55,15 @@ set -u
 mkdir -p proof_status
 
 REPO_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
+if git status --porcelain 1>/dev/null 2>&1 && [ -n "$(git status --porcelain 2>/dev/null)" ]; then
+    REPO_COMMIT="${REPO_COMMIT}-dirty"
+fi
+
 MIR_COMMIT=$(git -C mir-semantics rev-parse --short HEAD 2>/dev/null || echo "unknown")
+if git -C mir-semantics status --porcelain 1>/dev/null 2>&1 && \
+   [ -n "$(git -C mir-semantics status --porcelain 2>/dev/null)" ]; then
+    MIR_COMMIT="${MIR_COMMIT}-dirty"
+fi
 
 if [ -z "${RELOAD_OPT}" ]; then
     MODE="Continuing"
