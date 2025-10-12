@@ -7,7 +7,7 @@ on:
         description: Start symbols for proofs to run
         required: true
         type: string
-        default: "['test_ptoken_domain_data', 'this_will_fail']"
+        default: "['test_ptoken_domain_data', test_process_approve, test_process_get_account_data_size, test_process_initialize_immutable_owner]"
       kmir:
         description: KMIR to work with (must exist as a docker image tag, optional)
         required: false
@@ -44,7 +44,7 @@ jobs:
         with:
           flakes: github:runtimeverification/stable-mir-json/${{ inputs.smir }}
 
-      - name: "Build with stable_mir_json"      
+      - name: "Build with stable_mir_json"
         run: |
           cd p-token
           RUSTC=stable_mir_json cargo build --features runtime-verification
@@ -71,10 +71,10 @@ jobs:
 
   run_proof:
     name: "Link SMIR and Run Proofs"
-    needs: 
+    needs:
       - compile
       - prepare_matrix
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, normal]
     # container:
     #   image: runtimeverificationinc/kmir:${{ inputs.kmir }}
     strategy:
@@ -96,7 +96,7 @@ jobs:
             -v $PWD:/workdir --workdir /workdir \
             --name "${KMIR_CONTAINER_NAME}" \
             runtimeverificationinc/kmir:${{ inputs.kmir }} \
-            sleep 3600
+            sleep 10000
           sleep 10
 
       - name: "Get SMIR Files"
@@ -112,7 +112,7 @@ jobs:
 
       - name: "Run Proof ${{ matrix.proof }} and store resulting tree"
         run: |
-          timeout 3600 \
+          timeout 7200 \
             docker exec --workdir /workdir "${KMIR_CONTAINER_NAME}" \
               kmir prove-rs --smir artefacts/p-token.smir.json \
               --start-symbol 'pinocchio_token_program::entrypoint::${{ matrix.proof }}' \
@@ -120,11 +120,12 @@ jobs:
               --max-iterations 100 \
               --proof-dir artefacts/proof
           docker exec --workdir /workdir "${KMIR_CONTAINER_NAME}" \
-            kmir show --full-printer --proof-dir artefacts/proof \
+            kmir show --statistics --leaves --proof-dir artefacts/proof \
             'p-token.smir.pinocchio_token_program::entrypoint::${{ matrix.proof }}' \
             > artefacts/proof/${{ matrix.proof }}-full.txt
 
       - name: "Save proof tree and smir"
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: $artefacts-{{ matrix.proof }}
