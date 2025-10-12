@@ -112,6 +112,8 @@ jobs:
 
       - name: "Run Proof ${{ matrix.proof }} and store resulting tree"
         run: |
+          docker exec --workdir /workdir "${KMIR_CONTAINER_NAME}" \
+            bash -c "ls -la artefacts; mkdir -p artefacts/proof; ls -la artefacts"
           timeout 7200 \
             docker exec --workdir /workdir "${KMIR_CONTAINER_NAME}" \
               kmir prove-rs --smir artefacts/p-token.smir.json \
@@ -129,7 +131,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: $artefacts-{{ matrix.proof }}
+          name: $artefacts-${{ matrix.proof }}
           path: |
             artefacts/p-token.smir.json
             artefacts/proof/*-full.txt
