@@ -7,7 +7,7 @@ on:
         description: Start symbols for proofs to run
         required: true
         type: string
-        default: "['test_ptoken_domain_data', test_process_approve, test_process_get_account_data_size, test_process_initialize_immutable_owner]"
+        default: "['test_ptoken_domain_data', 'test_process_approve', 'test_process_get_account_data_size', 'test_process_initialize_immutable_owner']"
       kmir:
         description: KMIR to work with (must exist as a docker image tag, optional)
         required: false
