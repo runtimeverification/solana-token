@@ -117,6 +117,7 @@ jobs:
               kmir prove-rs --smir artefacts/p-token.smir.json \
               --start-symbol 'pinocchio_token_program::entrypoint::${{ matrix.proof }}' \
               --verbose \
+              --max-depth 500 \
               --max-iterations 100 \
               --proof-dir artefacts/proof
           docker exec --workdir /workdir "${KMIR_CONTAINER_NAME}" \
