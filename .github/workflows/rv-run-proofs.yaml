@@ -12,7 +12,7 @@ on:
         description: KMIR to work with (must exist as a docker image tag, optional)
         required: false
         type: string
-        default: p-token-f8c403f # hard-wired now, retrieve from submodule later
+        default: p-token-024f2d3 # hard-wired now, retrieve from submodule later
       smir:
         description: Stable MIR JSON to work with (commit hash, optional)
         required: false
