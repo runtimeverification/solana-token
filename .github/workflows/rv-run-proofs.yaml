@@ -117,12 +117,11 @@ jobs:
             bash -c "ls -la artefacts; mkdir -p artefacts/proof; ls -la artefacts"
           timeout 7200 \
             docker exec \
-              --env KORE_RPC_OPTS="--log-context *>depth. --log-context *>proxy " \
               --workdir /workdir "${KMIR_CONTAINER_NAME}" \
               kmir prove-rs --smir artefacts/p-token.smir.json \
               --start-symbol 'pinocchio_token_program::entrypoint::${{ matrix.proof }}' \
               --verbose \
-              --max-depth 10 \
+              --max-depth 500 \
               --max-iterations 100 \
               --proof-dir artefacts/proof
           docker exec --workdir /workdir "${KMIR_CONTAINER_NAME}" \
