@@ -92,7 +92,7 @@ jobs:
         run: |
           mkdir -p $PWD/artefacts
           ls -l $PWD/artefacts && rm -rf $PWD/artefacts/*
-          chmod a+rwx $PWD/artefacts
+          chmod a+rwx $PWD/artefacts $PWD
           docker run --rm --detach \
             -v $PWD:/workdir --workdir /workdir \
             --name "${KMIR_CONTAINER_NAME}" \
@@ -117,7 +117,7 @@ jobs:
             bash -c "ls -la artefacts; mkdir -p artefacts/proof; ls -la artefacts"
           timeout 7200 \
             docker exec \
-              --env KORE_RPC_OPTS="--log-context *>depth. --log-context *>proxy --log-context *>llvm" \
+              --env KORE_RPC_OPTS="--log-context *>depth. --log-context *>proxy " \
               --workdir /workdir "${KMIR_CONTAINER_NAME}" \
               kmir prove-rs --smir artefacts/p-token.smir.json \
               --start-symbol 'pinocchio_token_program::entrypoint::${{ matrix.proof }}' \
