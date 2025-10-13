@@ -91,6 +91,7 @@ jobs:
       - name: "Set up Docker Host"
         run: |
           mkdir -p $PWD/artefacts
+          ls -l $PWD/artefacts && rm -rf $PWD/artefacts/*
           chmod a+rwx $PWD/artefacts
           docker run --rm --detach \
             -v $PWD:/workdir --workdir /workdir \
