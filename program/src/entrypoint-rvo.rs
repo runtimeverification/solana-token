@@ -156,24 +156,6 @@ fn cheatcode_set_program_id(program_id: &Pubkey) {
     assert_eq!(program_id, &crate::id());
 }
 
-/// Common pre-processing for RV test harnesses to verify metadata and split instruction data.
-fn prepare_instruction_slices<'a, const FULL: usize, const PAYLOAD: usize>(
-    expected_discriminator: u8,
-    program_id: &Pubkey,
-    instruction_data: &'a [u8; FULL],
-) -> (&'a [u8; FULL], &'a [u8; PAYLOAD]) {
-    debug_assert_eq!(FULL, PAYLOAD + 1, "instruction data length mismatch");
-
-    cheatcode_set_descriminator(expected_discriminator, instruction_data);
-    cheatcode_set_program_id(program_id);
-
-    let payload = instruction_data
-        .last_chunk::<PAYLOAD>()
-        .expect("instruction payload length does not match");
-
-    (instruction_data, payload)
-}
-
 /// Inner instruction processor that dispatches to proof harnesses
 fn inner_process_instruction(
     program_id: &Pubkey,
@@ -224,8 +206,13 @@ fn test_process_transfer(
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
 
-    let (instruction_data_with_discriminator, instruction_data) =
-        prepare_instruction_slices::<9, 8>(3, program_id, instruction_data);
+    // Set descriminator and program id to concrete value
+    cheatcode_set_descriminator(3, instruction_data);
+    cheatcode_set_program_id(program_id);
+
+    // Strip discriminator so instruction data is equivalent p-token harness
+    let instruction_data_with_discriminator = &instruction_data.clone();
+    let instruction_data: &[u8; 8] = instruction_data.last_chunk().unwrap();
 
     // cheatcode_is_account(&accounts[0]);
     // cheatcode_is_account(&accounts[1]);
@@ -427,8 +414,13 @@ fn test_process_get_account_data_size(
     accounts: &[AccountInfo; 1],
     instruction_data: &[u8; 1],
 ) -> ProgramResult {
-    let (instruction_data_with_discriminator, instruction_data) =
-        prepare_instruction_slices::<1, 0>(21, program_id, instruction_data);
+    // Set descriminator and program id to concrete value
+    cheatcode_set_descriminator(21, instruction_data);
+    cheatcode_set_program_id(program_id);
+
+    // Strip discriminator so instruction data is equivalent p-token harness
+    let instruction_data_with_discriminator = &instruction_data.clone();
+    let instruction_data: &[u8; 0] = instruction_data.last_chunk().unwrap();
 
     // cheatcode_is_mint(&accounts[0]);
     
