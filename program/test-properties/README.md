@@ -18,4 +18,4 @@ pnpm programs:build -- --features rvo && pnpm programs:test -- --features rvo
 ```
 
 ## Scripts
-- `./scripts/compare-test-functions.py` - Compares matching `test_*` functions between the runtime verification entrypoints and highlights differences or missing tests. Run it directly (`./scripts/compare-test-functions.py`) to diff `p-token/src/entrypoint-runtime-verification.rs` against both `program/src/entrypoint-rvo.rs` and `program/src/entrypoint-runtime-verification.rs`. Pass extra pairs with `--pairs left:path:right:path` if you need custom comparisons.
+- `./scripts/compare-test-functions.py` - Compares matching `test_*` functions between the runtime verification entrypoints and highlights differences or missing tests. Run it directly (`./scripts/compare-test-functions.py`) to diff `p-token/src/entrypoint-runtime-verification.rs` against both `program/src/entrypoint-rvo.rs` and `program/src/entrypoint-runtime-verification.rs`. Use `--rvo` or `--rv` to limit the report to a single target, and pass extra pairs with `--pairs left:path:right:path` when you need custom comparisons.

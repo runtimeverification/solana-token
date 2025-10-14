@@ -190,11 +190,24 @@ def main() -> None:
         nargs="*",
         help="Optional list of file pairs to compare (relative to the repository root).",
     )
+    parser.add_argument(
+        "--rvo",
+        action="store_true",
+        help="Only compare against program/src/entrypoint-rvo.rs (default includes both pairs).",
+    )
+    parser.add_argument(
+        "--rv",
+        action="store_true",
+        help="Only compare against program/src/entrypoint-runtime-verification.rs (default includes both pairs).",
+    )
     args = parser.parse_args()
 
     script_path = Path(__file__).resolve()
     parents = script_path.parents
     repo_root = parents[3] if len(parents) >= 4 else script_path.parent
+
+    if args.pairs and (args.rvo or args.rv):
+        parser.error("--pairs cannot be combined with --rvo/--rv filters.")
 
     if args.pairs:
         try:
@@ -202,7 +215,12 @@ def main() -> None:
         except ValueError as exc:
             parser.error(str(exc))
     else:
-        pairs = DEFAULT_PAIRS
+        selected_pairs: List[Tuple[str, str]] = []
+        if args.rvo:
+            selected_pairs.append(DEFAULT_PAIRS[0])
+        if args.rv:
+            selected_pairs.append(DEFAULT_PAIRS[1])
+        pairs = selected_pairs or DEFAULT_PAIRS
 
     for index, (left_rel, right_rel) in enumerate(pairs):
         if index:
