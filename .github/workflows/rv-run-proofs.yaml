@@ -84,7 +84,7 @@ jobs:
               echo "KMIR version set to ${{ inputs.kmir }}"
               kmir=${{ inputs.kmir }}
           else
-              kmir=p-token-$(git rev-parse --short $(git ls-tree HEAD mir-semantics/ | awk '{print $3}'))
+              kmir=p-token-$(git rev-parse --short $(git ls-tree HEAD p-token/test-properties/mir-semantics/ | awk '{print $3}'))
           fi
           echo "kmir=$kmir" >> $GITHUB_OUTPUT
 
