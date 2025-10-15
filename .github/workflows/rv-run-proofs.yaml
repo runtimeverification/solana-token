@@ -67,12 +67,26 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       proofs: ${{ steps.split.outputs.matrix }}
+      kmir: ${{ steps.kmir.outputs.kmir }}
     steps:
+      - name: "Git Checkout"
+        uses: actions/checkout@v4
+
       - name: "Create Proof Array"
         id: split
         run: |
           echo "proofs = '${{ inputs.proofs }}'"
           echo "matrix=${{ inputs.proofs }}" >> $GITHUB_OUTPUT
+      - name: "Set KMIR version"
+        id: kmir
+        run: |
+          if [ ! -z "${{ inputs.kmir }}" ]; then
+              echo "KMIR version set to ${{ inputs.kmir }}"
+              kmir=${{ inputs.kmir }}
+          else
+              kmir=p-token-$(git rev-parse --short $(git ls-tree HEAD mir-semantics/ | awk '{print $3}'))
+          fi
+          echo "kmir=$kmir" >> $GITHUB_OUTPUT
 
   run_proof:
     name: "Link SMIR and Run Proofs"
@@ -81,7 +95,7 @@ jobs:
       - prepare_matrix
     runs-on: [self-hosted, linux, normal]
     # container:
-    #   image: runtimeverificationinc/kmir:${{ inputs.kmir }}
+    #   image: runtimeverificationinc/kmir:${{ needs.prepare_matrix.outputs.kmir }}
     strategy:
       matrix:
         proof: ${{ fromJSON(needs.prepare_matrix.outputs.proofs) }}
@@ -91,7 +105,7 @@ jobs:
       - name: debug matrix and docker image
         run: |
           echo "This is proof ${{ matrix.proof }}"
-          echo "Running with $KMIR_CONTAINER_NAME, docker image runtimeverificationinc/kmir:${{ inputs.kmir }}"
+          echo "Running with $KMIR_CONTAINER_NAME, docker image runtimeverificationinc/kmir:${{ needs.prepare_matrix.outputs.kmir }}"
 
       - name: "Set up Docker Host"
         run: |
@@ -102,7 +116,7 @@ jobs:
             -u $(id -u):$(id -g) \
             -v $PWD:/workdir --workdir /workdir \
             --name "${KMIR_CONTAINER_NAME}" \
-            runtimeverificationinc/kmir:${{ inputs.kmir }} \
+            runtimeverificationinc/kmir:${{ needs.prepare_matrix.outputs.kmir }} \
             bash -c 'while true; do sleep 600; done'
           sleep 10
 
