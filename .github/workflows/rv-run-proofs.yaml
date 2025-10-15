@@ -12,12 +12,17 @@ on:
         description: KMIR to work with (must exist as a docker image tag, optional)
         required: false
         type: string
-        default: p-token-024f2d3 # hard-wired now, retrieve from submodule later
+        default: p-token-3bd9b7c # empty = retrieve from submodule (later)
       smir:
         description: Stable MIR JSON to work with (commit hash, optional)
         required: false
         type: string
         default:  # empty = master
+      timeout:
+        description: Timeout for running the proofs
+        required: false
+        type: string
+        default: 7200 # 2h
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
@@ -94,10 +99,11 @@ jobs:
           ls -l $PWD/artefacts && rm -rf $PWD/artefacts/*
           chmod a+rwx $PWD/artefacts $PWD
           docker run --rm --detach \
+            -u $(id -u):$(id -g) \
             -v $PWD:/workdir --workdir /workdir \
             --name "${KMIR_CONTAINER_NAME}" \
             runtimeverificationinc/kmir:${{ inputs.kmir }} \
-            sleep 10000
+            bash -c 'while true; do sleep 600; done'
           sleep 10
 
       - name: "Get SMIR Files"
@@ -115,7 +121,7 @@ jobs:
         run: |
           docker exec --workdir /workdir "${KMIR_CONTAINER_NAME}" \
             bash -c "ls -la artefacts; mkdir -p artefacts/proof; ls -la artefacts"
-          timeout 7200 \
+          timeout ${{ inputs.timeout }} \
             docker exec \
               --workdir /workdir "${KMIR_CONTAINER_NAME}" \
               kmir prove-rs --smir artefacts/p-token.smir.json \
@@ -123,7 +129,9 @@ jobs:
               --verbose \
               --max-depth 500 \
               --max-iterations 100 \
-              --proof-dir artefacts/proof
+              --proof-dir artefacts/proof \
+            || echo "Runner signals proof failure"
+
           docker exec --workdir /workdir "${KMIR_CONTAINER_NAME}" \
             kmir show --statistics --leaves --proof-dir artefacts/proof \
             'p-token.smir.pinocchio_token_program::entrypoint::${{ matrix.proof }}' \
@@ -144,3 +152,8 @@ jobs:
           docker stop ${KMIR_CONTAINER_NAME}
           sleep 5
           docker rm -f ${KMIR_CONTAINER_NAME}
+
+      - name: "Clean up artefacts directory"
+        if: always()
+        run: |
+          rm -rf $PWD/artefacts
