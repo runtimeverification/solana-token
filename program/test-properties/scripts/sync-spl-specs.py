@@ -4,7 +4,7 @@
 Flow (see sections below):
   main
     ├─ extract_test_functions
-    ├─ assemble_sections
+    ├─ assemble_sections (per configured output)
     │    └─ transform_harness
     │          ├─ comment_out_lines / apply_replacements
     │          ├─ infer_instruction_types / resolve_instruction_types
@@ -47,26 +47,27 @@ def main() -> None:
     """Entry point: load config, run transforms, and write the SPL harness file."""
     config = SyncConfig.load(CONFIG_PATH)
     source_text = config.source.read_text()
-    template_text = config.template.read_text()
-
     functions = extract_test_functions(source_text)
-    sections = assemble_sections(config, functions)
-    rendered = render_template(template_text, sections, config)
-    config.target.write_text(rendered)
+    for output_cfg in config.outputs:
+        template_text = output_cfg.template.read_text()
+        sections = assemble_sections(output_cfg, functions)
+        rendered = render_template(template_text, sections, output_cfg)
+        output_cfg.target.write_text(rendered)
 
-    print(
-        "Wrote "
-        f"{config.target.relative_to(REPO_ROOT)} "
-        "from pinocchio transformations."
-    )
+        summarize_differences(output_cfg)
+        print(
+            "Wrote "
+            f"{output_cfg.target.relative_to(REPO_ROOT)} "
+            "from pinocchio transformations."
+        )
 
 
-def assemble_sections(config: "SyncConfig", functions: Dict[str, str]) -> Dict[str, List[str]]:
+def assemble_sections(output_cfg: OutputConfig, functions: Dict[str, str]) -> Dict[str, List[str]]:
     """Apply harness transforms and collect the generated bodies and match arms."""
     harnesses: List[str] = []
     match_arms: List[str] = []
 
-    for func_cfg in config.functions:
+    for func_cfg in output_cfg.functions:
         source_snippet = functions.get(func_cfg.name)
         if source_snippet is None:
             raise KeyError(f"Missing function `{func_cfg.name}` in source file")
@@ -80,12 +81,12 @@ def assemble_sections(config: "SyncConfig", functions: Dict[str, str]) -> Dict[s
     }
 
 
-def render_template(template_text: str, sections: Dict[str, List[str]], cfg: "SyncConfig") -> str:
+def render_template(template_text: str, sections: Dict[str, List[str]], output_cfg: OutputConfig) -> str:
     """Inject each rendered section into the template according to configured placeholders."""
     rendered = template_text
-    for name, placeholder in cfg.placeholders.items():
+    for name, placeholder in output_cfg.placeholders.items():
         items = sections.get(name, [])
-        rule = cfg.section_rules[name]
+        rule = output_cfg.section_rules[name]
         if not items:
             replacement = placeholder
         else:
@@ -95,6 +96,18 @@ def render_template(template_text: str, sections: Dict[str, List[str]], cfg: "Sy
             replacement = chunk
         rendered = replace_placeholder(rendered, placeholder, replacement)
     return rendered.rstrip("\n") + "\n"
+
+
+def summarize_differences(output_cfg: OutputConfig) -> None:
+    """Log a lightweight summary of the configured transformations."""
+    print(f"Configured transforms for {output_cfg.name}:")
+    for func_cfg in output_cfg.functions:
+        harness = func_cfg.harness
+        print(
+            f" - {func_cfg.name}: "
+            f"{len(harness.comment_out)} comment-out, "
+            f"{len(harness.replacements)} replacements"
+        )
 
 
 # Conversion helpers (REVIEW FOCUS) -------------------------------------------
@@ -689,6 +702,28 @@ def merge_harness_configs(base: HarnessConfig, extra: HarnessConfig) -> HarnessC
     )
 
 
+def apply_harness_override(harness: HarnessConfig, override: Dict) -> None:
+    if not override:
+        return
+    if override.get("presets"):
+        raise ValueError("Harness overrides cannot add presets; presets are expanded during config load.")
+    if "comment_out" in override:
+        harness.comment_out.extend(override["comment_out"])
+    if "replacements" in override:
+        harness.replacements.extend(Replacement.from_dict(item) for item in override["replacements"])
+    harness.comment_out = dedupe_preserve_order(harness.comment_out)
+    harness.replacements = dedupe_preserve_order(
+        harness.replacements,
+        key=lambda repl: (repl.raw_from, repl.replacement, repl.is_regex),
+    )
+
+
+def apply_function_override(func_cfg: FunctionConfig, override: Dict) -> None:
+    harness_override = override.get("harness")
+    if harness_override:
+        apply_harness_override(func_cfg.harness, harness_override)
+
+
 @dataclass
 class FunctionConfig:
     name: str
@@ -696,31 +731,42 @@ class FunctionConfig:
     harness: HarnessConfig
 
     @classmethod
-    def from_dict(cls, data: Dict) -> "FunctionConfig":
+    def from_dict(cls, name: str, data: Dict) -> "FunctionConfig":
         harness = HarnessConfig.from_dict(data["harness"])
         return cls(
-            name=data["name"],
+            name=name,
             discriminator=data["discriminator"],
             harness=harness,
         )
+
+    def clone(self) -> "FunctionConfig":
+        return FunctionConfig(
+            name=self.name,
+            discriminator=self.discriminator,
+            harness=self.harness.clone(),
+        )
+
+
+@dataclass
+class OutputConfig:
+    name: str
+    template: Path
+    target: Path
+    placeholders: Dict[str, str]
+    section_rules: Dict[str, SectionRule]
+    functions: List[FunctionConfig]
+    overrides: Dict[str, Dict]
 
 
 @dataclass
 class SyncConfig:
     source: Path
-    template: Path
-    target: Path
-    placeholders: Dict[str, str]
-    section_rules: Dict[str, SectionRule]
     presets: Dict[str, HarnessConfig]
-    functions: List[FunctionConfig]
+    outputs: List[OutputConfig]
 
     @classmethod
     def load(cls, path: Path) -> "SyncConfig":
         data = json.loads(path.read_text())
-        section_rules = {
-            name: SectionRule(**rule) for name, rule in data["sections"].items()
-        }
         preset_map = {
             name: HarnessConfig.from_dict(item)
             for name, item in data.get("presets", {}).items()
@@ -734,21 +780,55 @@ class SyncConfig:
                     stack=(preset_name,),
                 )
 
-        functions = [FunctionConfig.from_dict(item) for item in data.get("functions", [])]
-        for idx, func in enumerate(functions):
-            functions[idx] = FunctionConfig(
+        function_defs: Dict[str, FunctionConfig] = {}
+        for name, item in data.get("functions", {}).items():
+            func = FunctionConfig.from_dict(name, item)
+            function_defs[name] = FunctionConfig(
                 name=func.name,
                 discriminator=func.discriminator,
                 harness=func.harness.expand_presets(preset_map, cache=preset_cache),
             )
+
+        outputs: List[OutputConfig] = []
+        for output_entry in data.get("outputs", []):
+            section_rules = {
+                name: SectionRule(**rule) for name, rule in output_entry["sections"].items()
+            }
+            function_names = output_entry.get("functions", [])
+            overrides = output_entry.get("function_overrides", {})
+            if not function_names:
+                resolved_functions = list(function_defs.values())
+            else:
+                resolved_functions = []
+                for func_name in function_names:
+                    if func_name not in function_defs:
+                        raise KeyError(f"Unknown function `{func_name}` referenced in output `{output_entry.get('name', '<unnamed>')}`")
+                    resolved_functions.append(function_defs[func_name])
+
+            cloned_functions: List[FunctionConfig] = []
+            for func in resolved_functions:
+                clone = func.clone()
+                override_spec = overrides.get(clone.name)
+                if override_spec:
+                    apply_function_override(clone, override_spec)
+                cloned_functions.append(clone)
+
+            outputs.append(
+                OutputConfig(
+                    name=output_entry["name"],
+                    template=REPO_ROOT / output_entry["template"],
+                    target=REPO_ROOT / output_entry["target"],
+                    placeholders=output_entry["placeholders"],
+                    section_rules=section_rules,
+                    functions=cloned_functions,
+                    overrides=overrides,
+                )
+            )
+
         return cls(
             source=REPO_ROOT / data["source"],
-            template=REPO_ROOT / data["template"],
-            target=REPO_ROOT / data["target"],
-            placeholders=data["placeholders"],
-            section_rules=section_rules,
             presets=preset_cache,
-            functions=functions,
+            outputs=outputs,
         )
 
 

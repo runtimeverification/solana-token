@@ -1,21 +1,65 @@
 {
   "source": "p-token/src/entrypoint-runtime-verification.rs",
-  "template": "program/test-properties/templates/runtime_entrypoint.rs",
-  "target": "program/src/entrypoint-rvo.rs",
-  "placeholders": {
-    "match_arms": "        // === AUTO-GENERATED MATCH ARMS ===",
-    "harnesses": "// === AUTO-GENERATED HARNESS FUNCTIONS ==="
-  },
-  "sections": {
-    "match_arms": {
-      "separator": "\n",
-      "trailing_newline": false
+  "outputs": [
+    {
+      "name": "entrypoint_rvo",
+      "template": "program/test-properties/templates/runtime_entrypoint.rs",
+      "target": "program/src/entrypoint-rvo.rs",
+      "placeholders": {
+        "match_arms": "        // === AUTO-GENERATED MATCH ARMS ===",
+        "harnesses": "// === AUTO-GENERATED HARNESS FUNCTIONS ==="
+      },
+      "sections": {
+        "match_arms": {
+          "separator": "\n",
+          "trailing_newline": false
+        },
+        "harnesses": {
+          "separator": "\n\n",
+          "trailing_newline": true
+        }
+      },
+      "functions": [
+        "test_process_transfer",
+        "test_process_get_account_data_size"
+      ],
+      "function_overrides": {
+        "test_process_transfer": {
+          "harness": {
+            "replacements": [
+              {
+                "from": "accounts: &[AccountInfo; 3],",
+                "to": "accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 3]"
+              }
+            ]
+          }
+        }
+      }
     },
-    "harnesses": {
-      "separator": "\n\n",
-      "trailing_newline": true
+    {
+      "name": "entrypoint_runtime_verification",
+      "template": "program/test-properties/templates/runtime_entrypoint.rs",
+      "target": "program/src/entrypoint-runtime-verification.rs",
+      "placeholders": {
+        "match_arms": "        // === AUTO-GENERATED MATCH ARMS ===",
+        "harnesses": "// === AUTO-GENERATED HARNESS FUNCTIONS ==="
+      },
+      "sections": {
+        "match_arms": {
+          "separator": "\n",
+          "trailing_newline": false
+        },
+        "harnesses": {
+          "separator": "\n\n",
+          "trailing_newline": true
+        }
+      },
+      "functions": [
+        "test_process_transfer",
+        "test_process_get_account_data_size"
+      ]
     }
-  },
+  ],
   "presets": {
     "comment_out_cheatcode_validations": {
       "comment_out": [
@@ -142,9 +186,8 @@
       ]
     }
   },
-  "functions": [
-    {
-      "name": "test_process_transfer",
+  "functions": {
+    "test_process_transfer": {
       "discriminator": 3,
       "harness": {
         "presets": [
@@ -159,17 +202,10 @@
           "migrate_signer_accessors",
           "migrate_multisig_accessors",
           "normalize_multisig_owner_guard"
-        ],
-        "replacements": [
-          {
-            "from": "accounts: &[AccountInfo; 3],",
-            "to": "accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 3]"
-          }
         ]
       }
     },
-    {
-      "name": "test_process_get_account_data_size",
+    "test_process_get_account_data_size": {
       "discriminator": 21,
       "harness": {
         "presets": [
@@ -180,5 +216,5 @@
         ]
       }
     }
-  ]
+  }
 }
