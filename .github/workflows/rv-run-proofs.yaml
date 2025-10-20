@@ -169,8 +169,12 @@ jobs:
 
       - name: "Run Proof ${{ matrix.proof }} and store resulting tree"
         run: |
-          timeout 3600 \
-            docker exec --workdir /workdir "${KMIR_CONTAINER_NAME}" \
+          docker exec --workdir /workdir "${KMIR_CONTAINER_NAME}" \
+            bash -c "ls -la artefacts; mkdir -p artefacts/proof; ls -la artefacts"
+
+          timeout ${{ inputs.timeout }} \
+            docker exec \
+              --workdir /workdir "${KMIR_CONTAINER_NAME}" \
               kmir prove-rs --smir "artefacts/${{ needs.compile.outputs.artifact_name }}.json" \
               --start-symbol "${{ needs.compile.outputs.start_prefix }}${{ matrix.proof }}" \
               --verbose \
