@@ -145,7 +145,7 @@ fn get_multisig(account_info: &AccountInfo) -> MultisigWrapper {
 
 /// A runtime verification cheatcode to set the instruction discriminator.
 /// TODO: Currently calling assert for concrete testing but needs backend support in K.
-fn cheatcode_set_descriminator(discriminator: u8, instruction_data: &[u8]) {
+fn cheatcode_set_discriminator(discriminator: u8, instruction_data: &[u8]) {
     assert_eq!(discriminator, instruction_data[0]);
 }
 
@@ -189,11 +189,13 @@ fn inner_process_instruction(
     }
 }
 
+/// program_id // Token Program ID
 /// accounts[0] // Source Info
 /// accounts[1] // Destination Info
 /// accounts[2] // Authority Info
 /// accounts[3..14] // Signers
-/// instruction_data[0..8] // Little Endian Bytes of u64 amount
+/// instruction_data[0] // Discriminator 3 (Transfer)
+/// instruction_data[1..9] // Little Endian Bytes of u64 amount
 #[inline(never)]
 fn test_process_transfer(
     program_id: &Pubkey,
@@ -202,8 +204,8 @@ fn test_process_transfer(
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
 
-    // Set descriminator and program id to concrete value
-    cheatcode_set_descriminator(3, instruction_data);
+    // Set discriminator and program id to concrete value
+    cheatcode_set_discriminator(3, instruction_data);
     cheatcode_set_program_id(program_id);
 
     // Strip discriminator so instruction data is equivalent p-token harness
@@ -426,15 +428,17 @@ fn test_process_transfer(
     result
 }
 
+/// program_id // Token Program ID
 /// accounts[0] // Mint Info
+/// instruction_data[0] // Discriminator 21 (Get Account Data Size)
 #[inline(never)]
 fn test_process_get_account_data_size(
     program_id: &Pubkey,
     accounts: &[AccountInfo; 1],
     instruction_data: &[u8; 1],
 ) -> ProgramResult {
-    // Set descriminator and program id to concrete value
-    cheatcode_set_descriminator(21, instruction_data);
+    // Set discriminator and program id to concrete value
+    cheatcode_set_discriminator(21, instruction_data);
     cheatcode_set_program_id(program_id);
 
     // Strip discriminator so instruction data is equivalent p-token harness

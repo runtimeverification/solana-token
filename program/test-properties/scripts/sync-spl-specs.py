@@ -118,6 +118,11 @@ def transform_harness(snippet: str, func_cfg: "FunctionConfig") -> tuple[str, st
 
     header_block, body_block = _split_snippet_blocks(snippet, func_cfg.name)
     doc_lines, attr_lines, original_account_line = _collect_header_metadata(header_block)
+    # Rewrite documentation comments to describe full instruction layout
+    # with explicit discriminator at instruction_data[0], and shift any
+    # existing payload-relative indices by +1 to match full-instruction view.
+    if doc_lines:
+        doc_lines = _rewrite_doc_comments(doc_lines, func_cfg)
     if original_account_line is None:
         raise ValueError(
             f"Unable to infer accounts parameter for `{func_cfg.name}`; ensure the source harness contains it or add a replacement."
@@ -143,6 +148,83 @@ def transform_harness(snippet: str, func_cfg: "FunctionConfig") -> tuple[str, st
         epilogue,
     )
     return harness_text, account_expr, account_comment
+
+
+def _rewrite_doc_comments(doc_lines: List[str], func_cfg: "FunctionConfig") -> List[str]:
+    """Return doc lines rewritten to:
+    - Insert a line for program_id.
+    - Insert a line for instruction_data[0] as the discriminator with title.
+    - Shift any instruction_data indices in existing lines by +1
+      (e.g., [0] -> [1], [1..9] -> [2..10], [..] -> [1..]).
+    The goal is to make docs describe the full wire format rather than the
+    payload-only view used in p-token harnesses.
+    """
+
+    def bump_range(expr: str) -> str:
+        s = expr.strip()
+        if not s:
+            return s
+        # ..
+        if s == "..":
+            return "1.."
+        # a..b
+        m = re.fullmatch(r"(\d+)\.\.(\d+)", s)
+        if m:
+            a, b = int(m.group(1)), int(m.group(2))
+            return f"{a + 1}..{b + 1}"
+        # a..
+        m = re.fullmatch(r"(\d+)\.\.", s)
+        if m:
+            a = int(m.group(1))
+            return f"{a + 1}.."
+        # ..b
+        m = re.fullmatch(r"\.\.(\d+)", s)
+        if m:
+            b = int(m.group(1))
+            return f"1..{b + 1}"
+        # single number
+        m = re.fullmatch(r"(\d+)", s)
+        if m:
+            return str(int(m.group(1)) + 1)
+        # Anything else, leave as-is
+        return s
+
+    instr_pat = re.compile(r"instruction_data\[\s*([^\]]*?)\s*\]")
+
+    # Transform existing doc lines: bump indices in any instruction_data[..]
+    transformed: List[str] = []
+    for line in doc_lines:
+        if "instruction_data[" in line:
+            def _repl(m: re.Match) -> str:
+                inner = m.group(1)
+                bumped = bump_range(inner)
+                return f"instruction_data[{bumped}]"
+
+            new_line = instr_pat.sub(_repl, line)
+            transformed.append(new_line)
+        else:
+            transformed.append(line)
+
+    # Build the inserted lines
+    prog_line = "/// program_id // Token Program ID"
+    title = to_title(func_cfg.name)
+    disc_line = f"/// instruction_data[0] // Discriminator {func_cfg.discriminator} ({title})"
+
+    # Insert program_id at the very top, insert discriminator right before
+    # the first instruction_data doc line (if any), else append at the end.
+    first_instr_idx = next((i for i, l in enumerate(transformed) if "instruction_data[" in l), None)
+
+    out: List[str] = []
+    out.append(prog_line)
+    if first_instr_idx is None:
+        out.extend(transformed)
+        out.append(disc_line)
+    else:
+        out.extend(transformed[:first_instr_idx])
+        out.append(disc_line)
+        out.extend(transformed[first_instr_idx:])
+
+    return out
 
 
 def _split_snippet_blocks(snippet: str, func_name: str) -> tuple[str, str]:
@@ -250,8 +332,8 @@ def _prepare_body_lines(
 def _build_prologue(func_cfg: "FunctionConfig", payload_type: str) -> List[str]:
     """Return the canonical prologue emitted for every harness."""
     return [
-        "// Set descriminator and program id to concrete value",
-        f"cheatcode_set_descriminator({func_cfg.discriminator}, instruction_data);",
+        "// Set discriminator and program id to concrete value",
+        f"cheatcode_set_discriminator({func_cfg.discriminator}, instruction_data);",
         "cheatcode_set_program_id(program_id);",
         "",
         "// Strip discriminator so instruction data is equivalent p-token harness",

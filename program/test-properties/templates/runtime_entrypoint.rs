@@ -145,7 +145,7 @@ fn get_multisig(account_info: &AccountInfo) -> MultisigWrapper {
 
 /// A runtime verification cheatcode to set the instruction discriminator.
 /// TODO: Currently calling assert for concrete testing but needs backend support in K.
-fn cheatcode_set_descriminator(discriminator: u8, instruction_data: &[u8]) {
+fn cheatcode_set_discriminator(discriminator: u8, instruction_data: &[u8]) {
     assert_eq!(discriminator, instruction_data[0]);
 }
 
