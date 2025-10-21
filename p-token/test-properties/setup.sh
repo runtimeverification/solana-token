@@ -25,7 +25,7 @@ set -xeuo pipefail
 SCRIPT_DIR="$(realpath "$(dirname "$0")")"
 
 SKIP_SUBMODULES=false
-CRATE_DIR="${CRATE_DIR:-$(realpath "${SCRIPT_DIR}/..") }"
+CRATE_DIR="${CRATE_DIR:-$(realpath "${SCRIPT_DIR}/..")}"
 ARTIFACT_BASENAME="${ARTIFACT_BASENAME:-p-token}"
 
 while [[ $# -gt 0 ]]; do
@@ -58,11 +58,11 @@ else
     echo "Skipping git submodule refresh..."
 fi
 
-# If any changes were already made, keep them. Otherwise, apply a
-# workspace tweak to avoid confusion with the token workspace.
-if [ -z "$(cd mir-semantics && git status --porcelain)" ]; then
-    printf "\n\n# avoid workspace confusion in token repo\n[workspace]\n" \
-        >> mir-semantics/deps/stable-mir-json/Cargo.toml
+# Ensure stable-mir-json acts as its own workspace to avoid root workspace capture.
+# Add an empty [workspace] if missing (idempotent, independent of git status).
+SMJ_CARGO_TOML="mir-semantics/deps/stable-mir-json/Cargo.toml"
+if ! grep -q '^\[workspace\]' "$SMJ_CARGO_TOML"; then
+    printf "\n\n# avoid workspace confusion in token repo\n[workspace]\n" >> "$SMJ_CARGO_TOML"
 fi
 
 # Build mir-semantics and stable-mir-json
@@ -73,11 +73,17 @@ ${RUSTC} --version
 
 # Build selected crate with stable-mir-json (clean first)
 pushd "${CRATE_DIR}" >/dev/null
+# Force cargo to emit artifacts under the crate's own target directory
+export CARGO_TARGET_DIR="${CRATE_DIR}/target"
 cargo clean && cargo build --features runtime-verification
 popd >/dev/null
 
 # Collect SMIR JSONs from the crate's target dir
-SMIRS=$(ls "${CRATE_DIR}/target/debug/deps"/*smir.json | sort)
+if ! SMIRS=$(ls "${CRATE_DIR}/target/debug/deps"/*.smir.json 2>/dev/null | sort); then
+    echo "[ERROR] No SMIR JSON files found under ${CRATE_DIR}/target/debug/deps."
+    echo "        Ensure the crate built with RUSTC wrapper and produced .smir.json outputs."
+    exit 3
+fi
 ls ${SMIRS}
 
 # Link all SMIR JSON and store in artefacts directory
