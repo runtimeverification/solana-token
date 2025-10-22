@@ -37,7 +37,7 @@ MATCH_ARM_TEMPLATE = """        // {discriminator} - {title}
             {function_name}(
                 program_id,
                 {account_line},{account_line_comment}
-                instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
+                {instruction_arg},
             )
         }}"""
 
@@ -66,6 +66,7 @@ def assemble_sections(output_cfg: OutputConfig, functions: Dict[str, str]) -> Di
     """Apply harness transforms and collect the generated bodies and match arms."""
     harnesses: List[str] = []
     match_arms: List[str] = []
+    covered_functions: set[str] = set()
 
     for func_cfg in output_cfg.functions:
         source_snippet = functions.get(func_cfg.name)
@@ -73,8 +74,36 @@ def assemble_sections(output_cfg: OutputConfig, functions: Dict[str, str]) -> Di
             raise KeyError(f"Missing function `{func_cfg.name}` in source file")
 
         harness, account_expr, account_comment = transform_harness(source_snippet, func_cfg)
-        match_arms.append(render_default_match_arm(func_cfg, account_expr, account_comment))
+
+        # Match-arm selection via overrides (skip/custom/default)
+        override = output_cfg.overrides.get(func_cfg.name, {}) if output_cfg.overrides else {}
+        if override.get("skip_match_arm"):
+            # Still generate harness, but do not dispatch directly to it.
+            pass
+        elif override.get("custom_match_arm_template"):
+            rendered, covered = render_custom_match_arm(
+                func_cfg,
+                account_expr,
+                account_comment,
+                override,
+            )
+            match_arms.append(rendered)
+            covered_functions.update(covered)
+        else:
+            instruction_mode = override.get("instruction_arg_mode", "chunk")
+            match_arms.append(
+                render_default_match_arm(
+                    func_cfg,
+                    account_expr,
+                    account_comment,
+                    instruction_mode,
+                )
+            )
+            covered_functions.add(func_cfg.name)
         harnesses.append(harness)
+    # Attach coverage metadata for later summary
+    output_cfg.covered_functions = covered_functions  # type: ignore[attr-defined]
+
     return {
         "match_arms": match_arms,
         "harnesses": harnesses,
@@ -108,6 +137,13 @@ def summarize_differences(output_cfg: OutputConfig) -> None:
             f"{len(harness.comment_out)} comment-out, "
             f"{len(harness.replacements)} replacements"
         )
+    covered = getattr(output_cfg, "covered_functions", set())
+    all_funcs = {f.name for f in output_cfg.functions}
+    uncovered = sorted(all_funcs - set(covered))
+    if uncovered:
+        print("Uncovered (not dispatched) in", output_cfg.name, ":", ", ".join(uncovered))
+    else:
+        print("All configured harnesses are dispatched in", output_cfg.name)
 
 
 # Conversion helpers (REVIEW FOCUS) -------------------------------------------
@@ -331,16 +367,31 @@ def _prepare_body_lines(
 
 def _build_prologue(func_cfg: "FunctionConfig", payload_type: str) -> List[str]:
     """Return the canonical prologue emitted for every harness."""
-    return [
-        "// Set discriminator and program id to concrete value",
-        f"cheatcode_set_discriminator({func_cfg.discriminator}, instruction_data);",
-        "cheatcode_set_program_id(program_id);",
-        "",
-        "// Strip discriminator so instruction data is equivalent p-token harness",
-        "let instruction_data_with_discriminator = &instruction_data.clone();",
-        f"let instruction_data: &{payload_type} = instruction_data.last_chunk().unwrap();",
-        "",
-    ]
+    # Two modes:
+    # - Fixed-size payload: use last_chunk() to rebind as & [u8; N]
+    # - Variable-size payload (payload_type == "[u8]"): slice off discriminator
+    if payload_type == "[u8]":
+        return [
+            "// Set discriminator and program id to concrete value",
+            f"cheatcode_set_discriminator({func_cfg.discriminator}, instruction_data);",
+            "cheatcode_set_program_id(program_id);",
+            "",
+            "// Strip discriminator so instruction data is equivalent p-token harness",
+            "let instruction_data_with_discriminator = &instruction_data.clone();",
+            "let instruction_data: &[u8] = &instruction_data[1..];",
+            "",
+        ]
+    else:
+        return [
+            "// Set discriminator and program id to concrete value",
+            f"cheatcode_set_discriminator({func_cfg.discriminator}, instruction_data);",
+            "cheatcode_set_program_id(program_id);",
+            "",
+            "// Strip discriminator so instruction data is equivalent p-token harness",
+            "let instruction_data_with_discriminator = &instruction_data.clone();",
+            f"let instruction_data: &{payload_type} = instruction_data.last_chunk().unwrap();",
+            "",
+        ]
 
 
 def _build_epilogue() -> List[str]:
@@ -449,6 +500,12 @@ def infer_instruction_types(snippet: str) -> tuple[str | None, str | None]:
         payload_type = f"[u8; {payload_len}]"
         instruction_type = f"&[u8; {payload_len + 1}]"
         return payload_type, instruction_type
+    # Variable-sized slice payload
+    slice_match = re.fullmatch(r"&?\[u8\]", compact)
+    if slice_match:
+        payload_type = "[u8]"
+        instruction_type = "&[u8]"
+        return payload_type, instruction_type
 
     return None, None
 
@@ -473,6 +530,121 @@ def to_title(label: str) -> str:
         base = base[len("test_") :]
     parts = [part for part in base.split("_") if part]
     return " ".join(word.capitalize() for word in parts) or label
+
+
+def render_custom_match_arm(
+    func_cfg: "FunctionConfig",
+    account_expr: str,
+    comment_block: str,
+    override: Dict,
+) -> tuple[str, List[str]]:
+    """Render a custom match-arm using a named template and params.
+
+    Returns (rendered_text, covered_function_names).
+    """
+    template_name = override.get("custom_match_arm_template")
+    params = override.get("custom_match_arm_params", {})
+    covered = list(override.get("custom_match_arm_functions", []))
+
+    disc = func_cfg.discriminator
+    title = to_title(func_cfg.name)
+    log_lines = [
+        f"// #[cfg(feature = \"logging\")]",
+        f"// msg!(\"Testing Instruction: {title}\");",
+        "",
+    ]
+    log_block = "\n            ".join(log_lines).rstrip()
+
+    # Helper for uniform call site
+    def call_site(fn_name: str) -> str:
+        return (
+            f"{fn_name}(\n"
+            f"                program_id,\n"
+            f"                {account_expr},{comment_block}\n"
+            f"                instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,\n"
+            f"            )"
+        )
+
+    rendered = ""
+    if template_name == "route_by_len_two":
+        branches = params.get("branches", [])
+        if len(branches) != 2:
+            raise ValueError("route_by_len_two requires exactly two branches")
+        # We follow user's preference B: destructure payload and compare original thresholds (no +1)
+        b1, b2 = branches[0], branches[1]
+        rendered = (
+            f"        // {disc} - {title}\n"
+            f"        {disc} => {{\n"
+            f"            {log_block}\n"
+            f"            let [_d, payload @ ..] = instruction_data else {{\n"
+            f"                return Err(TokenError::InvalidInstruction.into());\n"
+            f"            }};\n"
+            f"            match payload.len() {{\n"
+            f"                x if {b1['min_payload_len']} <= x => {{\n"
+            f"                    {call_site(b1['function'])}\n"
+            f"                }}\n"
+            f"                x if {b2['min_payload_len']} <= x => {{\n"
+            f"                    {call_site(b2['function'])}\n"
+            f"                }}\n"
+            f"                _ => Err(TokenError::InvalidInstruction.into()),\n"
+            f"            }}\n"
+            f"        }}"
+        )
+    elif template_name == "route_by_data_len_two":
+        variants = params.get("variants", [])
+        if len(variants) != 2:
+            raise ValueError("route_by_data_len_two requires exactly two variants")
+        v1, v2 = variants[0], variants[1]
+        rendered = (
+            f"        // {disc} - {title}\n"
+            f"        {disc} => {{\n"
+            f"            {log_block}\n"
+            f"            if let Some(first_account) = accounts.first() {{\n"
+            f"                match first_account.data_len() {{\n"
+            f"                    {v1['when']} => {{\n"
+            f"                        {call_site(v1['function'])}\n"
+            f"                    }}\n"
+            f"                    {v2['when']} => {{\n"
+            f"                        {call_site(v2['function'])}\n"
+            f"                    }}\n"
+            f"                    _ => Err(TokenError::InvalidInstruction.into()),\n"
+            f"                }}\n"
+            f"            }} else {{\n"
+            f"                Err(TokenError::InvalidInstruction.into())\n"
+            f"            }}\n"
+            f"        }}"
+        )
+    elif template_name == "route_by_data_len_three":
+        variants = params.get("variants", [])
+        if len(variants) != 3:
+            raise ValueError("route_by_data_len_three requires exactly three variants")
+        v1, v2, v3 = variants[0], variants[1], variants[2]
+        rendered = (
+            f"        // {disc} - {title}\n"
+            f"        {disc} => {{\n"
+            f"            {log_block}\n"
+            f"            if let Some(acc) = accounts.first() {{\n"
+            f"                match acc.data_len() {{\n"
+            f"                    {v1['when']} => {{\n"
+            f"                        {call_site(v1['function'])}\n"
+            f"                    }}\n"
+            f"                    {v2['when']} => {{\n"
+            f"                        {call_site(v2['function'])}\n"
+            f"                    }}\n"
+            f"                    {v3['when']} => {{\n"
+            f"                        {call_site(v3['function'])}\n"
+            f"                    }}\n"
+            f"                    _ => Err(TokenError::InvalidInstruction.into()),\n"
+            f"                }}\n"
+            f"            }} else {{\n"
+            f"                Err(TokenError::InvalidInstruction.into())\n"
+            f"            }}\n"
+            f"        }}"
+        )
+    else:
+        raise KeyError(f"Unknown custom_match_arm_template `{template_name}`")
+
+    return rendered, covered
 
 
 def prepare_account_metadata(
@@ -538,8 +710,20 @@ def render_default_match_arm(
     func_cfg: "FunctionConfig",
     account_expr: str,
     comment_block: str,
+    instruction_arg_mode: str = "chunk",
 ) -> str:
-    """Render the SPL dispatcher branch for a transformed harness."""
+    """Render the SPL dispatcher branch for a transformed harness.
+
+    instruction_arg_mode: "chunk" to pass first_chunk(); "full" to pass instruction_data slice.
+    """
+
+    if instruction_arg_mode not in ("chunk", "full"):
+        raise ValueError("instruction_arg_mode must be 'chunk' or 'full'")
+    instruction_arg = (
+        "instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?"
+        if instruction_arg_mode == "chunk"
+        else "instruction_data"
+    )
 
     rendered = MATCH_ARM_TEMPLATE.format(
         discriminator=func_cfg.discriminator,
@@ -547,6 +731,7 @@ def render_default_match_arm(
         function_name=func_cfg.name,
         account_line=account_expr,
         account_line_comment=comment_block,
+        instruction_arg=instruction_arg,
     )
 
     return rendered
