@@ -21,16 +21,6 @@
       },
       "functions": [],
       "function_overrides": {
-        "test_process_transfer": {
-          "harness": {
-            "replacements": [
-              {
-                "from": "accounts: &[AccountInfo; 3],",
-                "to": "accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 3]"
-              }
-            ]
-          }
-        },
         "test_process_initialize_mint_freeze": {
           "custom_match_arm_template": "route_by_len_two",
           "custom_match_arm_params": {

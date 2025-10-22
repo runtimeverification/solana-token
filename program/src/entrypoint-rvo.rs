@@ -243,14 +243,14 @@ fn inner_process_instruction(
                 x if 66 <= x => {
                     test_process_initialize_mint_freeze(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?, // CHANGE P-Token: accounts: &[AccountInfo; 2]
+                accounts, // CHANGE P-Token: accounts: &[AccountInfo; 2]
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
                 }
                 x if 34 <= x => {
                     test_process_initialize_mint_no_freeze(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?, // CHANGE P-Token: accounts: &[AccountInfo; 2]
+                accounts, // CHANGE P-Token: accounts: &[AccountInfo; 2]
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
                 }
@@ -261,7 +261,7 @@ fn inner_process_instruction(
         1 => {
             test_process_initialize_account(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?,
+                accounts,
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
         }
@@ -269,7 +269,7 @@ fn inner_process_instruction(
         2 => {
             test_process_initialize_multisig(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?, // CHANGE P-Token: accounts: &[AccountInfo; 5]
+                accounts, // CHANGE P-Token: accounts: &[AccountInfo; 5]
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
         }
@@ -285,7 +285,7 @@ fn inner_process_instruction(
         4 => {
             test_process_approve(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?, // CHANGE P-Token: accounts: &[AccountInfo; 3]
+                accounts, // CHANGE P-Token: accounts: &[AccountInfo; 3]
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
         }
@@ -293,7 +293,7 @@ fn inner_process_instruction(
         5 => {
             test_process_revoke(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?,
+                accounts,
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
         }
@@ -306,14 +306,14 @@ fn inner_process_instruction(
                     Account::LEN => {
                         test_process_set_authority_account(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?, // CHANGE P-Token: accounts: &[AccountInfo; 2]
+                accounts, // CHANGE P-Token: accounts: &[AccountInfo; 2]
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
                     }
                     Mint::LEN => {
                         test_process_set_authority_mint(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?, // CHANGE P-Token: accounts: &[AccountInfo; 2]
+                accounts, // CHANGE P-Token: accounts: &[AccountInfo; 2]
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
                     }
@@ -327,7 +327,7 @@ fn inner_process_instruction(
         7 => {
             test_process_mint_to(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?, // CHANGE P-Token: accounts: &[AccountInfo; 3]
+                accounts, // CHANGE P-Token: accounts: &[AccountInfo; 3]
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
         }
@@ -335,7 +335,7 @@ fn inner_process_instruction(
         8 => {
             test_process_burn(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?, // CHANGE P-Token: accounts: &[AccountInfo; 3]
+                accounts, // CHANGE P-Token: accounts: &[AccountInfo; 3]
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
         }
@@ -343,7 +343,7 @@ fn inner_process_instruction(
         9 => {
             test_process_close_account(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?,
+                accounts,
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
         }
@@ -351,7 +351,7 @@ fn inner_process_instruction(
         10 => {
             test_process_freeze_account(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?,
+                accounts,
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
         }
@@ -359,7 +359,7 @@ fn inner_process_instruction(
         11 => {
             test_process_thaw_account(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?,
+                accounts,
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
         }
@@ -367,7 +367,7 @@ fn inner_process_instruction(
         12 => {
             test_process_transfer_checked(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?, // CHANGE P-Token: accounts: &[AccountInfo; 4]
+                accounts, // CHANGE P-Token: accounts: &[AccountInfo; 4]
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
         }
@@ -375,7 +375,7 @@ fn inner_process_instruction(
         13 => {
             test_process_approve_checked(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?, // CHANGE P-Token: accounts: &[AccountInfo; 4]
+                accounts, // CHANGE P-Token: accounts: &[AccountInfo; 4]
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
         }
@@ -383,7 +383,7 @@ fn inner_process_instruction(
         14 => {
             test_process_mint_to_checked(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?, // CHANGE P-Token: accounts: &[AccountInfo; 3]
+                accounts, // CHANGE P-Token: accounts: &[AccountInfo; 3]
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
         }
@@ -391,7 +391,7 @@ fn inner_process_instruction(
         15 => {
             test_process_burn_checked(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?, // CHANGE P-Token: accounts: &[AccountInfo; 3]
+                accounts, // CHANGE P-Token: accounts: &[AccountInfo; 3]
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
         }
@@ -399,7 +399,7 @@ fn inner_process_instruction(
         16 => {
             test_process_initialize_account2(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?, // CHANGE P-Token: accounts: &[AccountInfo; 3]
+                accounts, // CHANGE P-Token: accounts: &[AccountInfo; 3]
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
         }
@@ -407,7 +407,7 @@ fn inner_process_instruction(
         17 => {
             test_process_sync_native(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?,
+                accounts,
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
         }
@@ -415,7 +415,7 @@ fn inner_process_instruction(
         18 => {
             test_process_initialize_account3(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?, // CHANGE P-Token: accounts: &[AccountInfo; 2]
+                accounts, // CHANGE P-Token: accounts: &[AccountInfo; 2]
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
         }
@@ -423,7 +423,7 @@ fn inner_process_instruction(
         19 => {
             test_process_initialize_multisig2(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?, // CHANGE P-Token: accounts: &[AccountInfo; 4]
+                accounts, // CHANGE P-Token: accounts: &[AccountInfo; 4]
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
         }
@@ -438,14 +438,14 @@ fn inner_process_instruction(
                 x if 66 <= x => {
                     test_process_initialize_mint2_freeze(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?, // CHANGE P-Token: accounts: &[AccountInfo; 1]
+                accounts, // CHANGE P-Token: accounts: &[AccountInfo; 1]
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
                 }
                 x if 34 <= x => {
                     test_process_initialize_mint2_no_freeze(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?, // CHANGE P-Token: accounts: &[AccountInfo; 1]
+                accounts, // CHANGE P-Token: accounts: &[AccountInfo; 1]
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
                 }
@@ -456,7 +456,7 @@ fn inner_process_instruction(
         21 => {
             test_process_get_account_data_size(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?,
+                accounts,
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
         }
@@ -464,7 +464,7 @@ fn inner_process_instruction(
         22 => {
             test_process_initialize_immutable_owner(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?,
+                accounts,
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
         }
@@ -472,7 +472,7 @@ fn inner_process_instruction(
         23 => {
             test_process_amount_to_ui_amount(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?, // CHANGE P-Token: accounts: &[AccountInfo; 1]
+                accounts, // CHANGE P-Token: accounts: &[AccountInfo; 1]
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
         }
@@ -480,7 +480,7 @@ fn inner_process_instruction(
         24 => {
             test_process_ui_amount_to_amount(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?, // CHANGE P-Token: accounts: &[AccountInfo; 1]
+                accounts, // CHANGE P-Token: accounts: &[AccountInfo; 1]
                 instruction_data,
             )
         }
@@ -493,21 +493,21 @@ fn inner_process_instruction(
                     Account::LEN => {
                         test_process_withdraw_excess_lamports_account(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?,
+                accounts,
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
                     }
                     Mint::LEN => {
                         test_process_withdraw_excess_lamports_mint(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?,
+                accounts,
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
                     }
                     Multisig::LEN => {
                         test_process_withdraw_excess_lamports_multisig(
                 program_id,
-                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?,
+                accounts,
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
                     }
@@ -535,7 +535,7 @@ fn inner_process_instruction(
 #[inline(never)]
 fn test_process_initialize_mint_freeze(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 2],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 2]
     instruction_data: &[u8; 67],
 ) -> ProgramResult {
     // Set discriminator and program id to concrete value
@@ -599,7 +599,7 @@ fn test_process_initialize_mint_freeze(
 #[inline(never)]
 fn test_process_initialize_mint_no_freeze(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 2],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 2]
     instruction_data: &[u8; 35],
 ) -> ProgramResult {
     // Set discriminator and program id to concrete value
@@ -662,7 +662,7 @@ fn test_process_initialize_mint_no_freeze(
 #[inline(never)]
 fn test_process_initialize_account(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 4],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 4]
     instruction_data: &[u8; 1],
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
@@ -743,7 +743,7 @@ fn test_process_initialize_account(
 #[inline(never)]
 fn test_process_initialize_multisig(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 5],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 5]
     instruction_data: &[u8; 2],
 ) -> ProgramResult {
     // Set discriminator and program id to concrete value
@@ -1062,7 +1062,7 @@ fn test_process_transfer(
 #[inline(never)]
 fn test_process_approve(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 3],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 3]
     instruction_data: &[u8; 9],
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
@@ -1183,7 +1183,7 @@ fn test_process_approve(
 #[inline(never)]
 fn test_process_revoke(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 2],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 2]
     instruction_data: &[u8; 1],
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
@@ -1305,7 +1305,7 @@ fn test_process_revoke(
 #[inline(never)]
 fn test_process_set_authority_account(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 2],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 2]
     instruction_data: &[u8; 35],
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
@@ -1530,7 +1530,7 @@ fn test_process_set_authority_account(
 #[inline(never)]
 fn test_process_set_authority_mint(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 2],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 2]
     instruction_data: &[u8; 35],
 ) -> ProgramResult {
     // Set discriminator and program id to concrete value
@@ -1747,7 +1747,7 @@ fn test_process_set_authority_mint(
 #[inline(never)]
 fn test_process_mint_to(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 3],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 3]
     instruction_data: &[u8; 9],
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
@@ -1912,7 +1912,7 @@ fn test_process_mint_to(
 #[inline(never)]
 fn test_process_burn(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 3],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 3]
     instruction_data: &[u8; 9],
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
@@ -2136,7 +2136,7 @@ fn test_process_burn(
 #[inline(never)]
 fn test_process_close_account(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 3],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 3]
     instruction_data: &[u8; 1],
 ) -> ProgramResult {
     use solana_sdk_ids::incinerator::ID as INCINERATOR_ID;
@@ -2277,7 +2277,7 @@ fn test_process_close_account(
 #[inline(never)]
 fn test_process_freeze_account(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 3],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 3]
     instruction_data: &[u8; 1],
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
@@ -2412,7 +2412,7 @@ fn test_process_freeze_account(
 #[inline(never)]
 fn test_process_thaw_account(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 3],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 3]
     instruction_data: &[u8; 1],
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
@@ -2549,7 +2549,7 @@ fn test_process_thaw_account(
 #[inline(never)]
 fn test_process_transfer_checked(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 4],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 4]
     instruction_data: &[u8; 10],
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
@@ -2807,7 +2807,7 @@ fn test_process_transfer_checked(
 #[inline(never)]
 fn test_process_approve_checked(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 4],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 4]
     instruction_data: &[u8; 10],
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
@@ -2943,7 +2943,7 @@ fn test_process_approve_checked(
 #[inline(never)]
 fn test_process_mint_to_checked(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 3],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 3]
     instruction_data: &[u8; 10],
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
@@ -3110,7 +3110,7 @@ fn test_process_mint_to_checked(
 #[inline(never)]
 fn test_process_burn_checked(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 3],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 3]
     instruction_data: &[u8; 10],
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
@@ -3337,7 +3337,7 @@ fn test_process_burn_checked(
 #[inline(never)]
 fn test_process_initialize_account2(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 3],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 3]
     instruction_data: &[u8; 33],
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
@@ -3414,7 +3414,7 @@ fn test_process_initialize_account2(
 #[inline(never)]
 fn test_process_sync_native(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 1],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 1]
     instruction_data: &[u8; 1],
 ) -> ProgramResult {
     // Set discriminator and program id to concrete value
@@ -3473,7 +3473,7 @@ fn test_process_sync_native(
 #[inline(never)]
 fn test_process_initialize_account3(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 2],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 2]
     instruction_data: &[u8; 33],
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
@@ -3555,7 +3555,7 @@ fn test_process_initialize_account3(
 #[inline(never)]
 fn test_process_initialize_multisig2(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 4],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 4]
     instruction_data: &[u8; 2],
 ) -> ProgramResult {
     // Set discriminator and program id to concrete value
@@ -3634,7 +3634,7 @@ fn test_process_initialize_multisig2(
 #[inline(never)]
 fn test_process_initialize_mint2_freeze(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 1],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 1]
     instruction_data: &[u8; 67],
 ) -> ProgramResult {
     // Set discriminator and program id to concrete value
@@ -3698,7 +3698,7 @@ fn test_process_initialize_mint2_freeze(
 #[inline(never)]
 fn test_process_initialize_mint2_no_freeze(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 1],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 1]
     instruction_data: &[u8; 35],
 ) -> ProgramResult {
     // Set discriminator and program id to concrete value
@@ -3759,7 +3759,7 @@ fn test_process_initialize_mint2_no_freeze(
 #[inline(never)]
 fn test_process_get_account_data_size(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 1],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 1]
     instruction_data: &[u8; 1],
 ) -> ProgramResult {
     // Set discriminator and program id to concrete value
@@ -3803,7 +3803,7 @@ fn test_process_get_account_data_size(
 #[inline(never)]
 fn test_process_initialize_immutable_owner(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 1],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 1]
     instruction_data: &[u8; 1],
 ) -> ProgramResult {
     // Set discriminator and program id to concrete value
@@ -3844,7 +3844,7 @@ fn test_process_initialize_immutable_owner(
 #[inline(never)]
 fn test_process_amount_to_ui_amount(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 1],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 1]
     instruction_data: &[u8; 9],
 ) -> ProgramResult {
     // Set discriminator and program id to concrete value
@@ -3889,7 +3889,7 @@ fn test_process_amount_to_ui_amount(
 #[inline(never)]
 fn test_process_ui_amount_to_amount(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 1],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 1]
     instruction_data: &[u8],
 ) -> ProgramResult {
     // Set discriminator and program id to concrete value
@@ -4001,7 +4001,7 @@ fn test_process_ui_amount_to_amount(
 #[inline(never)]
 fn test_process_withdraw_excess_lamports_account(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 3],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 3]
     instruction_data: &[u8; 1],
 ) -> ProgramResult {
     // Set discriminator and program id to concrete value
@@ -4139,7 +4139,7 @@ fn test_process_withdraw_excess_lamports_account(
 #[inline(never)]
 fn test_process_withdraw_excess_lamports_mint(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 3],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 3]
     instruction_data: &[u8; 1],
 ) -> ProgramResult {
     // Set discriminator and program id to concrete value
@@ -4280,7 +4280,7 @@ fn test_process_withdraw_excess_lamports_mint(
 #[inline(never)]
 fn test_process_withdraw_excess_lamports_multisig(
     program_id: &Pubkey,
-    accounts: &[AccountInfo; 3],
+    accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; 3]
     instruction_data: &[u8; 1],
 ) -> ProgramResult {
     // Set discriminator and program id to concrete value

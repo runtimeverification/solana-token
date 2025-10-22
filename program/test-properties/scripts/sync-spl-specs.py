@@ -75,6 +75,11 @@ def assemble_sections(output_cfg: OutputConfig, functions: Dict[str, str]) -> Di
 
         harness, account_expr, account_comment = transform_harness(source_snippet, func_cfg)
 
+        # For rvo output, use full accounts slice in calls (avoid first_chunk const generic)
+        account_expr_out = account_expr
+        if output_cfg.name == "entrypoint_rvo":
+            account_expr_out = "accounts"
+
         # Match-arm selection via overrides (skip/custom/default)
         override = output_cfg.overrides.get(func_cfg.name, {}) if output_cfg.overrides else {}
         if override.get("skip_match_arm"):
@@ -83,7 +88,7 @@ def assemble_sections(output_cfg: OutputConfig, functions: Dict[str, str]) -> Di
         elif override.get("custom_match_arm_template"):
             rendered, covered = render_custom_match_arm(
                 func_cfg,
-                account_expr,
+                account_expr_out,
                 account_comment,
                 override,
             )
@@ -94,13 +99,22 @@ def assemble_sections(output_cfg: OutputConfig, functions: Dict[str, str]) -> Di
             match_arms.append(
                 render_default_match_arm(
                     func_cfg,
-                    account_expr,
+                    account_expr_out,
                     account_comment,
                     instruction_mode,
                 )
             )
             covered_functions.add(func_cfg.name)
-        harnesses.append(harness)
+        # For rvo output, relax accounts parameter type from fixed-size array to slice
+        if output_cfg.name == "entrypoint_rvo":
+            pattern = re.compile(r"^(\s*)accounts:\s*&\[AccountInfo;\s*(\d+)\s*\],", flags=re.MULTILINE)
+            harness_relaxed = pattern.sub(
+                lambda m: f"{m.group(1)}accounts: &[AccountInfo], // CHANGE P-Token: accounts: &[AccountInfo; {m.group(2)}]",
+                harness,
+            )
+            harnesses.append(harness_relaxed)
+        else:
+            harnesses.append(harness)
     # Attach coverage metadata for later summary
     output_cfg.covered_functions = covered_functions  # type: ignore[attr-defined]
 
