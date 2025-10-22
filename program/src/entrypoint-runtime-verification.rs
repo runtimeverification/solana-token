@@ -68,7 +68,7 @@ impl MintWrapper {
 }
 
 fn get_mint(account_info: &AccountInfo) -> MintWrapper {
-    MintWrapper(Mint::unpack(&account_info.data.borrow()))
+    MintWrapper(Mint::unpack_unchecked(&account_info.data.borrow()))
 }
 
 /// A wrapper struct as middleware so that the same functions called
@@ -153,7 +153,7 @@ impl core::ops::Deref for AccountWrapper {
 
 /// Helper function from p-token must be implemented on AccountWrapper
 fn get_account(account_info: &AccountInfo) -> AccountWrapper {
-    AccountWrapper(Account::unpack(&account_info.data.borrow()))
+    AccountWrapper(Account::unpack_unchecked(&account_info.data.borrow()))
 }
 
 /// A wrapper struct as middleware so that the same functions called
@@ -195,7 +195,7 @@ impl core::ops::Deref for MultisigWrapper {
 
 /// Helper function from p-token must be implemented on MultisigWrapper
 fn get_multisig(account_info: &AccountInfo) -> MultisigWrapper {
-    MultisigWrapper(Multisig::unpack(&account_info.data.borrow()))
+    MultisigWrapper(Multisig::unpack_unchecked(&account_info.data.borrow()))
 }
 
 fn get_rent(_account_info: &AccountInfo) -> solana_rent::Rent {
