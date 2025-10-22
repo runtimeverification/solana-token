@@ -68,7 +68,7 @@ impl MintWrapper {
 }
 
 fn get_mint(account_info: &AccountInfo) -> MintWrapper {
-    MintWrapper(Mint::unpack(&account_info.data.borrow()))
+    MintWrapper(Mint::unpack_unchecked(&account_info.data.borrow()))
 }
 
 /// A wrapper struct as middleware so that the same functions called
@@ -153,7 +153,7 @@ impl core::ops::Deref for AccountWrapper {
 
 /// Helper function from p-token must be implemented on AccountWrapper
 fn get_account(account_info: &AccountInfo) -> AccountWrapper {
-    AccountWrapper(Account::unpack(&account_info.data.borrow()))
+    AccountWrapper(Account::unpack_unchecked(&account_info.data.borrow()))
 }
 
 /// A wrapper struct as middleware so that the same functions called
@@ -195,7 +195,7 @@ impl core::ops::Deref for MultisigWrapper {
 
 /// Helper function from p-token must be implemented on MultisigWrapper
 fn get_multisig(account_info: &AccountInfo) -> MultisigWrapper {
-    MultisigWrapper(Multisig::unpack(&account_info.data.borrow()))
+    MultisigWrapper(Multisig::unpack_unchecked(&account_info.data.borrow()))
 }
 
 fn get_rent(_account_info: &AccountInfo) -> solana_rent::Rent {
@@ -297,32 +297,32 @@ fn inner_process_instruction(
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
         }
-        // 6 - Set Authority Account
-        6 => {
-            // #[cfg(feature = "logging")]
-            // msg!("Testing Instruction: Set Authority Account");
-            if let Some(first_account) = accounts.first() {
-                match first_account.data_len() {
-                    Account::LEN => {
-                        test_process_set_authority_account(
-                program_id,
-                accounts, // CHANGE P-Token: accounts: &[AccountInfo; 2]
-                instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
-            )
-                    }
-                    Mint::LEN => {
-                        test_process_set_authority_mint(
-                program_id,
-                accounts, // CHANGE P-Token: accounts: &[AccountInfo; 2]
-                instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
-            )
-                    }
-                    _ => Err(TokenError::InvalidInstruction.into()),
-                }
-            } else {
-                Err(TokenError::InvalidInstruction.into())
-            }
-        }
+        // // 6 - Set Authority Account
+        // 6 => {
+        //     // #[cfg(feature = "logging")]
+        //     // msg!("Testing Instruction: Set Authority Account");
+        //     if let Some(first_account) = accounts.first() {
+        //         match first_account.data_len() {
+        //             Account::LEN => {
+        //                 test_process_set_authority_account(
+        //         program_id,
+        //         accounts, // CHANGE P-Token: accounts: &[AccountInfo; 2]
+        //         instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
+        //     )
+        //             }
+        //             Mint::LEN => {
+        //                 test_process_set_authority_mint(
+        //         program_id,
+        //         accounts, // CHANGE P-Token: accounts: &[AccountInfo; 2]
+        //         instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
+        //     )
+        //             }
+        //             _ => Err(TokenError::InvalidInstruction.into()),
+        //         }
+        //     } else {
+        //         Err(TokenError::InvalidInstruction.into())
+        //     }
+        // }
         // 7 - Mint To
         7 => {
             test_process_mint_to(
@@ -363,14 +363,14 @@ fn inner_process_instruction(
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
         }
-        // 12 - Transfer Checked
-        12 => {
-            test_process_transfer_checked(
-                program_id,
-                accounts, // CHANGE P-Token: accounts: &[AccountInfo; 4]
-                instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
-            )
-        }
+        // // 12 - Transfer Checked
+        // 12 => {
+        //     test_process_transfer_checked(
+        //         program_id,
+        //         accounts, // CHANGE P-Token: accounts: &[AccountInfo; 4]
+        //         instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
+        //     )
+        // }
         // 13 - Approve Checked
         13 => {
             test_process_approve_checked(
