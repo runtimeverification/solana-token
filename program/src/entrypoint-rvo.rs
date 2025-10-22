@@ -547,7 +547,7 @@ fn test_process_initialize_mint_freeze(
     let instruction_data: &[u8; 66] = instruction_data.last_chunk().unwrap();
 
     // cheatcode_is_mint(&accounts[0]);
-    cheatcode_is_rent(&accounts[1]);
+    // cheatcode_is_rent(&accounts[1]);
 
     //-Initial State-----------------------------------------------------------
     let minimum_balance = get_rent(&accounts[1]).minimum_balance(accounts[0].data_len()); // TODO float problem
@@ -611,7 +611,7 @@ fn test_process_initialize_mint_no_freeze(
     let instruction_data: &[u8; 34] = instruction_data.last_chunk().unwrap();
 
     // cheatcode_is_mint(&accounts[0]);
-    cheatcode_is_rent(&accounts[1]);
+    // cheatcode_is_rent(&accounts[1]);
 
     //-Initial State-----------------------------------------------------------
     let minimum_balance = get_rent(&accounts[1]).minimum_balance(accounts[0].data_len()); // TODO float problem
@@ -678,7 +678,7 @@ fn test_process_initialize_account(
     // cheatcode_is_account(&accounts[0]);
     // cheatcode_is_mint(&accounts[1]);
     // cheatcode_is_account(&accounts[2]);
-    cheatcode_is_rent(&accounts[3]);
+    // cheatcode_is_rent(&accounts[3]);
 
     //-Initial State-----------------------------------------------------------
     let initial_state_new_account =  get_account(&accounts[0])
@@ -756,7 +756,7 @@ fn test_process_initialize_multisig(
 
                                                           // ^ FIXME: totally arbitrary for the tests
     // cheatcode_is_multisig(&accounts[0]);
-    cheatcode_is_rent(&accounts[1]);
+    // cheatcode_is_rent(&accounts[1]);
     // cheatcode_is_account(&accounts[2]); // Signer
     // cheatcode_is_account(&accounts[3]); // Signer
     // cheatcode_is_account(&accounts[4]); // Signer
@@ -3352,7 +3352,7 @@ fn test_process_initialize_account2(
 
     // cheatcode_is_account(&accounts[0]);
     // cheatcode_is_mint(&accounts[1]);
-    cheatcode_is_rent(&accounts[2]);
+    // cheatcode_is_rent(&accounts[2]);
 
     //-Initial State-----------------------------------------------------------
     let initial_state_new_account =  get_account(&accounts[0])
