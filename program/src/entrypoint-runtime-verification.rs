@@ -206,8 +206,7 @@ fn get_rent(_account_info: &AccountInfo) -> solana_rent::Rent {
 // fn cheatcode_is_account(_: &AccountInfo) {}
 // fn cheatcode_is_mint(_: &AccountInfo) {}
 // fn cheatcode_is_multisig(_: &AccountInfo) {}
-#[inline(never)]
-fn cheatcode_is_rent(_: &AccountInfo) {}
+// fn cheatcode_is_rent(_: &AccountInfo) {}
 
 /// A runtime verification cheatcode to set the instruction discriminator.
 /// TODO: Currently calling assert for concrete testing but needs backend support in K.
