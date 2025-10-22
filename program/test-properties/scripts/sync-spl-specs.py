@@ -343,6 +343,114 @@ def _prepare_body_lines(
     body = comment_out_lines(body, cfg.comment_out)
     body = apply_replacements(body, cfg.replacements)
 
+    # Built-in normalizations that are hard to encode safely in JSON regex strings:
+    # 1) get_mint(...).decimals  -> get_mint(...).decimals()
+    body = re.sub(r"get_mint\(([^)]*)\)\.decimals\b(?!\()", r"get_mint(\1).decimals()", body)
+
+    # 2) Compare Pubkey to instruction slices as bytes: append .as_ref() on unwrap
+    #    assert_eq!(get_mint(&accounts[i]).mint_authority().unwrap(), &instruction_data[a..b])
+    body = re.sub(
+        r"assert_eq!\(\s*get_mint\(&accounts\[(\d+)\]\)\.mint_authority\(\)\.unwrap\(\),\s*&instruction_data\[(\d+)\.\.(\d+)\]\s*\)",
+        r"assert_eq!(get_mint(&accounts[\1]).mint_authority().unwrap().as_ref(), &instruction_data[\2..\3])",
+        body,
+    )
+    #    assert_eq!(get_mint(&accounts[i]).freeze_authority().unwrap(), &instruction_data[a..b])
+    body = re.sub(
+        r"assert_eq!\(\s*get_mint\(&accounts\[(\d+)\]\)\.freeze_authority\(\)\.unwrap\(\),\s*&instruction_data\[(\d+)\.\.(\d+)\]\s*\)",
+        r"assert_eq!(get_mint(&accounts[\1]).freeze_authority().unwrap().as_ref(), &instruction_data[\2..\3])",
+        body,
+    )
+
+    # 3) Multisig accessor fixes on get_multisig(...)
+    body = re.sub(
+        r"get_multisig\(&accounts\[(\d+)\]\)\.signers\b(?!\()",
+        r"get_multisig(&accounts[\1]).signers()",
+        body,
+    )
+    body = re.sub(
+        r"get_multisig\(&accounts\[(\d+)\]\)\.m\b(?!\()",
+        r"get_multisig(&accounts[\1]).m()",
+        body,
+    )
+    body = re.sub(
+        r"get_multisig\(&accounts\[(\d+)\]\)\.n\b(?!\()",
+        r"get_multisig(&accounts[\1]).n()",
+        body,
+    )
+
+    # Also fix line-broken method calls like
+    #   get_multisig(&accounts[i])\n                .signers\n
+    body = re.sub(r"\n(\s*)\.signers(\s*)\n", r"\n\1.signers()\2\n", body)
+
+    # 4) Replace specific Multisig::is_valid_signer_index(x) with simple bounds check 1..=11
+    body = body.replace(
+        "!Multisig::is_valid_signer_index((accounts.len() - 1) as u8)",
+        "!((((accounts.len() - 1) as u8) >= 1) && (((accounts.len() - 1) as u8) <= 11))",
+    )
+    body = body.replace(
+        "!Multisig::is_valid_signer_index((accounts.len() - 2) as u8)",
+        "!((((accounts.len() - 2) as u8) >= 1) && (((accounts.len() - 2) as u8) <= 11))",
+    )
+    body = body.replace(
+        "!Multisig::is_valid_signer_index(instruction_data[0])",
+        "!(((instruction_data[0]) >= 1) && ((instruction_data[0]) <= 11))",
+    )
+
+    # 5) program::ID (from removed pinocchio import alias) -> crate::id()
+    body = body.replace("program::ID", "crate::id()")
+
+    # pinocchio_token_interface::native_mint::ID -> native_mint::ID (template imports spl_token_interface::native_mint)
+    body = body.replace(
+        "pinocchio_token_interface::native_mint::ID",
+        "native_mint::ID",
+    )
+    # pinocchio::pubkey::PUBKEY_BYTES -> pubkey::PUBKEY_BYTES (template imports solana_pubkey as pubkey)
+    body = body.replace(
+        "pinocchio::pubkey::PUBKEY_BYTES",
+        "pubkey::PUBKEY_BYTES",
+    )
+    body = body.replace(
+        "solana_rent::RENT_ID",
+        "solana_sysvar::rent::ID",
+    )
+
+    # 6) owner() vs instruction_data fixed-size arrays: coerce to Pubkey
+    body = re.sub(
+        r"assert_eq!\(\s*get_account\(&accounts\[(\d+)\]\)\.owner\(\),\s*\*instruction_data\s*\)",
+        r"assert_eq!(get_account(&accounts[\1]).owner(), (*instruction_data).into())",
+        body,
+    )
+    body = re.sub(
+        r"assert_eq!\(\s*get_account\(&accounts\[(\d+)\]\)\.owner\(\),\s*instruction_data\[(\d+)\.\.(\d+)\]\s*\)",
+        r"assert_eq!(get_account(&accounts[\1]).owner().as_ref(), &instruction_data[\2..\3])",
+        body,
+    )
+    body = re.sub(
+        r"assert_eq!\(\s*get_account\(&accounts\[(\d+)\]\)\.close_authority\(\)\.unwrap\(\),\s*&instruction_data\[(\d+)\.\.(\d+)\]\s*\)",
+        r"assert_eq!(get_account(&accounts[\1]).close_authority().unwrap().as_ref(), &instruction_data[\2..\3])",
+        body,
+    )
+    
+    # 7) Replace unsafe amount extract helper in any harness
+    body = re.sub(
+        r"let amount =\s*unsafe \{ u64::from_le_bytes\(\*\(instruction_data\.as_ptr\(\) as \*const \[u8; 8\]\)\) \);",
+        "let amount = u64::from_le_bytes([instruction_data[0], instruction_data[1], instruction_data[2], instruction_data[3], instruction_data[4], instruction_data[5], instruction_data[6], instruction_data[7]]);",
+        body,
+    )
+    body = body.replace(
+        "let amount =  unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };",
+        "let amount = u64::from_le_bytes([instruction_data[0], instruction_data[1], instruction_data[2], instruction_data[3], instruction_data[4], instruction_data[5], instruction_data[6], instruction_data[7]]);",
+    )
+    body = body.replace(
+        "let amount = u64::from_le_bytes(*instruction_data);",
+        "let amount = u64::from_le_bytes([instruction_data[0], instruction_data[1], instruction_data[2], instruction_data[3], instruction_data[4], instruction_data[5], instruction_data[6], instruction_data[7]]);",
+    )
+    body = re.sub(
+        r"unsafe \{ u64::from_le_bytes\(\*\(instruction_data\.as_ptr\(\) as \*const \[u8; 8\]\)\) \}",
+        "u64::from_le_bytes([instruction_data[0], instruction_data[1], instruction_data[2], instruction_data[3], instruction_data[4], instruction_data[5], instruction_data[6], instruction_data[7]])",
+        body,
+    )
+
     body_lines = [line.rstrip() for line in body.splitlines()]
     while body_lines and not body_lines[-1].strip():
         body_lines.pop()

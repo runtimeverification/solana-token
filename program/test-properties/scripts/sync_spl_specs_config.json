@@ -216,8 +216,28 @@
           "to": ""
         },
         {
+          "from": "regex:^\\s*use\\s+pinocchio_token_interface::program\\s*;",
+          "to": ""
+        },
+        {
           "from": "use pinocchio_token_interface::state::account_state;",
           "to": "use spl_token_interface::state::AccountState;"
+        },
+        {
+          "from": "regex:^\\s*use\\s+pinocchio_token_interface::state::\\{\\s*account_state\\s*\\};",
+          "to": "use spl_token_interface::state::AccountState;"
+        },
+        {
+          "from": "pinocchio_token_interface::state::account::INCINERATOR_ID",
+          "to": "solana_sdk_ids::incinerator::ID as INCINERATOR_ID"
+        },
+        {
+          "from": "pinocchio::sysvars::rent::RENT_ID",
+          "to": "solana_rent::RENT_ID"
+        },
+        {
+          "from": "pinocchio::sysvars::rent::Rent",
+          "to": "solana_rent::Rent"
         }
       ]
     },
@@ -258,6 +278,10 @@
         {
           "from": "&pinocchio_token_interface::program::ID",
           "to": "&crate::id()"
+        },
+        {
+          "from": "pinocchio_token_interface::program::ID",
+          "to": "crate::id()"
         }
       ]
     },
@@ -302,6 +326,14 @@
         {
           "from": "potential_signer.is_signer()",
           "to": "potential_signer.is_signer"
+        },
+        {
+          "from": "regex:\\.key\\(\\)",
+          "to": ".key"
+        },
+        {
+          "from": "regex:\\.is_signer\\(\\)",
+          "to": ".is_signer"
         }
       ]
     },
@@ -384,10 +416,10 @@
     "test_process_ui_amount_to_amount": { "discriminator": 24, "harness": { "presets": [
       "comment_out_cheatcode_validations","replace_pinocchio_imports","route_instructions_through_processor","migrate_account_owner_access","shorten_accountstate_path"] } },
     "test_process_withdraw_excess_lamports_account": { "discriminator": 38, "harness": { "presets": [
-      "comment_out_cheatcode_validations","replace_pinocchio_imports","route_instructions_through_processor","migrate_account_owner_access","migrate_get_account_accessors","migrate_multisig_accessors"] } },
+      "comment_out_cheatcode_validations","replace_pinocchio_imports","route_instructions_through_processor","migrate_account_owner_access","migrate_get_account_accessors","migrate_multisig_accessors","migrate_signer_accessors","compare_accounts_by_key","normalize_multisig_owner_guard"] } },
     "test_process_withdraw_excess_lamports_mint": { "discriminator": 38, "harness": { "presets": [
-      "comment_out_cheatcode_validations","replace_pinocchio_imports","route_instructions_through_processor","migrate_account_owner_access","migrate_get_account_accessors","migrate_multisig_accessors"] } },
+      "comment_out_cheatcode_validations","replace_pinocchio_imports","route_instructions_through_processor","migrate_account_owner_access","migrate_get_account_accessors","migrate_multisig_accessors","migrate_signer_accessors","compare_accounts_by_key","normalize_multisig_owner_guard"] } },
     "test_process_withdraw_excess_lamports_multisig": { "discriminator": 38, "harness": { "presets": [
-      "comment_out_cheatcode_validations","replace_pinocchio_imports","route_instructions_through_processor","migrate_account_owner_access","migrate_get_account_accessors","migrate_multisig_accessors"] } }
+      "comment_out_cheatcode_validations","replace_pinocchio_imports","route_instructions_through_processor","migrate_account_owner_access","migrate_get_account_accessors","migrate_multisig_accessors","migrate_signer_accessors","compare_accounts_by_key","normalize_multisig_owner_guard"] } }
   }
 }

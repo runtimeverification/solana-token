@@ -5,8 +5,9 @@ use {
     solana_account_info::AccountInfo,
     solana_program_error::{ProgramError, ProgramResult},
     solana_program_pack::Pack,
-    solana_pubkey::Pubkey,
-    spl_token_interface::error::TokenError,
+    solana_pubkey::{self as pubkey, Pubkey},
+    solana_sysvar::Sysvar,
+    spl_token_interface::{error::TokenError, native_mint},
 };
 
 solana_program_entrypoint::entrypoint!(process_instruction);
@@ -35,6 +36,34 @@ impl MintWrapper {
             Ok(m) => Ok(m.is_initialized),
             Err(e) => Err(e.clone()),
         }
+    }
+
+    fn mint_authority(&self) -> Option<&Pubkey> {
+        match &self.0 {
+            Ok(m) => match m.mint_authority.as_ref() {
+                solana_program_option::COption::Some(pk) => Some(pk),
+                solana_program_option::COption::None => None,
+            },
+            Err(_) => None,
+        }
+    }
+
+    fn freeze_authority(&self) -> Option<&Pubkey> {
+        match &self.0 {
+            Ok(m) => match m.freeze_authority.as_ref() {
+                solana_program_option::COption::Some(pk) => Some(pk),
+                solana_program_option::COption::None => None,
+            },
+            Err(_) => None,
+        }
+    }
+
+    fn supply(&self) -> u64 {
+        self.0.as_ref().map(|m| m.supply).unwrap_or(0)
+    }
+
+    fn decimals(&self) -> u8 {
+        self.0.as_ref().map(|m| m.decimals).unwrap_or(0)
     }
 }
 
@@ -85,6 +114,33 @@ impl AccountWrapper {
     fn is_native(&self) -> bool {
         self.0.as_ref().map(|a| a.is_native.is_some()).unwrap()
     }
+
+    fn native_amount(&self) -> Option<u64> {
+        match &self.0 {
+            Ok(a) => match a.is_native {
+                solana_program_option::COption::Some(amt) => Some(amt),
+                solana_program_option::COption::None => None,
+            },
+            Err(_) => None,
+        }
+    }
+
+    fn close_authority(&self) -> Option<&Pubkey> {
+        match &self.0 {
+            Ok(a) => match a.close_authority.as_ref() {
+                solana_program_option::COption::Some(pk) => Some(pk),
+                solana_program_option::COption::None => None,
+            },
+            Err(_) => None,
+        }
+    }
+
+    fn is_owned_by_system_program_or_incinerator(&self) -> bool {
+        match &self.0 {
+            Ok(a) => a.owner == solana_sdk_ids::system_program::ID || a.owner == solana_sdk_ids::incinerator::ID,
+            Err(_) => false,
+        }
+    }
 }
 
 /// So the AccountWrapper derefs the wrapped Account
@@ -123,6 +179,10 @@ impl MultisigWrapper {
     fn m(&self) -> u8 {
         self.0.as_ref().map(|m| m.m).unwrap_or(0) // FIXME: Change to stright unwrap?
     }
+
+    fn n(&self) -> u8 {
+        self.0.as_ref().map(|m| m.n).unwrap_or(0)
+    }
 }
 
 /// So the MultisigWrapper derefs the wrapped Multisig
@@ -138,10 +198,16 @@ fn get_multisig(account_info: &AccountInfo) -> MultisigWrapper {
     MultisigWrapper(Multisig::unpack(&account_info.data.borrow()))
 }
 
+fn get_rent(_account_info: &AccountInfo) -> solana_rent::Rent {
+    solana_rent::Rent::get().unwrap()
+}
+
 // TODO: Not sure if these are needed since there is no UB like p-token
 // fn cheatcode_is_account(_: &AccountInfo) {}
 // fn cheatcode_is_mint(_: &AccountInfo) {}
 // fn cheatcode_is_multisig(_: &AccountInfo) {}
+#[inline(never)]
+fn cheatcode_is_rent(_: &AccountInfo) {}
 
 /// A runtime verification cheatcode to set the instruction discriminator.
 /// TODO: Currently calling assert for concrete testing but needs backend support in K.
@@ -509,11 +575,11 @@ fn test_process_initialize_mint_freeze(
         assert_eq!(result, Err(ProgramError::Custom(0)))
     } else {
         assert!(get_mint(&accounts[0]).is_initialized().unwrap());
-        assert_eq!(get_mint(&accounts[0]).mint_authority().unwrap(), &instruction_data[1..33]);
-        assert_eq!(get_mint(&accounts[0]).decimals, instruction_data[0]);
+        assert_eq!(get_mint(&accounts[0]).mint_authority().unwrap().as_ref(), &instruction_data[1..33]);
+        assert_eq!(get_mint(&accounts[0]).decimals(), instruction_data[0]);
 
         if instruction_data[33] == 1 {
-            assert_eq!(get_mint(&accounts[0]).freeze_authority().unwrap(), &instruction_data[34..66]);
+            assert_eq!(get_mint(&accounts[0]).freeze_authority().unwrap().as_ref(), &instruction_data[34..66]);
         }
     }
 
@@ -573,11 +639,11 @@ fn test_process_initialize_mint_no_freeze(
         assert_eq!(result, Err(ProgramError::Custom(0)))
     } else {
         assert!(get_mint(&accounts[0]).is_initialized().unwrap());
-        assert_eq!(get_mint(&accounts[0]).mint_authority().unwrap(), &instruction_data[1..33]);
-        assert_eq!(get_mint(&accounts[0]).decimals, instruction_data[0]);
+        assert_eq!(get_mint(&accounts[0]).mint_authority().unwrap().as_ref(), &instruction_data[1..33]);
+        assert_eq!(get_mint(&accounts[0]).decimals(), instruction_data[0]);
 
         if instruction_data[33] == 1 {
-            assert_eq!(get_mint(&accounts[0]).freeze_authority().unwrap(), &instruction_data[34..66]);
+            assert_eq!(get_mint(&accounts[0]).freeze_authority().unwrap().as_ref(), &instruction_data[34..66]);
         }
     }
 
@@ -619,7 +685,7 @@ fn test_process_initialize_account(
         .account_state();
 
     let minimum_balance = get_rent(&accounts[3]).minimum_balance(accounts[0].data_len()); // TODO float problem
-    let is_native_mint = accounts[1].key == &pinocchio_token_interface::native_mint::ID;
+    let is_native_mint = accounts[1].key == &native_mint::ID;
     let mint_is_initialised = get_mint(&accounts[1]).is_initialized();
 
     //-Process Instruction-----------------------------------------------------
@@ -628,7 +694,7 @@ fn test_process_initialize_account(
     //-Assert Postconditions---------------------------------------------------
     if accounts.len() < 4 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
-    } else if accounts[3].key != &pinocchio::sysvars::rent::RENT_ID {
+    } else if accounts[3].key != &solana_sysvar::rent::ID {
         assert_eq!(result, Err(ProgramError::InvalidArgument))
     } else if accounts[0].data_len() != Account::LEN {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
@@ -708,7 +774,7 @@ fn test_process_initialize_multisig(
         assert_eq!(result, Err(ProgramError::Custom(12)))
     } else if accounts.len() < 2 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys))
-    } else if accounts[1].key != &pinocchio::sysvars::rent::RENT_ID {
+    } else if accounts[1].key != &solana_sysvar::rent::ID {
         assert_eq!(result, Err(ProgramError::InvalidArgument))
     } else if accounts[0].data_len() != Multisig::LEN {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
@@ -718,24 +784,24 @@ fn test_process_initialize_multisig(
         assert_eq!(result, Err(ProgramError::Custom(6)))
     } else if multisig_init_lamports < minimum_balance {
         assert_eq!(result, Err(ProgramError::Custom(0)))
-    } else if !Multisig::is_valid_signer_index((accounts.len() - 2) as u8) {
+    } else if !((((accounts.len() - 2) as u8) >= 1) && (((accounts.len() - 2) as u8) <= 11)) {
         assert_eq!(result, Err(ProgramError::Custom(7)))
-    } else if !Multisig::is_valid_signer_index(instruction_data[0]) {
+    } else if !(((instruction_data[0]) >= 1) && ((instruction_data[0]) <= 11)) {
         assert_eq!(result, Err(ProgramError::Custom(8)))
     } else {
         assert!(accounts[2..]
             .iter()
-            .map(|signer| *signer.key())
+            .map(|signer| *signer.key)
             .eq(
                 get_multisig(&accounts[0])
-                .signers
+                .signers()
                 .iter()
                 .take(accounts[2..].len())
                 .copied()
             )
         );
-        assert_eq!(get_multisig(&accounts[0]).m, instruction_data[0]);
-        assert_eq!(get_multisig(&accounts[0]).n as usize, accounts.len() - 2);
+        assert_eq!(get_multisig(&accounts[0]).m(), instruction_data[0]);
+        assert_eq!(get_multisig(&accounts[0]).n() as usize, accounts.len() - 2);
         assert!(get_multisig(&accounts[0]).is_initialized().is_ok());
         assert!(get_multisig(&accounts[0]).is_initialized().unwrap());
         assert!(result.is_ok())
@@ -778,7 +844,7 @@ fn test_process_transfer(
     // cheatcode_is_multisig(&accounts[2]);
 
     //-Initial State-----------------------------------------------------------
-    let amount = u64::from_le_bytes(*instruction_data);
+    let amount = u64::from_le_bytes([instruction_data[0], instruction_data[1], instruction_data[2], instruction_data[3], instruction_data[4], instruction_data[5], instruction_data[6], instruction_data[7]]);
     let src_initialised = get_account(&accounts[0]).is_initialized();
     let dst_initialised = get_account(&accounts[1]).is_initialized();
     let src_initial_amount = get_account(&accounts[0]).amount();
@@ -875,7 +941,7 @@ fn test_process_transfer(
                         }
                     }
                 }
-                // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+                // Line 133-135: Non-multisig case - check if owner_account_info.is_signer
                 else if !accounts[2].is_signer {
                     assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                     return result;
@@ -937,7 +1003,7 @@ fn test_process_transfer(
                         }
                     }
                 }
-                // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+                // Line 133-135: Non-multisig case - check if owner_account_info.is_signer
                 else if !accounts[2].is_signer {
                     assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                     return result;
@@ -999,7 +1065,7 @@ fn test_process_approve(
     accounts: &[AccountInfo; 3],
     instruction_data: &[u8; 9],
 ) -> ProgramResult {
-    use pinocchio_token_interface::state::{account_state};
+    use spl_token_interface::state::AccountState;
 
     // Set discriminator and program id to concrete value
     cheatcode_set_discriminator(4, instruction_data);
@@ -1017,7 +1083,7 @@ fn test_process_approve(
     // cheatcode_is_multisig(&accounts[2]); // Owner
 
     //-Initial State-----------------------------------------------------------
-    let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
+    let amount = u64::from_le_bytes([instruction_data[0], instruction_data[1], instruction_data[2], instruction_data[3], instruction_data[4], instruction_data[5], instruction_data[6], instruction_data[7]]);
     let src_owner = get_account(&accounts[0]).owner();
     let src_initialised = get_account(&accounts[0]).is_initialized();
     let src_init_state = get_account(&accounts[0]).account_state();
@@ -1091,7 +1157,7 @@ fn test_process_approve(
                     }
                 }
             }
-            // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+            // Line 133-135: Non-multisig case - check if owner_account_info.is_signer
             else if !accounts[2].is_signer {
                 assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                 return result;
@@ -1120,7 +1186,7 @@ fn test_process_revoke(
     accounts: &[AccountInfo; 2],
     instruction_data: &[u8; 1],
 ) -> ProgramResult {
-    use pinocchio_token_interface::state::{account_state};
+    use spl_token_interface::state::AccountState;
 
     // Set discriminator and program id to concrete value
     cheatcode_set_discriminator(5, instruction_data);
@@ -1210,7 +1276,7 @@ fn test_process_revoke(
                     }
                 }
             }
-            // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+            // Line 133-135: Non-multisig case - check if owner_account_info.is_signer
             else if !accounts[1].is_signer {
                 assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                 return result;
@@ -1357,7 +1423,7 @@ fn test_process_set_authority_account(
                                 }
                             }
                         }
-                        // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+                        // Line 133-135: Non-multisig case - check if owner_account_info.is_signer
                         else if !accounts[1].is_signer {
                             assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                             return result;
@@ -1369,7 +1435,7 @@ fn test_process_set_authority_account(
                         return result;
                     }
 
-                    assert_eq!(get_account(&accounts[0]).owner(), instruction_data[2..34]);
+                    assert_eq!(get_account(&accounts[0]).owner().as_ref(), &instruction_data[2..34]);
                     assert_eq!(get_account(&accounts[0]).delegate(), None);
                     assert_eq!(get_account(&accounts[0]).delegated_amount(), 0);
                     if get_account(&accounts[0]).is_native() {
@@ -1429,7 +1495,7 @@ fn test_process_set_authority_account(
                                 }
                             }
                         }
-                        // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+                        // Line 133-135: Non-multisig case - check if owner_account_info.is_signer
                         else if !accounts[1].is_signer {
                             assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                             return result;
@@ -1437,7 +1503,7 @@ fn test_process_set_authority_account(
                     }
 
                     if instruction_data[1] == 1 { // 1 ==> 34 <= instruction_data.len()
-                        assert_eq!(get_account(&accounts[0]).close_authority().unwrap(), &instruction_data[2..34]);
+                        assert_eq!(get_account(&accounts[0]).close_authority().unwrap().as_ref(), &instruction_data[2..34]);
                     } else {
                         assert_eq!(get_account(&accounts[0]).close_authority(), None);
                     }
@@ -1578,7 +1644,7 @@ fn test_process_set_authority_mint(
                                 }
                             }
                         }
-                        // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+                        // Line 133-135: Non-multisig case - check if owner_account_info.is_signer
                         else if !accounts[1].is_signer {
                             assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                             return result;
@@ -1586,7 +1652,7 @@ fn test_process_set_authority_mint(
                     }
 
                     if instruction_data[1] == 1 { // 1 ==> 34 <= instruction_data.len()
-                        assert_eq!(get_mint(&accounts[0]).mint_authority().unwrap(), &instruction_data[2..34]);
+                        assert_eq!(get_mint(&accounts[0]).mint_authority().unwrap().as_ref(), &instruction_data[2..34]);
                     } else {
                         assert_eq!(get_mint(&accounts[0]).mint_authority(), None);
                     }
@@ -1647,7 +1713,7 @@ fn test_process_set_authority_mint(
                                 }
                             }
                         }
-                        // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+                        // Line 133-135: Non-multisig case - check if owner_account_info.is_signer
                         else if !accounts[1].is_signer {
                             assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                             return result;
@@ -1655,7 +1721,7 @@ fn test_process_set_authority_mint(
                     }
 
                     if instruction_data[1] == 1 { // 1 ==> 34 <= instruction_data.len()
-                        assert_eq!(get_mint(&accounts[0]).freeze_authority().unwrap(), &instruction_data[2..34]);
+                        assert_eq!(get_mint(&accounts[0]).freeze_authority().unwrap().as_ref(), &instruction_data[2..34]);
                     } else {
                         assert_eq!(get_mint(&accounts[0]).freeze_authority(), None);
                     }
@@ -1800,7 +1866,7 @@ fn test_process_mint_to(
                         }
                     }
                 }
-                // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+                // Line 133-135: Non-multisig case - check if owner_account_info.is_signer
                 else if !accounts[2].is_signer {
                     assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                     return result;
@@ -1811,7 +1877,7 @@ fn test_process_mint_to(
             return result;
         }
 
-        let amount =  unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
+        let amount = u64::from_le_bytes([instruction_data[0], instruction_data[1], instruction_data[2], instruction_data[3], instruction_data[4], instruction_data[5], instruction_data[6], instruction_data[7]]);
 
         if amount == 0 && accounts[0].owner != &crate::id() {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId));
@@ -1867,7 +1933,7 @@ fn test_process_burn(
     // cheatcode_is_multisig(&accounts[2]);
 
     //-Initial State-----------------------------------------------------------
-    let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
+    let amount = u64::from_le_bytes([instruction_data[0], instruction_data[1], instruction_data[2], instruction_data[3], instruction_data[4], instruction_data[5], instruction_data[6], instruction_data[7]]);
     let src_initialised = get_account(&accounts[0]).is_initialized();
     let src_init_amount = get_account(&accounts[0]).amount();
     let src_init_state = get_account(&accounts[0]).account_state();
@@ -1965,7 +2031,7 @@ fn test_process_burn(
                             }
                         }
                     }
-                    // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+                    // Line 133-135: Non-multisig case - check if owner_account_info.is_signer
                     else if !accounts[2].is_signer {
                         assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                         return result;
@@ -2027,7 +2093,7 @@ fn test_process_burn(
                             }
                         }
                     }
-                    // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+                    // Line 133-135: Non-multisig case - check if owner_account_info.is_signer
                     else if !accounts[2].is_signer {
                         assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                         return result;
@@ -2036,9 +2102,9 @@ fn test_process_burn(
             }
         }
 
-        if amount == 0 && src_owner != pinocchio_token_interface::program::ID {
+        if amount == 0 && src_owner != crate::id() {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId))
-        } else if amount == 0 && mint_owner != pinocchio_token_interface::program::ID {
+        } else if amount == 0 && mint_owner != crate::id() {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId))
         } else {
             assert!(get_account(&accounts[0]).amount() == src_init_amount - amount);
@@ -2073,7 +2139,7 @@ fn test_process_close_account(
     accounts: &[AccountInfo; 3],
     instruction_data: &[u8; 1],
 ) -> ProgramResult {
-    use pinocchio_token_interface::state::account::INCINERATOR_ID;
+    use solana_sdk_ids::incinerator::ID as INCINERATOR_ID;
 
     // Set discriminator and program id to concrete value
     cheatcode_set_discriminator(9, instruction_data);
@@ -2176,7 +2242,7 @@ fn test_process_close_account(
                         }
                     }
                 }
-                // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+                // Line 133-135: Non-multisig case - check if owner_account_info.is_signer
                 else if !accounts[2].is_signer {
                     assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                     return result;
@@ -2214,7 +2280,7 @@ fn test_process_freeze_account(
     accounts: &[AccountInfo; 3],
     instruction_data: &[u8; 1],
 ) -> ProgramResult {
-    use pinocchio_token_interface::state::{account_state};
+    use spl_token_interface::state::AccountState;
 
     // Set discriminator and program id to concrete value
     cheatcode_set_discriminator(10, instruction_data);
@@ -2320,7 +2386,7 @@ fn test_process_freeze_account(
                     }
                 }
             }
-            // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+            // Line 133-135: Non-multisig case - check if owner_account_info.is_signer
             else if !accounts[2].is_signer {
                 assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                 return result;
@@ -2349,7 +2415,7 @@ fn test_process_thaw_account(
     accounts: &[AccountInfo; 3],
     instruction_data: &[u8; 1],
 ) -> ProgramResult {
-    use pinocchio_token_interface::state::{account_state};
+    use spl_token_interface::state::AccountState;
 
     // Set discriminator and program id to concrete value
     cheatcode_set_discriminator(11, instruction_data);
@@ -2455,7 +2521,7 @@ fn test_process_thaw_account(
                     }
                 }
             }
-            // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+            // Line 133-135: Non-multisig case - check if owner_account_info.is_signer
             else if !accounts[2].is_signer {
                 assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                 return result;
@@ -2505,7 +2571,7 @@ fn test_process_transfer_checked(
     // cheatcode_is_multisig(&accounts[3]);
 
     //-Initial State-----------------------------------------------------------
-    let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
+    let amount = u64::from_le_bytes([instruction_data[0], instruction_data[1], instruction_data[2], instruction_data[3], instruction_data[4], instruction_data[5], instruction_data[6], instruction_data[7]]);
     let src_initialised = get_account(&accounts[0]).is_initialized();
     let dst_initialised = get_account(&accounts[2]).is_initialized();
     let src_initial_amount = get_account(&accounts[0]).amount();
@@ -2565,7 +2631,7 @@ fn test_process_transfer_checked(
     } else if !mint_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount));
         return result;
-    } else if instruction_data[8] != get_mint(&accounts[1]).decimals {
+    } else if instruction_data[8] != get_mint(&accounts[1]).decimals() {
         assert_eq!(result, Err(ProgramError::Custom(18)));
         return result;
     } else {
@@ -2618,7 +2684,7 @@ fn test_process_transfer_checked(
                         }
                     }
                 }
-                // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+                // Line 133-135: Non-multisig case - check if owner_account_info.is_signer
                 else if !accounts[3].is_signer {
                     assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                     return result;
@@ -2680,7 +2746,7 @@ fn test_process_transfer_checked(
                         }
                     }
                 }
-                // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+                // Line 133-135: Non-multisig case - check if owner_account_info.is_signer
                 else if !accounts[3].is_signer {
                     assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                     return result;
@@ -2744,7 +2810,7 @@ fn test_process_approve_checked(
     accounts: &[AccountInfo; 4],
     instruction_data: &[u8; 10],
 ) -> ProgramResult {
-    use pinocchio_token_interface::state::{account_state};
+    use spl_token_interface::state::AccountState;
 
     // Set discriminator and program id to concrete value
     cheatcode_set_discriminator(13, instruction_data);
@@ -2763,7 +2829,7 @@ fn test_process_approve_checked(
     // cheatcode_is_multisig(&accounts[3]); // Owner
 
     //-Initial State-----------------------------------------------------------
-    let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
+    let amount = u64::from_le_bytes([instruction_data[0], instruction_data[1], instruction_data[2], instruction_data[3], instruction_data[4], instruction_data[5], instruction_data[6], instruction_data[7]]);
     let src_owner = get_account(&accounts[0]).owner();
     let src_initialised = get_account(&accounts[0]).is_initialized();
     let src_init_state = get_account(&accounts[0]).account_state();
@@ -2796,7 +2862,7 @@ fn test_process_approve_checked(
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if !mint_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount))
-    } else if instruction_data[8] != get_mint(&accounts[1]).decimals {
+    } else if instruction_data[8] != get_mint(&accounts[1]).decimals() {
         assert_eq!(result, Err(ProgramError::Custom(18)))
     } else {
         { // Validate Owner
@@ -2849,7 +2915,7 @@ fn test_process_approve_checked(
                     }
                 }
             }
-            // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+            // Line 133-135: Non-multisig case - check if owner_account_info.is_signer
             else if !accounts[3].is_signer {
                 assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                 return result;
@@ -2880,7 +2946,7 @@ fn test_process_mint_to_checked(
     accounts: &[AccountInfo; 3],
     instruction_data: &[u8; 10],
 ) -> ProgramResult {
-    use pinocchio_token_interface::state::{account_state};
+    use spl_token_interface::state::AccountState;
 
     // Set discriminator and program id to concrete value
     cheatcode_set_discriminator(14, instruction_data);
@@ -2944,7 +3010,7 @@ fn test_process_mint_to_checked(
     } else if !mint_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount));
         return result;
-    } else if instruction_data[8] != get_mint(&accounts[0]).decimals {
+    } else if instruction_data[8] != get_mint(&accounts[0]).decimals() {
         assert_eq!(result, Err(ProgramError::Custom(18)));
         return result;
     } else {
@@ -2999,7 +3065,7 @@ fn test_process_mint_to_checked(
                         }
                     }
                 }
-                // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+                // Line 133-135: Non-multisig case - check if owner_account_info.is_signer
                 else if !accounts[2].is_signer {
                     assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                     return result;
@@ -3010,7 +3076,7 @@ fn test_process_mint_to_checked(
             return result;
         }
 
-        let amount =  unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
+        let amount = u64::from_le_bytes([instruction_data[0], instruction_data[1], instruction_data[2], instruction_data[3], instruction_data[4], instruction_data[5], instruction_data[6], instruction_data[7]]);
 
         if amount == 0 && accounts[0].owner != &crate::id() {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId));
@@ -3065,7 +3131,7 @@ fn test_process_burn_checked(
     // cheatcode_is_multisig(&accounts[2]);
 
     //-Initial State-----------------------------------------------------------
-    let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
+    let amount = u64::from_le_bytes([instruction_data[0], instruction_data[1], instruction_data[2], instruction_data[3], instruction_data[4], instruction_data[5], instruction_data[6], instruction_data[7]]);
     let src_initialised = get_account(&accounts[0]).is_initialized();
     let src_init_amount = get_account(&accounts[0]).amount();
     let src_init_state = get_account(&accounts[0]).account_state();
@@ -3077,7 +3143,7 @@ fn test_process_burn_checked(
     let old_src_delgated_amount = get_account(&accounts[0]).delegated_amount();
     let mint_initialised = get_mint(&accounts[1]).is_initialized();
     let mint_init_supply = get_mint(&accounts[1]).supply();
-    let mint_decimals = get_mint(&accounts[1]).decimals;
+    let mint_decimals = get_mint(&accounts[1]).decimals();
     let mint_owner = *accounts[1].owner;
     // #[cfg(feature="multisig")]
     let multisig_is_initialised = get_multisig(&accounts[2]).is_initialized();
@@ -3166,7 +3232,7 @@ fn test_process_burn_checked(
                             }
                         }
                     }
-                    // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+                    // Line 133-135: Non-multisig case - check if owner_account_info.is_signer
                     else if !accounts[2].is_signer {
                         assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                         return result;
@@ -3228,7 +3294,7 @@ fn test_process_burn_checked(
                             }
                         }
                     }
-                    // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+                    // Line 133-135: Non-multisig case - check if owner_account_info.is_signer
                     else if !accounts[2].is_signer {
                         assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                         return result;
@@ -3237,9 +3303,9 @@ fn test_process_burn_checked(
             }
         }
 
-        if amount == 0 && src_owner != pinocchio_token_interface::program::ID {
+        if amount == 0 && src_owner != crate::id() {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId))
-        } else if amount == 0 && mint_owner != pinocchio_token_interface::program::ID {
+        } else if amount == 0 && mint_owner != crate::id() {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId))
         } else {
             assert!(get_account(&accounts[0]).amount() == src_init_amount - amount);
@@ -3294,7 +3360,7 @@ fn test_process_initialize_account2(
 
     let minimum_balance = get_rent(&accounts[2]).minimum_balance(accounts[0].data_len());
 
-    let is_native_mint = accounts[1].key == &pinocchio_token_interface::native_mint::ID;
+    let is_native_mint = accounts[1].key == &native_mint::ID;
 
     let mint_is_initialised = get_mint(&accounts[1]).is_initialized();
 
@@ -3302,11 +3368,11 @@ fn test_process_initialize_account2(
     let result = Processor::process(program_id, accounts, instruction_data_with_discriminator);
 
     //-Assert Postconditions---------------------------------------------------
-    if instruction_data.len() < pinocchio::pubkey::PUBKEY_BYTES {
+    if instruction_data.len() < pubkey::PUBKEY_BYTES {
         assert_eq!(result, Err(ProgramError::Custom(12)))
     } else if accounts.len() < 3 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
-    } else if accounts[2].key != &pinocchio::sysvars::rent::RENT_ID {
+    } else if accounts[2].key != &solana_sysvar::rent::ID {
         assert_eq!(result, Err(ProgramError::InvalidArgument))
     } else if accounts[0].data_len() != Account::LEN {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
@@ -3330,7 +3396,7 @@ fn test_process_initialize_account2(
         assert!(result.is_ok());
         assert_eq!(get_account(&accounts[0]).account_state().unwrap(), AccountState::Initialized);
         assert_eq!(get_account(&accounts[0]).mint(), *accounts[1].key);
-        assert_eq!(get_account(&accounts[0]).owner(), *instruction_data);
+        assert_eq!(get_account(&accounts[0]).owner(), (*instruction_data).into());
 
         if is_native_mint {
             assert!(get_account(&accounts[0]).is_native());
@@ -3351,8 +3417,6 @@ fn test_process_sync_native(
     accounts: &[AccountInfo; 1],
     instruction_data: &[u8; 1],
 ) -> ProgramResult {
-    use pinocchio_token_interface::program;
-
     // Set discriminator and program id to concrete value
     cheatcode_set_discriminator(17, instruction_data);
     cheatcode_set_program_id(program_id);
@@ -3376,7 +3440,7 @@ fn test_process_sync_native(
     //-Assert Postconditions---------------------------------------------------
     if accounts.len() != 1 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys))
-    } else if src_owner != &program::ID {
+    } else if src_owner != &crate::id() {
         assert_eq!(result, Err(ProgramError::IncorrectProgramId))
     } else if accounts[0].data_len() != Account::LEN {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
@@ -3430,10 +3494,10 @@ fn test_process_initialize_account3(
         .account_state();
 
     // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
-    let rent = pinocchio::sysvars::rent::Rent::get().unwrap();
+    let rent = solana_rent::Rent::get().unwrap();
     let minimum_balance = rent.minimum_balance(accounts[0].data_len());
 
-    let is_native_mint = accounts[1].key == &pinocchio_token_interface::native_mint::ID;
+    let is_native_mint = accounts[1].key == &native_mint::ID;
 
     let mint_is_initialised = get_mint(&accounts[1]).is_initialized();
 
@@ -3441,7 +3505,7 @@ fn test_process_initialize_account3(
     let result = Processor::process(program_id, accounts, instruction_data_with_discriminator);
 
     //-Assert Postconditions---------------------------------------------------
-    if instruction_data.len() < pinocchio::pubkey::PUBKEY_BYTES {
+    if instruction_data.len() < pubkey::PUBKEY_BYTES {
         assert_eq!(result, Err(ProgramError::Custom(12)))
     } else if accounts.len() < 2 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
@@ -3467,7 +3531,7 @@ fn test_process_initialize_account3(
         assert!(result.is_ok());
         assert_eq!(get_account(&accounts[0]).account_state().unwrap(), AccountState::Initialized);
         assert_eq!(get_account(&accounts[0]).mint(), *accounts[1].key);
-        assert_eq!(get_account(&accounts[0]).owner(), *instruction_data);
+        assert_eq!(get_account(&accounts[0]).owner(), (*instruction_data).into());
 
         if is_native_mint {
             assert!(get_account(&accounts[0]).is_native());
@@ -3512,7 +3576,7 @@ fn test_process_initialize_multisig2(
     let multisig_already_initialised = get_multisig(&accounts[0]).is_initialized();
     let multisig_init_lamports = accounts[0].lamports();
     // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
-    let rent = pinocchio::sysvars::rent::Rent::get().unwrap();
+    let rent = solana_rent::Rent::get().unwrap();
     let minimum_balance = rent.minimum_balance(accounts[0].data_len());
 
     //-Process Instruction-----------------------------------------------------
@@ -3531,24 +3595,24 @@ fn test_process_initialize_multisig2(
         assert_eq!(result, Err(ProgramError::Custom(6)))
     } else if multisig_init_lamports < minimum_balance {
         assert_eq!(result, Err(ProgramError::Custom(0)))
-    } else if !Multisig::is_valid_signer_index((accounts.len() - 1) as u8) {
+    } else if !((((accounts.len() - 1) as u8) >= 1) && (((accounts.len() - 1) as u8) <= 11)) {
         assert_eq!(result, Err(ProgramError::Custom(7)))
-    } else if !Multisig::is_valid_signer_index(instruction_data[0]) {
+    } else if !(((instruction_data[0]) >= 1) && ((instruction_data[0]) <= 11)) {
         assert_eq!(result, Err(ProgramError::Custom(8)))
     } else {
         assert!(accounts[1..]
             .iter()
-            .map(|signer| *signer.key())
+            .map(|signer| *signer.key)
             .eq(
                 get_multisig(&accounts[0])
-                .signers
+                .signers()
                 .iter()
                 .take(accounts[1..].len())
                 .copied()
             )
         );
-        assert_eq!(get_multisig(&accounts[0]).m, instruction_data[0]);
-        assert_eq!(get_multisig(&accounts[0]).n as usize, accounts.len() - 1);
+        assert_eq!(get_multisig(&accounts[0]).m(), instruction_data[0]);
+        assert_eq!(get_multisig(&accounts[0]).n() as usize, accounts.len() - 1);
         assert!(get_multisig(&accounts[0]).is_initialized().is_ok());
         assert!(get_multisig(&accounts[0]).is_initialized().unwrap());
         assert!(result.is_ok())
@@ -3585,7 +3649,7 @@ fn test_process_initialize_mint2_freeze(
 
     //-Initial State-----------------------------------------------------------
     // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
-    let rent = pinocchio::sysvars::rent::Rent::get().unwrap();
+    let rent = solana_rent::Rent::get().unwrap();
     let minimum_balance = rent.minimum_balance(accounts[0].data_len());
     let mint_is_initialised_prior = get_mint(&accounts[0]).is_initialized();
 
@@ -3611,11 +3675,11 @@ fn test_process_initialize_mint2_freeze(
         assert_eq!(result, Err(ProgramError::Custom(0)))
     } else {
         assert!(get_mint(&accounts[0]).is_initialized().unwrap());
-        assert_eq!(get_mint(&accounts[0]).mint_authority().unwrap(), &instruction_data[1..33]);
-        assert_eq!(get_mint(&accounts[0]).decimals, instruction_data[0]);
+        assert_eq!(get_mint(&accounts[0]).mint_authority().unwrap().as_ref(), &instruction_data[1..33]);
+        assert_eq!(get_mint(&accounts[0]).decimals(), instruction_data[0]);
 
         if instruction_data[33] == 1 {
-            assert_eq!(get_mint(&accounts[0]).freeze_authority().unwrap(), &instruction_data[34..66]);
+            assert_eq!(get_mint(&accounts[0]).freeze_authority().unwrap().as_ref(), &instruction_data[34..66]);
         }
     }
 
@@ -3649,7 +3713,7 @@ fn test_process_initialize_mint2_no_freeze(
 
     //-Initial State-----------------------------------------------------------
     // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
-    let rent = pinocchio::sysvars::rent::Rent::get().unwrap();
+    let rent = solana_rent::Rent::get().unwrap();
     let minimum_balance = rent.minimum_balance(accounts[0].data_len());
     let mint_is_initialised_prior = get_mint(&accounts[0]).is_initialized();
 
@@ -3675,11 +3739,11 @@ fn test_process_initialize_mint2_no_freeze(
         assert_eq!(result, Err(ProgramError::Custom(0)))
     } else {
         assert!(get_mint(&accounts[0]).is_initialized().unwrap());
-        assert_eq!(get_mint(&accounts[0]).mint_authority().unwrap(), &instruction_data[1..33]);
-        assert_eq!(get_mint(&accounts[0]).decimals, instruction_data[0]);
+        assert_eq!(get_mint(&accounts[0]).mint_authority().unwrap().as_ref(), &instruction_data[1..33]);
+        assert_eq!(get_mint(&accounts[0]).decimals(), instruction_data[0]);
 
         if instruction_data[33] == 1 {
-            assert_eq!(get_mint(&accounts[0]).freeze_authority().unwrap(), &instruction_data[34..66]);
+            assert_eq!(get_mint(&accounts[0]).freeze_authority().unwrap().as_ref(), &instruction_data[34..66]);
         }
     }
 
@@ -3867,11 +3931,11 @@ fn test_process_ui_amount_to_amount(
         assert_eq!(result, Err(ProgramError::InvalidArgument))
     } else if ui_amount.unwrap().starts_with('.') && ui_amount.unwrap().chars().skip(1).all(|c| c == '0') {
         assert_eq!(result, Err(ProgramError::InvalidArgument))
-    } else if ui_amount.unwrap().split_once('.').map_or(false, |(_, frac)| { (get_mint(&accounts[0]).decimals as usize) < frac.trim_end_matches('0').len()}) {
+    } else if ui_amount.unwrap().split_once('.').map_or(false, |(_, frac)| { (get_mint(&accounts[0]).decimals() as usize) < frac.trim_end_matches('0').len()}) {
         assert_eq!(result, Err(ProgramError::InvalidArgument))
     } else if ui_amount.unwrap().split_once('.').map_or(
-        257_usize < ui_amount.unwrap().len() + (get_mint(&accounts[0]).decimals as usize),
-        |(ints, _)| { 257_usize < ints.len() + (get_mint(&accounts[0]).decimals as usize) }) {
+        257_usize < ui_amount.unwrap().len() + (get_mint(&accounts[0]).decimals() as usize),
+        |(ints, _)| { 257_usize < ints.len() + (get_mint(&accounts[0]).decimals() as usize) }) {
             assert_eq!(result, Err(ProgramError::InvalidArgument))
     } /*else if ui_amount.unwrap() == "+." {
         // TODO: Why is this valid?
@@ -3966,7 +4030,7 @@ fn test_process_withdraw_excess_lamports_account(
     let multisig_is_initialised = get_multisig(&accounts[2]).is_initialized();
 
     // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
-    let rent = pinocchio::sysvars::rent::Rent::get().unwrap();
+    let rent = solana_rent::Rent::get().unwrap();
     let minimum_balance = rent.minimum_balance(accounts[0].data_len());
 
     //-Process Instruction-----------------------------------------------------
@@ -3991,12 +4055,12 @@ fn test_process_withdraw_excess_lamports_account(
             }
             { // Validate Owner
                 // Line 102-104 of validate_owner function in mod.rs
-                if src_account_owner != *accounts[2].key() {
+                if src_account_owner != *accounts[2].key {
                     assert_eq!(result, Err(ProgramError::Custom(4)));
                     return result;
                 }
                 // Line 106-108
-                else if accounts[2].data_len() == Multisig::LEN && accounts[2].is_owned_by(&ID) {
+                else if accounts[2].data_len() == Multisig::LEN && accounts[2].owner == &crate::id() {
                     // #[cfg(feature="multisig")]
                     {
                         // Line 114
@@ -4015,7 +4079,7 @@ fn test_process_withdraw_excess_lamports_account(
                                 .any(|potential_signer| {
                                     multisig.signers()
                                         .iter()
-                                        .any(|registered_key| registered_key == potential_signer.key() && !potential_signer.is_signer())
+                                        .any(|registered_key| registered_key == potential_signer.key && !potential_signer.is_signer)
                                 });
 
                             if unsigned_exists {
@@ -4027,7 +4091,7 @@ fn test_process_withdraw_excess_lamports_account(
                             let signers_count = multisig.signers().iter()
                                 .filter_map(|registered_key| {
                                     accounts[3..].iter()
-                                        .find(|potential_signer| potential_signer.key() == registered_key && potential_signer.is_signer())
+                                        .find(|potential_signer| potential_signer.key == registered_key && potential_signer.is_signer)
                                 })
                                 .count();
 
@@ -4039,8 +4103,8 @@ fn test_process_withdraw_excess_lamports_account(
                         }
                     }
                 }
-                // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
-                else if !accounts[2].is_signer() {
+                // Line 133-135: Non-multisig case - check if owner_account_info.is_signer
+                else if !accounts[2].is_signer {
                     assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                     return result;
                 }
@@ -4103,7 +4167,7 @@ fn test_process_withdraw_excess_lamports_mint(
     let multisig_is_initialised = get_multisig(&accounts[2]).is_initialized();
 
     // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
-    let rent = pinocchio::sysvars::rent::Rent::get().unwrap();
+    let rent = solana_rent::Rent::get().unwrap();
     let minimum_balance = rent.minimum_balance(accounts[0].data_len());
 
     //-Process Instruction-----------------------------------------------------
@@ -4125,12 +4189,12 @@ fn test_process_withdraw_excess_lamports_mint(
             } else if src_mint_mint_authority.is_some() {
                 { // Validate Owner
                     // Line 102-104 of validate_owner function in mod.rs
-                    if src_mint_mint_authority.unwrap() != *accounts[2].key() {
+                    if src_mint_mint_authority.unwrap() != *accounts[2].key {
                         assert_eq!(result, Err(ProgramError::Custom(4)));
                         return result;
                     }
                     // Line 106-108
-                    else if accounts[2].data_len() == Multisig::LEN && accounts[2].is_owned_by(&ID) {
+                    else if accounts[2].data_len() == Multisig::LEN && accounts[2].owner == &crate::id() {
                         // #[cfg(feature="multisig")]
                         {
                             // Line 114
@@ -4149,7 +4213,7 @@ fn test_process_withdraw_excess_lamports_mint(
                                     .any(|potential_signer| {
                                         multisig.signers()
                                             .iter()
-                                            .any(|registered_key| registered_key == potential_signer.key() && !potential_signer.is_signer())
+                                            .any(|registered_key| registered_key == potential_signer.key && !potential_signer.is_signer)
                                     });
 
                                 if unsigned_exists {
@@ -4161,7 +4225,7 @@ fn test_process_withdraw_excess_lamports_mint(
                                 let signers_count = multisig.signers().iter()
                                     .filter_map(|registered_key| {
                                         accounts[3..].iter()
-                                            .find(|potential_signer| potential_signer.key() == registered_key && potential_signer.is_signer())
+                                            .find(|potential_signer| potential_signer.key == registered_key && potential_signer.is_signer)
                                     })
                                     .count();
 
@@ -4173,16 +4237,16 @@ fn test_process_withdraw_excess_lamports_mint(
                             }
                         }
                     }
-                    // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
-                    else if !accounts[2].is_signer() {
+                    // Line 133-135: Non-multisig case - check if owner_account_info.is_signer
+                    else if !accounts[2].is_signer {
                         assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                         return result;
                     }
                 }
-            } else if accounts[0] != accounts[2] {
+            } else if accounts[0].key != accounts[2].key {
                 assert_eq!(result, Err(ProgramError::Custom(15)));
                 return result;
-            } else if !accounts[2].is_signer() {
+            } else if !accounts[2].is_signer {
                 assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                 return result;
             }
@@ -4242,7 +4306,7 @@ fn test_process_withdraw_excess_lamports_multisig(
     let multisig_is_initialised = get_multisig(&accounts[2]).is_initialized();
 
     // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
-    let rent = pinocchio::sysvars::rent::Rent::get().unwrap();
+    let rent = solana_rent::Rent::get().unwrap();
     let minimum_balance = rent.minimum_balance(accounts[0].data_len());
 
     //-Process Instruction-----------------------------------------------------
@@ -4259,12 +4323,12 @@ fn test_process_withdraw_excess_lamports_multisig(
         assert_eq!(src_data_len, Multisig::LEN); // established by cheatcode_is_multisig
         { // Validate Owner
             // Line 102-104 of validate_owner function in mod.rs
-            if accounts[0].key() != accounts[2].key() {
+            if accounts[0].key != accounts[2].key {
                 assert_eq!(result, Err(ProgramError::Custom(4)));
                 return result;
             }
             // Line 106-108
-            else if accounts[2].data_len() == Multisig::LEN && accounts[2].is_owned_by(&ID) {
+            else if accounts[2].data_len() == Multisig::LEN && accounts[2].owner == &crate::id() {
                 // #[cfg(feature="multisig")]
                 {
                     // Line 114
@@ -4283,7 +4347,7 @@ fn test_process_withdraw_excess_lamports_multisig(
                             .any(|potential_signer| {
                                 multisig.signers()
                                     .iter()
-                                    .any(|registered_key| registered_key == potential_signer.key() && !potential_signer.is_signer())
+                                    .any(|registered_key| registered_key == potential_signer.key && !potential_signer.is_signer)
                             });
 
                         if unsigned_exists {
@@ -4295,7 +4359,7 @@ fn test_process_withdraw_excess_lamports_multisig(
                         let signers_count = multisig.signers().iter()
                             .filter_map(|registered_key| {
                                 accounts[3..].iter()
-                                    .find(|potential_signer| potential_signer.key() == registered_key && potential_signer.is_signer())
+                                    .find(|potential_signer| potential_signer.key == registered_key && potential_signer.is_signer)
                             })
                             .count();
 
@@ -4307,8 +4371,8 @@ fn test_process_withdraw_excess_lamports_multisig(
                     }
                 }
             }
-            // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
-            else if !accounts[2].is_signer() {
+            // Line 133-135: Non-multisig case - check if owner_account_info.is_signer
+            else if !accounts[2].is_signer {
                 assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                 return result;
             }
