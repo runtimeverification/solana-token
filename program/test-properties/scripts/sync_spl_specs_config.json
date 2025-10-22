@@ -196,6 +196,7 @@
         "regex:cheatcode_is_account\\(&accounts\\[[0-9]+\\]\\);",
         "regex:cheatcode_is_mint\\(&accounts\\[[0-9]+\\]\\);",
         "regex:cheatcode_is_multisig\\(&accounts\\[[0-9]+\\]\\);",
+        "regex:cheatcode_is_rent\\(&accounts\\[[0-9]+\\]\\);",
         "regex:#\\[cfg\\(.*multisig.*\\)\\]"
       ]
     },
