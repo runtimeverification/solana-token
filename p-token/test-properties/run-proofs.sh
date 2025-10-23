@@ -59,7 +59,7 @@ fi
 
 set -u
 
-mkdir -p proof_status
+mkdir -p "${PROOF_STATUS_DIR:-proof_status}"
 
 REPO_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 if git status --porcelain 1>/dev/null 2>&1 && [ -n "$(git status --porcelain 2>/dev/null)" ]; then
@@ -72,7 +72,7 @@ if git -C mir-semantics status --porcelain 1>/dev/null 2>&1 && \
     MIR_COMMIT="${MIR_COMMIT}-dirty"
 fi
 
-PROOF_DIR="artefacts/proof-${REPO_COMMIT}-${MIR_COMMIT}"
+PROOF_DIR="${ARTIFACTS_DIR:-artefacts}/proof-${REPO_COMMIT}-${MIR_COMMIT}"
 mkdir -p "${PROOF_DIR}"
 
 if [ -z "${RELOAD_OPT}" ]; then
@@ -88,12 +88,12 @@ prefix=${START_PREFIX}
 for name in $TESTS; do
     echo "============================== $name ============================"
     start=$prefix$name
-    status_file=proof_status/${name}.txt
+    status_file="${PROOF_STATUS_DIR:-proof_status}/${name}.txt"
     start_time=$(date +%s)
 
     timeout --preserve-status -v ${TIMEOUT} \
         uv --project mir-semantics/kmir run -- \
-        kmir prove-rs --smir artefacts/${ARTIFACT_BASENAME}.smir.json \
+        kmir prove-rs --smir "${ARTIFACTS_DIR:-artefacts}/${ARTIFACT_BASENAME}.smir.json" \
         --proof-dir "${PROOF_DIR}" --verbose --start-symbol $start ${RELOAD_OPT} ${PROVE_OPTS}
     prove_rc=$?
 
