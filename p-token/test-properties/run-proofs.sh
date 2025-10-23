@@ -59,8 +59,6 @@ fi
 
 set -u
 
-mkdir -p "${PROOF_STATUS_DIR:-proof_status}"
-
 REPO_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 if git status --porcelain 1>/dev/null 2>&1 && [ -n "$(git status --porcelain 2>/dev/null)" ]; then
     REPO_COMMIT="${REPO_COMMIT}-dirty"
@@ -74,6 +72,10 @@ fi
 
 PROOF_DIR="${ARTIFACTS_DIR:-artefacts}/proof-${REPO_COMMIT}-${MIR_COMMIT}"
 mkdir -p "${PROOF_DIR}"
+
+# Default proof status directory to live inside the hashed artefacts/proof directory
+PROOF_STATUS_DIR="${PROOF_STATUS_DIR:-${PROOF_DIR}/proof_status}"
+mkdir -p "${PROOF_STATUS_DIR}"
 
 if [ -z "${RELOAD_OPT}" ]; then
     MODE="Continuing"
