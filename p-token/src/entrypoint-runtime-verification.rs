@@ -360,6 +360,79 @@ fn get_rent(account_info: &AccountInfo) -> &Rent {
     }
 }
 
+/// This function encapsulates the specification of validating the signature requirements
+/// In particular, code from mod.rs::validate_owner is checked
+#[inline(always)]
+fn inner_test_validate_owner(
+    expected_owner: &Pubkey,
+    owner_account_info: &AccountInfo,
+    tx_signers: &[AccountInfo],
+    maybe_multisig_is_initialised : Option<Result<bool, ProgramError>>,
+    result : Result<(), ProgramError>
+) -> Result<(), ProgramError> {
+    use pinocchio_token_interface::program::ID;
+
+    // Validate Owner
+    // Line 102-104 of validate_owner function in mod.rs
+    if expected_owner != owner_account_info.key() {
+        assert_eq!(result, Err(ProgramError::Custom(4)));
+        return result;
+    }
+    // Line 106-108
+    else if owner_account_info.data_len() == Multisig::LEN && owner_account_info.is_owned_by(&ID) {
+        // Guaranteed to succeed by `cheatcode_is_multisig`
+        let multisig_is_initialised = maybe_multisig_is_initialised.unwrap();
+
+        // Line 114
+        if multisig_is_initialised.is_err() {
+            assert_eq!(result, Err(ProgramError::InvalidAccountData));
+            return result;
+        } else if !multisig_is_initialised.unwrap() {
+            assert_eq!(result, Err(ProgramError::UninitializedAccount));
+            return result;
+        } else {
+            // Lines 116-117
+            let multisig = get_multisig(&owner_account_info);
+
+            // Lines 119-129: Did all declared and allowed signers sign?
+            let unsigned_exists = tx_signers.iter()
+                .any(|potential_signer| {
+                    multisig.signers
+                        .iter()
+                        .any(|registered_key| registered_key == potential_signer.key() && !potential_signer.is_signer())
+                });
+
+            if unsigned_exists {
+                assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                return result;
+            }
+
+            // Lines 130-132: Were enough signatures received?
+            let signers_count = multisig.signers.iter()
+                .filter_map(|registered_key| {
+                    tx_signers.iter()
+                        .find(|potential_signer| potential_signer.key() == registered_key && potential_signer.is_signer())
+                })
+                .count();
+
+            // Line 130-132: Check if we have enough signers (singers_count < multisig.m)
+              if signers_count < multisig.m as usize {
+                  assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                  return result;
+              } else {
+                  return result;
+              }
+        }
+    }
+    // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
+    else if !owner_account_info.is_signer() {
+        assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+        return result;
+    } else {
+        return result;
+    }
+}
+
 // wrapper to ensure the test below is in the SMIR JSON
 #[no_mangle]
 pub unsafe extern "C" fn use_tests(acc: &AccountInfo) {
