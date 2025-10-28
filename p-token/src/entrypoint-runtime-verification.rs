@@ -362,7 +362,7 @@ fn get_rent(account_info: &AccountInfo) -> &Rent {
 
 /// This function encapsulates the specification of validating the signature requirements
 /// In particular, code from mod.rs::validate_owner is checked
-#[inline(always)]
+#[inline(never)]
 fn inner_test_validate_owner(
     expected_owner: &Pubkey,
     owner_account_info: &AccountInfo,
