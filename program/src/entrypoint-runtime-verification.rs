@@ -242,7 +242,7 @@ fn test_spltoken_domain_data(acc: &AccountInfo, mint: &AccountInfo, rent: &Accou
 // wrapper to ensure the test is retained in SMIR/IR outputs
 #[no_mangle]
 pub unsafe extern "C" fn use_tests(acc: &AccountInfo) {
-    test_ptoken_domain_data(acc, acc, acc);
+    test_spltoken_domain_data(acc, acc, acc);
 }
 
 // Inline `assume` is used directly in test harnesses; no helper functions needed.
