@@ -101,42 +101,146 @@ pub(crate) fn inner_process_instruction(
             #[cfg(feature = "logging")]
             pinocchio::msg!("Testing Instruction: Transfer");
 
-            test_process_transfer(&accounts.first_chunk().unwrap(), &instruction_data.first_chunk().unwrap())
+            // TODO: Thoroughly test for insufficient account length
+            // We should be calling `insufficient_accounts_length_transfer(x)?` in the future
+            match accounts.len() {
+                x if accounts.len() < 3 => panic!("Invalid amount of accounts for transfer: {x}"),
+                _ => (),
+            }
+
+            match accounts[2].data_len() {
+                Account::LEN => test_process_transfer_account(
+                    accounts.first_chunk().unwrap(),
+                    instruction_data.first_chunk().unwrap(),
+                ),
+                Multisig::LEN => test_process_transfer_multisig(
+                    accounts.first_chunk().unwrap(),
+                    instruction_data.first_chunk().unwrap(),
+                ),
+                _ => panic!("Test_proces_transfer: Invalid account length"), // TODO: replace with checking for malformed input
+            }
         }
         // 7 - MintTo
         7 => {
             #[cfg(feature = "logging")]
             pinocchio::msg!("Instruction: MintTo");
 
-            test_process_mint_to(&accounts.first_chunk().unwrap(), &instruction_data.first_chunk().unwrap())
+            // TODO: Thoroughly test for insufficient account length
+            // We should be calling `insufficient_accounts_length_mint(x)?` in the future
+            match accounts.len() {
+                x if accounts.len() < 3 => panic!("Invalid amount of accounts for mint: {x}"),
+                _ => (),
+            }
+
+            match accounts[2].data_len() {
+                Account::LEN => test_process_mint_to_account(
+                    accounts.first_chunk().unwrap(),
+                    instruction_data.first_chunk().unwrap(),
+                ),
+                Multisig::LEN => test_process_mint_to_multisig(
+                    accounts.first_chunk().unwrap(),
+                    instruction_data.first_chunk().unwrap(),
+                ),
+                _ => panic!("Test_proces_mint_to: Invalid account length"), // TODO: replace with checking for malformed input
+            }
         }
         // 8 - Test Burn
         8 => {
             #[cfg(feature = "logging")]
             pinocchio::msg!("Testing Instruction: Burn");
 
-            test_process_burn(&accounts.first_chunk().unwrap(), &instruction_data.first_chunk().unwrap())
+            // TODO: Thoroughly test for insufficient account length
+            // We should be calling `insufficient_accounts_length_burn(x)?` in the future
+            match accounts.len() {
+                x if accounts.len() < 3 => panic!("Invalid amount of accounts for burn: {x}"),
+                _ => (),
+            }
+
+            match accounts[2].data_len() {
+                Account::LEN => test_process_burn_account(
+                    accounts.first_chunk().unwrap(),
+                    instruction_data.first_chunk().unwrap(),
+                ),
+                Multisig::LEN => test_process_burn_multisig(
+                    accounts.first_chunk().unwrap(),
+                    instruction_data.first_chunk().unwrap(),
+                ),
+                _ => panic!("Test_proces_burn: Invalid account length"), // TODO: replace with checking for malformed input
+            }
         }
         // 9 - Test CloseAccount
         9 => {
             #[cfg(feature = "logging")]
             pinocchio::msg!("Testing Instruction: CloseAccount");
 
-            test_process_close_account(&accounts.first_chunk().unwrap())
+            // TODO: Thoroughly test for insufficient account length
+            // We should be calling `insufficient_accounts_length_close_account(x)?` in the future
+            match accounts.len() {
+                x if accounts.len() < 3 => {
+                    panic!("Invalid amount of accounts for close_account: {x}")
+                }
+                _ => (),
+            }
+
+            match accounts[2].data_len() {
+                Account::LEN => test_process_close_account_account(accounts.first_chunk().unwrap()),
+                Multisig::LEN => {
+                    test_process_close_account_multisig(accounts.first_chunk().unwrap())
+                }
+                _ => panic!("Test_proces_close_account: Invalid account length"), // TODO: replace with checking for malformed input
+            }
         }
         // 12 - Test TransferChecked
         12 => {
             #[cfg(feature = "logging")]
             pinocchio::msg!("Testing Instruction: TransferChecked");
 
-            test_process_transfer_checked(&accounts.first_chunk().unwrap(), &instruction_data.first_chunk().unwrap())
+            // TODO: Thoroughly test for insufficient account length
+            // We should be calling `insufficient_accounts_length_transfer_checked(x)?` in the future
+            match accounts.len() {
+                x if accounts.len() < 4 => {
+                    panic!("Invalid amount of accounts for transfer_checked: {x}")
+                }
+                _ => (),
+            }
+
+            match accounts[3].data_len() {
+                Account::LEN => test_process_transfer_checked_account(
+                    accounts.first_chunk().unwrap(),
+                    instruction_data.first_chunk().unwrap(),
+                ),
+                Multisig::LEN => test_process_transfer_checked_multisig(
+                    accounts.first_chunk().unwrap(),
+                    instruction_data.first_chunk().unwrap(),
+                ),
+                _ => panic!("Test_proces_transfer_checked: Invalid account length"), // TODO: replace with checking for malformed input
+            }
         }
         // 15 - Test BurnChecked
         15 => {
             #[cfg(feature = "logging")]
             pinocchio::msg!("Testing Instruction: BurnChecked");
 
-            test_process_burn_checked(&accounts.first_chunk().unwrap(), &instruction_data.first_chunk().unwrap())
+            // TODO: Thoroughly test for insufficient account length
+            // We should be calling `insufficient_accounts_length_burn_checked(x)?` in the future
+            match accounts.len() {
+                x if accounts.len() < 3 => {
+                    panic!("Invalid amount of accounts for burn_checked: {x}")
+                }
+                _ => (),
+            }
+
+            match accounts[2].data_len() {
+                Account::LEN => test_process_burn_checked_account(
+                    accounts.first_chunk().unwrap(),
+                    instruction_data.first_chunk().unwrap(),
+                ),
+                Multisig::LEN => test_process_burn_checked_multisig(
+                    accounts.first_chunk().unwrap(),
+                    instruction_data.first_chunk().unwrap(),
+                ),
+                _ => panic!("Test_proces_burn_checked: Invalid account length"), // TODO: replace with checking for malformed input
+            }
         }
         // 16 - Test InitializeAccount2
         16 => {
