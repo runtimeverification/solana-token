@@ -211,7 +211,7 @@ fn get_rent(_account_info: &AccountInfo) -> solana_rent::Rent {
 
 // special test for basic domain data access (SPL types)
 #[inline(never)]
-fn test_ptoken_domain_data(acc: &AccountInfo, mint: &AccountInfo, rent: &AccountInfo) {
+fn test_spltoken_domain_data(acc: &AccountInfo, mint: &AccountInfo, rent: &AccountInfo) {
     // Mutate mint via standard unpack/pack flow; use unwraps for brevity in tests
     let mut m = Mint::unpack_unchecked(&mint.data.borrow()).unwrap();
     m.is_initialized = true;
