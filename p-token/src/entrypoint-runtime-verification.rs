@@ -109,7 +109,7 @@ pub(crate) fn inner_process_instruction(
             }
 
             match accounts[2].data_len() {
-                Account::LEN => test_process_transfer_account(
+                Account::LEN => test_process_transfer(
                     accounts.first_chunk().unwrap(),
                     instruction_data.first_chunk().unwrap(),
                 ),
@@ -133,7 +133,7 @@ pub(crate) fn inner_process_instruction(
             }
 
             match accounts[2].data_len() {
-                Account::LEN => test_process_mint_to_account(
+                Account::LEN => test_process_mint_to(
                     accounts.first_chunk().unwrap(),
                     instruction_data.first_chunk().unwrap(),
                 ),
@@ -157,7 +157,7 @@ pub(crate) fn inner_process_instruction(
             }
 
             match accounts[2].data_len() {
-                Account::LEN => test_process_burn_account(
+                Account::LEN => test_process_burn(
                     accounts.first_chunk().unwrap(),
                     instruction_data.first_chunk().unwrap(),
                 ),
@@ -183,7 +183,7 @@ pub(crate) fn inner_process_instruction(
             }
 
             match accounts[2].data_len() {
-                Account::LEN => test_process_close_account_account(accounts.first_chunk().unwrap()),
+                Account::LEN => test_process_close_account(accounts.first_chunk().unwrap()),
                 Multisig::LEN => {
                     test_process_close_account_multisig(accounts.first_chunk().unwrap())
                 }
@@ -205,7 +205,7 @@ pub(crate) fn inner_process_instruction(
             }
 
             match accounts[3].data_len() {
-                Account::LEN => test_process_transfer_checked_account(
+                Account::LEN => test_process_transfer_checked(
                     accounts.first_chunk().unwrap(),
                     instruction_data.first_chunk().unwrap(),
                 ),
@@ -231,7 +231,7 @@ pub(crate) fn inner_process_instruction(
             }
 
             match accounts[2].data_len() {
-                Account::LEN => test_process_burn_checked_account(
+                Account::LEN => test_process_burn_checked(
                     accounts.first_chunk().unwrap(),
                     instruction_data.first_chunk().unwrap(),
                 ),
@@ -303,7 +303,7 @@ fn inner_process_remaining_instruction(
             }
 
             match accounts[2].data_len() {
-                Account::LEN => test_process_approve_account(
+                Account::LEN => test_process_approve(
                     accounts.first_chunk().unwrap(),
                     instruction_data.first_chunk().unwrap(),
                 ),
@@ -327,7 +327,7 @@ fn inner_process_remaining_instruction(
             }
 
             match accounts[1].data_len() {
-                Account::LEN => test_process_revoke_account(accounts.first_chunk().unwrap()),
+                Account::LEN => test_process_revoke(accounts.first_chunk().unwrap()),
                 Multisig::LEN => test_process_revoke_multisig(accounts.first_chunk().unwrap()),
                 _ => panic!("Test_proces_revoke: Invalid account length"), // TODO: replace with checking for malformed input
             }
@@ -350,7 +350,7 @@ fn inner_process_remaining_instruction(
             if let Some(first_account) = accounts.first() {
                 match first_account.data_len() {
                     Account::LEN => match accounts[1].data_len() {
-                        Account::LEN => test_process_set_authority_account_account(
+                        Account::LEN => test_process_set_authority_account(
                             accounts.first_chunk().unwrap(),
                             instruction_data.first_chunk().unwrap(),
                         ),
@@ -361,7 +361,7 @@ fn inner_process_remaining_instruction(
                         _ => panic!("Test_proces_set_authority_account: Invalid account length"), // TODO: replace with checking for malformed input
                     },
                     Mint::LEN => match accounts[1].data_len() {
-                        Account::LEN => test_process_set_authority_mint_account(
+                        Account::LEN => test_process_set_authority_mint(
                             accounts.first_chunk().unwrap(),
                             instruction_data.first_chunk().unwrap(),
                         ),
@@ -395,7 +395,7 @@ fn inner_process_remaining_instruction(
 
             match accounts[2].data_len() {
                 Account::LEN => {
-                    test_process_freeze_account_account(accounts.first_chunk().unwrap())
+                    test_process_freeze_account(accounts.first_chunk().unwrap())
                 }
                 Multisig::LEN => {
                     test_process_freeze_account_multisig(accounts.first_chunk().unwrap())
@@ -418,7 +418,7 @@ fn inner_process_remaining_instruction(
             }
 
             match accounts[2].data_len() {
-                Account::LEN => test_process_thaw_account_account(accounts.first_chunk().unwrap()),
+                Account::LEN => test_process_thaw_account(accounts.first_chunk().unwrap()),
                 Multisig::LEN => test_process_thaw_account_multisig(accounts.first_chunk().unwrap()),
                 _ => panic!("Test_proces_thaw_account: Invalid account length"), // TODO: replace with checking for malformed input
             }
@@ -438,7 +438,7 @@ fn inner_process_remaining_instruction(
             }
 
             match accounts[3].data_len() {
-                Account::LEN => test_process_approve_checked_account(
+                Account::LEN => test_process_approve_checked(
                     accounts.first_chunk().unwrap(),
                     instruction_data.first_chunk().unwrap(),
                 ),
@@ -464,7 +464,7 @@ fn inner_process_remaining_instruction(
             }
 
             match accounts[2].data_len() {
-                Account::LEN => test_process_mint_to_checked_account(
+                Account::LEN => test_process_mint_to_checked(
                     accounts.first_chunk().unwrap(),
                     instruction_data.first_chunk().unwrap(),
                 ),
@@ -538,7 +538,7 @@ fn inner_process_remaining_instruction(
             if let Some(acc) = accounts.first() {
                 match acc.data_len() {
                     Account::LEN => match accounts[2].data_len() {
-                        Account::LEN => test_process_withdraw_excess_lamports_account_account(
+                        Account::LEN => test_process_withdraw_excess_lamports_account(
                             accounts.first_chunk().unwrap()
                         ),
                         Multisig::LEN => test_process_withdraw_excess_lamports_account_multisig(
@@ -547,7 +547,7 @@ fn inner_process_remaining_instruction(
                         _ => panic!("Test_proces_withdraw_excess_lamports: Invalid account length"), // TODO: replace with checking for malformed input
                     }
                     Mint::LEN => match accounts[2].data_len() {
-                        Account::LEN => test_process_withdraw_excess_lamports_mint_account(
+                        Account::LEN => test_process_withdraw_excess_lamports_mint(
                             accounts.first_chunk().unwrap()
                         ),
                         Multisig::LEN => test_process_withdraw_excess_lamports_mint_multisig(
@@ -556,7 +556,7 @@ fn inner_process_remaining_instruction(
                         _ => panic!("Test_proces_withdraw_excess_lamports: Invalid account length"), // TODO: replace with checking for malformed input
                     }
                     Multisig::LEN => match accounts[2].data_len() {
-                        Account::LEN => test_process_withdraw_excess_lamports_multisig_account(
+                        Account::LEN => test_process_withdraw_excess_lamports_multisig(
                             accounts.first_chunk().unwrap()
                         ),
                         Multisig::LEN => test_process_withdraw_excess_lamports_multisig_multisig(
@@ -911,7 +911,7 @@ pub fn test_process_initialize_account(accounts: &[AccountInfo; 4]) -> ProgramRe
 /// accounts[2] // Authority Info
 /// instruction_data[0..8] // Little Endian Bytes of u64 amount
 #[inline(never)]
-pub fn test_process_transfer_account(
+pub fn test_process_transfer(
     accounts: &[AccountInfo; 3],
     instruction_data: &[u8; 8],
 ) -> ProgramResult {
@@ -1213,7 +1213,7 @@ pub fn test_process_transfer_multisig(
 /// accounts[2] // Owner Info
 /// instruction_data[0..8] // Little Endian Bytes of u64 amount
 #[inline(never)]
-pub fn test_process_mint_to_account(
+pub fn test_process_mint_to(
     accounts: &[AccountInfo; 3],
     instruction_data: &[u8; 8],
 ) -> ProgramResult {
@@ -1412,7 +1412,7 @@ pub fn test_process_mint_to_multisig(
 /// accounts[2] // Authority Info
 /// instruction_data[0..8] // Little Endian Bytes of u64 amount
 #[inline(never)]
-pub fn test_process_burn_account(
+pub fn test_process_burn(
     accounts: &[AccountInfo; 3],
     instruction_data: &[u8; 8],
 ) -> ProgramResult {
@@ -1636,7 +1636,7 @@ pub fn test_process_burn_multisig(
 /// accounts[1] // Destination Info
 /// accounts[2] // Authority Info
 #[inline(never)]
-pub fn test_process_close_account_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
+pub fn test_process_close_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
     use pinocchio_token_interface::state::account::INCINERATOR_ID;
 
     cheatcode_is_account(&accounts[0]);
@@ -1791,7 +1791,7 @@ pub fn test_process_close_account_multisig(accounts: &[AccountInfo; 4]) -> Progr
 /// accounts[3] // Authority Info
 /// instruction_data[0..9] // Little Endian Bytes of u64 amount, and decimals
 #[inline(never)]
-pub fn test_process_transfer_checked_account(
+pub fn test_process_transfer_checked(
     accounts: &[AccountInfo; 4],
     instruction_data: &[u8; 9],
 ) -> ProgramResult {
@@ -2125,7 +2125,7 @@ pub fn test_process_transfer_checked_multisig(
 /// accounts[2] // Authority Info
 /// instruction_data[0..9] // Little Endian Bytes of u64 amount, and decimals
 #[inline(never)]
-pub fn test_process_burn_checked_account(
+pub fn test_process_burn_checked(
     accounts: &[AccountInfo; 3],
     instruction_data: &[u8; 9],
 ) -> ProgramResult {
@@ -2667,7 +2667,7 @@ fn test_process_initialize_multisig(accounts: &[AccountInfo; 5], instruction_dat
 /// accounts[2] // Owner Info
 /// instruction_data[0..8] // Little Endian Bytes of u64 amount
 #[inline(never)]
-fn test_process_approve_account(
+fn test_process_approve(
     accounts: &[AccountInfo; 3],
     instruction_data: &[u8; 8],
 ) -> ProgramResult {
@@ -2787,7 +2787,7 @@ fn test_process_approve_multisig(
 /// accounts[1] // Owner Info
 /// accounts[2..13] // Signers
 #[inline(never)]
-fn test_process_revoke_account(accounts: &[AccountInfo; 2]) -> ProgramResult {
+fn test_process_revoke(accounts: &[AccountInfo; 2]) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
     cheatcode_is_account(&accounts[0]); // Source Account
@@ -2889,7 +2889,7 @@ fn test_process_revoke_multisig(accounts: &[AccountInfo; 3]) -> ProgramResult {
 /// instruction_data[1] // New Authority Follows (0 -> No, 1 -> Yes)
 /// instruction_data[2..34] // New Authority Pubkey
 #[inline(never)]
-fn test_process_set_authority_account_account(
+fn test_process_set_authority_account(
     accounts: &[AccountInfo; 2],
     instruction_data: &[u8; 34],
 ) -> ProgramResult {
@@ -3126,7 +3126,7 @@ fn test_process_set_authority_account_multisig(
 /// instruction_data[1] // New Authority Follows (0 -> No, 1 -> Yes)
 /// instruction_data[2..34] // New Authority Pubkey
 #[inline(never)]
-fn test_process_set_authority_mint_account(
+fn test_process_set_authority_mint(
     accounts: &[AccountInfo; 2],
     instruction_data: &[u8; 34],
 ) -> ProgramResult {
@@ -3351,7 +3351,7 @@ fn test_process_set_authority_mint_multisig(
 /// accounts[1] // Mint Info
 /// accounts[2] // Authority Info
 #[inline(never)]
-fn test_process_freeze_account_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
+fn test_process_freeze_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
     cheatcode_is_account(&accounts[0]);
@@ -3487,7 +3487,7 @@ fn test_process_freeze_account_multisig(accounts: &[AccountInfo; 4]) -> ProgramR
 /// accounts[2] // Authority Info
 /// accounts[3..13] // Signers
 #[inline(never)]
-fn test_process_thaw_account_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
+fn test_process_thaw_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
     cheatcode_is_account(&accounts[0]);
@@ -3624,7 +3624,7 @@ fn test_process_thaw_account_multisig(accounts: &[AccountInfo; 4]) -> ProgramRes
 /// accounts[3] // Owner Info
 /// instruction_data[0..9] // Little Endian Bytes of u64 amount, and decimals
 #[inline(never)]
-fn test_process_approve_checked_account(
+fn test_process_approve_checked(
     accounts: &[AccountInfo; 4],
     instruction_data: &[u8; 9],
 ) -> ProgramResult {
@@ -3772,7 +3772,7 @@ fn test_process_approve_checked_multisig(
 /// accounts[2] // Owner Info
 /// instruction_data[0..9] // Little Endian Bytes of u64 amount, and decimals
 #[inline(never)]
-fn test_process_mint_to_checked_account(
+fn test_process_mint_to_checked(
     accounts: &[AccountInfo; 3],
     instruction_data: &[u8; 9],
 ) -> ProgramResult {
@@ -4250,7 +4250,7 @@ fn test_process_ui_amount_to_amount(accounts: &[AccountInfo; 1], instruction_dat
 /// accounts[1] // Destination Info
 /// accounts[2] // Authority Info
 #[inline(never)]
-fn test_process_withdraw_excess_lamports_account_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
+fn test_process_withdraw_excess_lamports_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
     cheatcode_is_account(&accounts[0]); // Source Account
     cheatcode_is_account(&accounts[1]); // Destination
     cheatcode_is_account(&accounts[2]); // Authority
@@ -4392,7 +4392,7 @@ fn test_process_withdraw_excess_lamports_account_multisig(accounts: &[AccountInf
 /// accounts[1] // Destination Info
 /// accounts[2] // Authority Info
 #[inline(never)]
-fn test_process_withdraw_excess_lamports_mint_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
+fn test_process_withdraw_excess_lamports_mint(accounts: &[AccountInfo; 3]) -> ProgramResult {
     cheatcode_is_mint(&accounts[0]); // Source Account (Mint)
     cheatcode_is_account(&accounts[1]); // Destination
     cheatcode_is_account(&accounts[2]); // Authority
@@ -4539,7 +4539,7 @@ fn test_process_withdraw_excess_lamports_mint_multisig(accounts: &[AccountInfo; 
 /// accounts[1] // Destination Info
 /// accounts[2] // Authority Info
 #[inline(never)]
-fn test_process_withdraw_excess_lamports_multisig_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
+fn test_process_withdraw_excess_lamports_multisig(accounts: &[AccountInfo; 3]) -> ProgramResult {
     cheatcode_is_multisig(&accounts[0]); // Source Account (Multisig)
     cheatcode_is_account(&accounts[1]); // Destination
     cheatcode_is_account(&accounts[2]); // Authority
