@@ -614,7 +614,8 @@ fn inner_process_remaining_instruction(
                     _other => panic!("withdraw_excess_lamports: Unexpected account data_len"),
                 }
             } else {
-                // FIXME: need to add harness isntead since instruction still accepts this case and has an error code
+                // FIXME: need to add harness isntead since instruction still accepts this case
+                // and has an error code
                 panic!("withdraw_excess_lamports: no accounts provided")
             }
         }
@@ -632,11 +633,12 @@ fn cheatcode_is_multisig(_: &AccountInfo) {} // TODO: implement multisig cheatco
 #[inline(never)]
 fn cheatcode_is_rent(_: &AccountInfo) {}
 
-use pinocchio::sysvars::rent::Rent;
-use pinocchio_token_interface::state::account::Account;
-use pinocchio_token_interface::state::mint::Mint;
-use pinocchio_token_interface::state::multisig::Multisig;
-use pinocchio_token_interface::state::{load_mut_unchecked, load_unchecked};
+use {
+    pinocchio::sysvars::rent::Rent,
+    pinocchio_token_interface::state::{
+        account::Account, load_mut_unchecked, load_unchecked, mint::Mint, multisig::Multisig,
+    },
+};
 
 fn get_account(account_info: &AccountInfo) -> &Account {
     unsafe {
@@ -666,8 +668,8 @@ fn get_rent(account_info: &AccountInfo) -> &Rent {
     unsafe { Rent::from_bytes_unchecked(account_info.borrow_data_unchecked()) }
 }
 
-/// This function encapsulates the specification of validating the signature requirements
-/// In particular, code from mod.rs::validate_owner is checked
+/// This function encapsulates the specification of validating the signature
+/// requirements In particular, code from mod.rs::validate_owner is checked
 #[inline(never)]
 fn inner_test_validate_owner(
     expected_owner: &Pubkey,
@@ -799,7 +801,8 @@ fn test_ptoken_domain_data(acc: &AccountInfo, mint: &AccountInfo, rent: &Account
 /// instruction_data[0]      // Decimals
 /// instruction_data[1..33]  // Mint Authority Pubkey
 /// instruction_data[33]     // Freeze Authority Exists? 1 for freeze
-/// instruction_data[34..66] // instruction_data[33] == 1 ==> Freeze Authority Pubkey
+/// instruction_data[34..66] // instruction_data[33] == 1 ==> Freeze Authority
+/// Pubkey
 #[inline(never)]
 pub fn test_process_initialize_mint_freeze(
     accounts: &[AccountInfo; 2],
@@ -896,6 +899,8 @@ pub fn test_process_initialize_mint_no_freeze(
         );
         assert_eq!(get_mint(&accounts[0]).decimals, instruction_data[0]);
 
+        #[allow(clippy::out_of_bounds_indexing)]
+        // Guard above prevents this branch TODO: Perhaps remove?
         if instruction_data[33] == 1 {
             assert_eq!(
                 get_mint(&accounts[0]).freeze_authority().unwrap(),
@@ -2520,7 +2525,8 @@ pub fn test_process_initialize_account3(
     //-Initial State-----------------------------------------------------------
     let initial_state_new_account = get_account(&accounts[0]).account_state();
 
-    // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
+    // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be
+    // impossible
     let rent = pinocchio::sysvars::rent::Rent::get().unwrap();
     let minimum_balance = rent.minimum_balance(accounts[0].data_len());
 
@@ -2585,7 +2591,8 @@ pub fn test_process_initialize_account3(
 /// instruction_data[0]      // Decimals
 /// instruction_data[1..33]  // Mint Authority Pubkey
 /// instruction_data[33]     // Freeze Authority Exists? 1 for freeze
-/// instruction_data[34..66] // instruction_data[33] == 1 ==> Freeze Authority Pubkey
+/// instruction_data[34..66] // instruction_data[33] == 1 ==> Freeze Authority
+/// Pubkey
 #[inline(never)]
 pub fn test_process_initialize_mint2_freeze(
     accounts: &[AccountInfo; 1],
@@ -2594,7 +2601,8 @@ pub fn test_process_initialize_mint2_freeze(
     cheatcode_is_mint(&accounts[0]);
 
     //-Initial State-----------------------------------------------------------
-    // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
+    // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be
+    // impossible
     let rent = pinocchio::sysvars::rent::Rent::get().unwrap();
     let minimum_balance = rent.minimum_balance(accounts[0].data_len());
     let mint_is_initialised_prior = get_mint(&accounts[0]).is_initialized();
@@ -2650,7 +2658,8 @@ pub fn test_process_initialize_mint2_no_freeze(
     cheatcode_is_mint(&accounts[0]);
 
     //-Initial State-----------------------------------------------------------
-    // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
+    // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be
+    // impossible
     let rent = pinocchio::sysvars::rent::Rent::get().unwrap();
     let minimum_balance = rent.minimum_balance(accounts[0].data_len());
     let mint_is_initialised_prior = get_mint(&accounts[0]).is_initialized();
@@ -2683,6 +2692,8 @@ pub fn test_process_initialize_mint2_no_freeze(
         );
         assert_eq!(get_mint(&accounts[0]).decimals, instruction_data[0]);
 
+        #[allow(clippy::out_of_bounds_indexing)]
+        // Guard above prevents this branch TODO: Perhaps remove?
         if instruction_data[33] == 1 {
             assert_eq!(
                 get_mint(&accounts[0]).freeze_authority().unwrap(),
@@ -2704,7 +2715,6 @@ fn test_process_initialize_multisig(
     accounts: &[AccountInfo; 5],
     instruction_data: &[u8; 1],
 ) -> ProgramResult {
-    // ^ FIXME: totally arbitrary for the tests
     cheatcode_is_multisig(&accounts[0]);
     cheatcode_is_rent(&accounts[1]);
     cheatcode_is_account(&accounts[2]); // Signer
@@ -3141,70 +3151,70 @@ fn test_process_set_authority_account_multisig(
     } else if account_data_len != Account::LEN && account_data_len != Mint::LEN {
         assert_eq!(result, Err(ProgramError::InvalidArgument));
         return result;
-    } else {
-        assert_eq!(account_data_len, Account::LEN); // established by cheatcode_is_account
-        if account_data_len == Account::LEN {
-            if src_initialised.is_err() {
-                assert_eq!(result, Err(ProgramError::InvalidAccountData));
+    } else if account_data_len == Account::LEN {
+        // established by cheatcode_is_account
+        if src_initialised.is_err() {
+            assert_eq!(result, Err(ProgramError::InvalidAccountData));
+            return result;
+        } else if !src_initialised.unwrap() {
+            assert_eq!(result, Err(ProgramError::UninitializedAccount));
+            return result;
+        } else if src_init_state.unwrap() == account_state::AccountState::Frozen {
+            assert_eq!(result, Err(ProgramError::Custom(17)));
+            return result;
+        } else if instruction_data[0] != 2 && instruction_data[0] != 3 {
+            // AuthorityType neither AccountOwner nor CloseAccount
+            assert_eq!(result, Err(ProgramError::Custom(15)));
+            return result;
+        } else if instruction_data[0] == 2 {
+            // AccountOwner
+            // Validate Owner
+            inner_test_validate_owner(
+                &src_owner,     // expected_owner
+                &accounts[1],   // owner_account_info
+                &accounts[2..], // tx_signers
+                maybe_multisig_is_initialised,
+                result.clone(),
+            )?;
+
+            if instruction_data[1] != 1 || instruction_data.len() < 34 {
+                assert_eq!(result, Err(ProgramError::Custom(12)));
                 return result;
-            } else if !src_initialised.unwrap() {
-                assert_eq!(result, Err(ProgramError::UninitializedAccount));
-                return result;
-            } else if src_init_state.unwrap() == account_state::AccountState::Frozen {
-                assert_eq!(result, Err(ProgramError::Custom(17)));
-                return result;
-            } else if instruction_data[0] != 2 && instruction_data[0] != 3 {
-                // AuthorityType neither AccountOwner nor CloseAccount
-                assert_eq!(result, Err(ProgramError::Custom(15)));
-                return result;
-            } else if instruction_data[0] == 2 {
-                // AccountOwner
-
-                // Validate Owner
-                inner_test_validate_owner(
-                    &src_owner,     // expected_owner
-                    &accounts[1],   // owner_account_info
-                    &accounts[2..], // tx_signers
-                    maybe_multisig_is_initialised,
-                    result.clone(),
-                )?;
-
-                if instruction_data[1] != 1 || instruction_data.len() < 34 {
-                    assert_eq!(result, Err(ProgramError::Custom(12)));
-                    return result;
-                }
-
-                assert_eq!(get_account(&accounts[0]).owner, instruction_data[2..34]);
-                assert_eq!(get_account(&accounts[0]).delegate(), None);
-                assert_eq!(get_account(&accounts[0]).delegated_amount(), 0);
-                if get_account(&accounts[0]).is_native() {
-                    assert_eq!(get_account(&accounts[0]).close_authority(), None);
-                }
-                assert!(result.is_ok())
-            } else {
-                // Close Account
-
-                // Validate Owner
-                inner_test_validate_owner(
-                    &authority,     // expected_owner
-                    &accounts[1],   // owner_account_info
-                    &accounts[2..], // tx_signers
-                    maybe_multisig_is_initialised,
-                    result.clone(),
-                )?;
-
-                if instruction_data[1] == 1 {
-                    // 1 ==> 34 <= instruction_data.len()
-                    assert_eq!(
-                        get_account(&accounts[0]).close_authority().unwrap(),
-                        &instruction_data[2..34]
-                    );
-                } else {
-                    assert_eq!(get_account(&accounts[0]).close_authority(), None);
-                }
-                assert!(result.is_ok())
             }
+
+            assert_eq!(get_account(&accounts[0]).owner, instruction_data[2..34]);
+            assert_eq!(get_account(&accounts[0]).delegate(), None);
+            assert_eq!(get_account(&accounts[0]).delegated_amount(), 0);
+            if get_account(&accounts[0]).is_native() {
+                assert_eq!(get_account(&accounts[0]).close_authority(), None);
+            }
+            assert!(result.is_ok())
+        } else {
+            // CloseAccount
+            assert_eq!(instruction_data[0], 3); // If not AccountOwner (2), must be CloseAccount (3)
+
+            // Validate Owner
+            inner_test_validate_owner(
+                &authority,     // expected_owner
+                &accounts[1],   // owner_account_info
+                &accounts[2..], // tx_signers
+                maybe_multisig_is_initialised,
+                result.clone(),
+            )?;
+
+            if instruction_data[1] == 1 {
+                // 1 ==> 34 <= instruction_data.len()
+                assert_eq!(
+                    get_account(&accounts[0]).close_authority().unwrap(),
+                    &instruction_data[2..34]
+                );
+            } else {
+                assert_eq!(get_account(&accounts[0]).close_authority(), None);
+            }
+            assert!(result.is_ok())
         }
+    } else {
+        unreachable!() // account_data_len == Account::LEN must hold
     }
 
     result
@@ -3366,8 +3376,8 @@ fn test_process_set_authority_mint_multisig(
     } else if mint_data_len != Account::LEN && mint_data_len != Mint::LEN {
         assert_eq!(result, Err(ProgramError::InvalidArgument));
         return result;
-    } else {
-        assert_eq!(mint_data_len, Mint::LEN); // established by cheatcode_is_mint
+    } else if mint_data_len == Mint::LEN {
+        // established by cheatcode_is_mint
         if !mint_is_initialised.unwrap() {
             assert_eq!(result, Err(ProgramError::UninitializedAccount));
             return result;
@@ -3403,6 +3413,7 @@ fn test_process_set_authority_mint_multisig(
             assert!(result.is_ok())
         } else {
             // FreezeAccount
+            assert_eq!(instruction_data[0], 1); // If not MintTokens (0), must be FreezeAccount (1)
             if old_freeze_authority_is_none {
                 assert_eq!(result, Err(ProgramError::Custom(16)));
                 return result;
@@ -3428,6 +3439,8 @@ fn test_process_set_authority_mint_multisig(
             }
             assert!(result.is_ok())
         }
+    } else {
+        unreachable!(); // mint_data_len == Mint::LEN must hold
     }
 
     result
@@ -3990,7 +4003,8 @@ fn test_process_mint_to_checked_multisig(
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
         return result;
     } else if accounts[1].data_len() != Account::LEN {
-        // TODO Daniel: is it possible for something to be provided that has the same len but is not an account?
+        // TODO Daniel: is it possible for something to be provided that has the same
+        // len but is not an account?
         assert_eq!(result, Err(ProgramError::InvalidAccountData));
         return result;
     } else if dst_initialised.is_err() {
@@ -4110,7 +4124,6 @@ fn test_process_initialize_multisig2(
     accounts: &[AccountInfo; 4],
     instruction_data: &[u8; 1],
 ) -> ProgramResult {
-    // ^ FIXME: totally arbitrary for the tests
     cheatcode_is_multisig(&accounts[0]);
     cheatcode_is_account(&accounts[1]); // Signer
     cheatcode_is_account(&accounts[2]); // Signer
@@ -4119,7 +4132,8 @@ fn test_process_initialize_multisig2(
     //-Initial State-----------------------------------------------------------
     let multisig_already_initialised = get_multisig(&accounts[0]).is_initialized();
     let multisig_init_lamports = accounts[0].lamports();
-    // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
+    // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be
+    // impossible
     let rent = pinocchio::sysvars::rent::Rent::get().unwrap();
     let minimum_balance = rent.minimum_balance(accounts[0].data_len());
 
@@ -4286,13 +4300,9 @@ fn test_process_ui_amount_to_amount(
         && ui_amount.unwrap().chars().skip(1).all(|c| c == '0')
     {
         assert_eq!(result, Err(ProgramError::InvalidArgument))
-    } else if ui_amount
-        .unwrap()
-        .split_once('.')
-        .is_some_and(|(_, frac)| {
-            (get_mint(&accounts[0]).decimals as usize) < frac.trim_end_matches('0').len()
-        })
-    {
+    } else if ui_amount.unwrap().split_once('.').is_some_and(|(_, frac)| {
+        (get_mint(&accounts[0]).decimals as usize) < frac.trim_end_matches('0').len()
+    }) {
         assert_eq!(result, Err(ProgramError::InvalidArgument))
     } else if ui_amount.unwrap().split_once('.').map_or(
         257_usize < ui_amount.unwrap().len() + (get_mint(&accounts[0]).decimals as usize),
@@ -4452,7 +4462,8 @@ fn test_process_withdraw_excess_lamports_account_multisig(
     let dst_init_lamports = accounts[1].lamports();
     let maybe_multisig_is_initialised = Some(get_multisig(&accounts[2]).is_initialized());
 
-    // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
+    // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be
+    // impossible
     let rent = pinocchio::sysvars::rent::Rent::get().unwrap();
     let minimum_balance = rent.minimum_balance(accounts[0].data_len());
 
@@ -4598,7 +4609,8 @@ fn test_process_withdraw_excess_lamports_mint_multisig(
     let dst_init_lamports = accounts[1].lamports();
     let maybe_multisig_is_initialised = Some(get_multisig(&accounts[2]).is_initialized());
 
-    // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
+    // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be
+    // impossible
     let rent = pinocchio::sysvars::rent::Rent::get().unwrap();
     let minimum_balance = rent.minimum_balance(accounts[0].data_len());
 
@@ -4734,7 +4746,8 @@ fn test_process_withdraw_excess_lamports_multisig_multisig(
     let dst_init_lamports = accounts[1].lamports();
     let maybe_multisig_is_initialised = Some(get_multisig(&accounts[2]).is_initialized());
 
-    // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
+    // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be
+    // impossible
     let rent = pinocchio::sysvars::rent::Rent::get().unwrap();
     let minimum_balance = rent.minimum_balance(accounts[0].data_len());
 

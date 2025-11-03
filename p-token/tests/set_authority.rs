@@ -67,7 +67,7 @@ async fn set_authority() {
 }
 
 // #[tokio::test]
-async fn set_authority_invalid_account() {
+async fn _set_authority_invalid_account() {
     let mut context = ProgramTest::new("pinocchio_token_program", TOKEN_PROGRAM_ID, None)
         .start_with_context()
         .await;
@@ -108,5 +108,11 @@ async fn set_authority_invalid_account() {
     );
     let result = context.banks_client.process_transaction(tx).await;
     let inner_error = result.err().unwrap().unwrap();
-    assert_eq!(inner_error, solana_transaction_error::TransactionError::InstructionError(0, solana_instruction::error::InstructionError::InvalidArgument));
+    assert_eq!(
+        inner_error,
+        solana_transaction_error::TransactionError::InstructionError(
+            0,
+            solana_instruction::error::InstructionError::InvalidArgument
+        )
+    );
 }

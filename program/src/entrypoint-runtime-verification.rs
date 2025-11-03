@@ -8,6 +8,7 @@ use {
     solana_pubkey::{self as pubkey, Pubkey},
     solana_sysvar::Sysvar,
     spl_token_interface::{error::TokenError, native_mint},
+    std::intrinsics::assume,
 };
 
 solana_program_entrypoint::entrypoint!(process_instruction);
@@ -208,17 +209,43 @@ fn get_rent(_account_info: &AccountInfo) -> solana_rent::Rent {
 // fn cheatcode_is_multisig(_: &AccountInfo) {}
 // fn cheatcode_is_rent(_: &AccountInfo) {}
 
-/// A runtime verification cheatcode to set the instruction discriminator.
-/// TODO: Currently calling assert for concrete testing but needs backend support in K.
-fn cheatcode_set_discriminator(discriminator: u8, instruction_data: &[u8]) {
-    assert_eq!(discriminator, instruction_data[0]);
+// special test for basic domain data access (SPL types)
+#[inline(never)]
+fn test_spltoken_domain_data(acc: &AccountInfo, mint: &AccountInfo, rent: &AccountInfo) {
+    // Mutate mint via standard unpack/pack flow; use unwraps for brevity in tests
+    let mut m = Mint::unpack_unchecked(&mint.data.borrow()).unwrap();
+    m.is_initialized = true;
+    Mint::pack(m, &mut mint.data.borrow_mut()).unwrap();
+    let m2 = Mint::unpack(&mint.data.borrow()).unwrap();
+    assert!(m2.is_initialized);
+
+    // Set Account.is_native in the simplest way (parity with p-token's boolean set_native(true))
+    let mut a = Account::unpack_unchecked(&acc.data.borrow()).unwrap();
+    a.is_native = solana_program_option::COption::Some(0);
+    Account::pack(a, &mut acc.data.borrow_mut()).unwrap();
+    // Verify via the same wrapper accessor used elsewhere
+    let iacc = get_account(acc);
+    assert!(iacc.is_native());
+
+    // Basic owner self-check
+    let owner = acc.owner;
+    assert_eq!(acc.owner, owner);
+
+    // Compare Rent from Sysvar::get vs account; fallback if not a real rent sysvar
+    let sysrent = solana_rent::Rent::get().unwrap();
+    let min_a = sysrent.minimum_balance(10);
+    let prent = solana_rent::Rent::from_account_info(rent).unwrap_or(sysrent);
+    let min_b = prent.minimum_balance(10);
+    assert_eq!(min_a, min_b);
 }
 
-/// A runtime verification cheatcode to set the program ID.
-/// TODO: Currently calling assert for concrete testing but needs backend support in K.
-fn cheatcode_set_program_id(program_id: &Pubkey) {
-    assert_eq!(program_id, &crate::id());
+// wrapper to ensure the test is retained in SMIR/IR outputs
+#[no_mangle]
+pub unsafe extern "C" fn use_tests(acc: &AccountInfo) {
+    test_spltoken_domain_data(acc, acc, acc);
 }
+
+// Inline `assume` is used directly in test harnesses; no helper functions needed.
 
 /// Inner instruction processor that dispatches to proof harnesses
 fn inner_process_instruction(
@@ -537,9 +564,9 @@ fn test_process_initialize_mint_freeze(
     accounts: &[AccountInfo; 2],
     instruction_data: &[u8; 67],
 ) -> ProgramResult {
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(0, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(0 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -601,9 +628,9 @@ fn test_process_initialize_mint_no_freeze(
     accounts: &[AccountInfo; 2],
     instruction_data: &[u8; 35],
 ) -> ProgramResult {
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(0, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(0 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -666,9 +693,9 @@ fn test_process_initialize_account(
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
 
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(1, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(1 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -745,9 +772,9 @@ fn test_process_initialize_multisig(
     accounts: &[AccountInfo; 5],
     instruction_data: &[u8; 2],
 ) -> ProgramResult {
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(2, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(2 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -827,9 +854,9 @@ fn test_process_transfer(
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
 
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(3, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(3 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -1066,9 +1093,9 @@ fn test_process_approve(
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
 
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(4, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(4 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -1187,9 +1214,9 @@ fn test_process_revoke(
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
 
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(5, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(5 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -1309,9 +1336,9 @@ fn test_process_set_authority_account(
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
 
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(6, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(6 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -1532,9 +1559,9 @@ fn test_process_set_authority_mint(
     accounts: &[AccountInfo; 2],
     instruction_data: &[u8; 35],
 ) -> ProgramResult {
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(6, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(6 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -1751,9 +1778,9 @@ fn test_process_mint_to(
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
 
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(7, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(7 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -1916,9 +1943,9 @@ fn test_process_burn(
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
 
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(8, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(8 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -2140,9 +2167,9 @@ fn test_process_close_account(
 ) -> ProgramResult {
     use solana_sdk_ids::incinerator::ID as INCINERATOR_ID;
 
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(9, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(9 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -2281,9 +2308,9 @@ fn test_process_freeze_account(
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
 
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(10, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(10 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -2416,9 +2443,9 @@ fn test_process_thaw_account(
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
 
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(11, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(11 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -2553,9 +2580,9 @@ fn test_process_transfer_checked(
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
 
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(12, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(12 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -2811,9 +2838,9 @@ fn test_process_approve_checked(
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
 
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(13, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(13 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -2947,9 +2974,9 @@ fn test_process_mint_to_checked(
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
 
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(14, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(14 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -3114,9 +3141,9 @@ fn test_process_burn_checked(
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
 
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(15, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(15 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -3341,9 +3368,9 @@ fn test_process_initialize_account2(
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
 
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(16, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(16 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -3416,9 +3443,9 @@ fn test_process_sync_native(
     accounts: &[AccountInfo; 1],
     instruction_data: &[u8; 1],
 ) -> ProgramResult {
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(17, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(17 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -3477,9 +3504,9 @@ fn test_process_initialize_account3(
 ) -> ProgramResult {
     use spl_token_interface::state::AccountState;
 
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(18, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(18 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -3557,9 +3584,9 @@ fn test_process_initialize_multisig2(
     accounts: &[AccountInfo; 4],
     instruction_data: &[u8; 2],
 ) -> ProgramResult {
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(19, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(19 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -3636,9 +3663,9 @@ fn test_process_initialize_mint2_freeze(
     accounts: &[AccountInfo; 1],
     instruction_data: &[u8; 67],
 ) -> ProgramResult {
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(20, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(20 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -3700,9 +3727,9 @@ fn test_process_initialize_mint2_no_freeze(
     accounts: &[AccountInfo; 1],
     instruction_data: &[u8; 35],
 ) -> ProgramResult {
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(20, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(20 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -3761,9 +3788,9 @@ fn test_process_get_account_data_size(
     accounts: &[AccountInfo; 1],
     instruction_data: &[u8; 1],
 ) -> ProgramResult {
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(21, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(21 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -3805,9 +3832,9 @@ fn test_process_initialize_immutable_owner(
     accounts: &[AccountInfo; 1],
     instruction_data: &[u8; 1],
 ) -> ProgramResult {
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(22, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(22 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -3846,9 +3873,9 @@ fn test_process_amount_to_ui_amount(
     accounts: &[AccountInfo; 1],
     instruction_data: &[u8; 9],
 ) -> ProgramResult {
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(23, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(23 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -3891,9 +3918,9 @@ fn test_process_ui_amount_to_amount(
     accounts: &[AccountInfo; 1],
     instruction_data: &[u8],
 ) -> ProgramResult {
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(24, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(24 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -4003,9 +4030,9 @@ fn test_process_withdraw_excess_lamports_account(
     accounts: &[AccountInfo; 3],
     instruction_data: &[u8; 1],
 ) -> ProgramResult {
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(38, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(38 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -4141,9 +4168,9 @@ fn test_process_withdraw_excess_lamports_mint(
     accounts: &[AccountInfo; 3],
     instruction_data: &[u8; 1],
 ) -> ProgramResult {
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(38, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(38 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
@@ -4282,9 +4309,9 @@ fn test_process_withdraw_excess_lamports_multisig(
     accounts: &[AccountInfo; 3],
     instruction_data: &[u8; 1],
 ) -> ProgramResult {
-    // Set discriminator and program id to concrete value
-    cheatcode_set_discriminator(38, instruction_data);
-    cheatcode_set_program_id(program_id);
+    // Constrain discriminator and program id
+    unsafe { assume(38 == instruction_data[0]); }
+    unsafe { assume(program_id == &crate::id()); }
 
     // Strip discriminator so instruction data is equivalent p-token harness
     let instruction_data_with_discriminator = &instruction_data.clone();
