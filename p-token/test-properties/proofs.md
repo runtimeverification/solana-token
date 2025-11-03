@@ -52,9 +52,5 @@ Proofs to run with `run-proofs.sh -m`:
 | m | test_process_mint_to_checked_multisig                   |
 | m | test_process_set_authority_account_multisig             |
 | m | test_process_set_authority_mint_multisig                |
-
-Cheat codes are missing or a problem for these proofs, therefore not recommended to execute them
-(keep the empty first column so `run-proofs.sh` won't pick these up):
-
-|   | test_process_initialize_multisig  |
-|   | test_process_initialize_multisig2 |
+| m | test_process_initialize_multisig                        |
+| m | test_process_initialize_multisig2                       |
