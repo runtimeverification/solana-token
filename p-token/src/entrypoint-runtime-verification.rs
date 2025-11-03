@@ -1,3 +1,14 @@
+// The harnesses have blocks with the same error conidition
+// beside each other which clippy doesn't like, but that is
+// but that is preferable for clarity currently.
+#![allow(clippy::if_same_then_else)]
+// Code that is guarded from arithmetic overflow in both the
+//  harness logic and by K protecting from UB is flagged
+// by clippy
+#![allow(clippy::arithmetic_side_effects)]
+// Also note that there are some other inlined clippy bypasses
+// in the harnesses that should be acknowledged
+
 use {
     crate::processor::*,
     pinocchio::{
