@@ -1156,17 +1156,15 @@ pub fn test_process_close_account(accounts: &[AccountInfo; 3]) -> ProgramResult 
     cheatcode_is_multisig(&accounts[2]);
 
     //-Initial State-----------------------------------------------------------
-    let src_initialised = get_account(&accounts[0]).is_initialized();
+    let src_old = get_account(&accounts[0]);
+    let src_initialised = src_old.is_initialized();
     let src_data_len = accounts[0].data_len();
-    let src_init_amount = get_account(&accounts[0]).amount();
-    let dst_init_lamports = accounts[0].lamports();
-    let src_init_lamports = accounts[1].lamports();
-    let src_is_native = get_account(&accounts[0]).is_native();
-    let src_owned_sys_inc = get_account(&accounts[0]).is_owned_by_system_program_or_incinerator();
-    let authority = get_account(&accounts[0])
-        .close_authority()
-        .cloned()
-        .unwrap_or(get_account(&accounts[0]).owner);
+    let src_init_amount = src_old.amount();
+    let src_init_lamports = accounts[0].lamports();
+    let dst_init_lamports = accounts[1].lamports();
+    let src_is_native = src_old.is_native();
+    let src_owned_sys_inc = src_old.is_owned_by_system_program_or_incinerator();
+    let authority = src_old.close_authority().cloned().unwrap_or(src_old.owner);
     #[cfg(not(feature = "multisig"))]
     let maybe_multisig_is_initialised = None;
     #[cfg(feature = "multisig")]
