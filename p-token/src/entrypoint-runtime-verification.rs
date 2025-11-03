@@ -1,9 +1,17 @@
 use {
     crate::processor::*,
     pinocchio::{
-        account_info::AccountInfo, no_allocator, nostd_panic_handler, program_entrypoint, program_error::{ProgramError, ToStr}, pubkey::Pubkey, sysvars::Sysvar, ProgramResult
+        account_info::AccountInfo,
+        no_allocator, nostd_panic_handler, program_entrypoint,
+        program_error::{ProgramError, ToStr},
+        pubkey::Pubkey,
+        sysvars::Sysvar,
+        ProgramResult,
     },
-    pinocchio_token_interface::{error::TokenError, state::{Initializable, Transmutable}},
+    pinocchio_token_interface::{
+        error::TokenError,
+        state::{Initializable, Transmutable},
+    },
 };
 
 program_entrypoint!(process_instruction);
@@ -84,8 +92,14 @@ pub(crate) fn inner_process_instruction(
             pinocchio::msg!("Testing Instruction: InitializeMint");
 
             match instruction_data.len() {
-                x if 66 <= x => test_process_initialize_mint_freeze(accounts.first_chunk().unwrap(), instruction_data.first_chunk().unwrap()),
-                x if 34 <= x => test_process_initialize_mint_no_freeze(accounts.first_chunk().unwrap(), instruction_data.first_chunk().unwrap()),
+                x if 66 <= x => test_process_initialize_mint_freeze(
+                    accounts.first_chunk().unwrap(),
+                    instruction_data.first_chunk().unwrap(),
+                ),
+                x if 34 <= x => test_process_initialize_mint_no_freeze(
+                    accounts.first_chunk().unwrap(),
+                    instruction_data.first_chunk().unwrap(),
+                ),
                 _ => panic!("Invalid instruction data length"),
             }
         }
@@ -247,14 +261,20 @@ pub(crate) fn inner_process_instruction(
             #[cfg(feature = "logging")]
             pinocchio::msg!("Testing Instruction: InitializeAccount2");
 
-            test_process_initialize_account2(&accounts.first_chunk().unwrap(), &instruction_data.first_chunk().unwrap())
+            test_process_initialize_account2(
+                &accounts.first_chunk().unwrap(),
+                &instruction_data.first_chunk().unwrap(),
+            )
         }
         // 18 - Test InitializeAccount3
         18 => {
             #[cfg(feature = "logging")]
             pinocchio::msg!("Testing Instruction: InitializeAccount3");
 
-            test_process_initialize_account3(&accounts.first_chunk().unwrap(), &instruction_data.first_chunk().unwrap())
+            test_process_initialize_account3(
+                &accounts.first_chunk().unwrap(),
+                &instruction_data.first_chunk().unwrap(),
+            )
         }
         // 20 - Test InitializeMint2
         20 => {
@@ -262,8 +282,14 @@ pub(crate) fn inner_process_instruction(
             pinocchio::msg!("Testing Instruction: InitializeMint2");
 
             match instruction_data.len() {
-                x if 66 <= x => test_process_initialize_mint2_freeze(accounts.first_chunk().unwrap(), instruction_data.first_chunk().unwrap()),
-                x if 34 <= x => test_process_initialize_mint2_no_freeze(accounts.first_chunk().unwrap(), instruction_data.first_chunk().unwrap()),
+                x if 66 <= x => test_process_initialize_mint2_freeze(
+                    accounts.first_chunk().unwrap(),
+                    instruction_data.first_chunk().unwrap(),
+                ),
+                x if 34 <= x => test_process_initialize_mint2_no_freeze(
+                    accounts.first_chunk().unwrap(),
+                    instruction_data.first_chunk().unwrap(),
+                ),
                 _ => panic!("Invalid instruction data length"),
             }
         }
@@ -288,7 +314,10 @@ fn inner_process_remaining_instruction(
             #[cfg(feature = "logging")]
             pinocchio::msg!("Instruction: InitializeMultisig");
 
-            test_process_initialize_multisig(accounts.first_chunk().unwrap(), instruction_data.first_chunk().unwrap())
+            test_process_initialize_multisig(
+                accounts.first_chunk().unwrap(),
+                instruction_data.first_chunk().unwrap(),
+            )
         }
         // 4 - Approve
         4 => {
@@ -394,9 +423,7 @@ fn inner_process_remaining_instruction(
             }
 
             match accounts[2].data_len() {
-                Account::LEN => {
-                    test_process_freeze_account(accounts.first_chunk().unwrap())
-                }
+                Account::LEN => test_process_freeze_account(accounts.first_chunk().unwrap()),
                 Multisig::LEN => {
                     test_process_freeze_account_multisig(accounts.first_chunk().unwrap())
                 }
@@ -419,7 +446,9 @@ fn inner_process_remaining_instruction(
 
             match accounts[2].data_len() {
                 Account::LEN => test_process_thaw_account(accounts.first_chunk().unwrap()),
-                Multisig::LEN => test_process_thaw_account_multisig(accounts.first_chunk().unwrap()),
+                Multisig::LEN => {
+                    test_process_thaw_account_multisig(accounts.first_chunk().unwrap())
+                }
                 _ => panic!("Test_proces_thaw_account: Invalid account length"), // TODO: replace with checking for malformed input
             }
         }
@@ -487,7 +516,10 @@ fn inner_process_remaining_instruction(
             #[cfg(feature = "logging")]
             pinocchio::msg!("Instruction: InitializeMultisig2");
 
-            test_process_initialize_multisig2(accounts.first_chunk().unwrap(), instruction_data.first_chunk().unwrap())
+            test_process_initialize_multisig2(
+                accounts.first_chunk().unwrap(),
+                instruction_data.first_chunk().unwrap(),
+            )
         }
         // 21 - GetAccountDataSize
         21 => {
@@ -508,7 +540,10 @@ fn inner_process_remaining_instruction(
             #[cfg(feature = "logging")]
             pinocchio::msg!("Instruction: AmountToUiAmount");
 
-            test_process_amount_to_ui_amount(accounts.first_chunk().unwrap(), instruction_data.first_chunk().unwrap())
+            test_process_amount_to_ui_amount(
+                accounts.first_chunk().unwrap(),
+                instruction_data.first_chunk().unwrap(),
+            )
         }
         // 24 - UiAmountToAmount
         24 => {
@@ -539,31 +574,31 @@ fn inner_process_remaining_instruction(
                 match acc.data_len() {
                     Account::LEN => match accounts[2].data_len() {
                         Account::LEN => test_process_withdraw_excess_lamports_account(
-                            accounts.first_chunk().unwrap()
+                            accounts.first_chunk().unwrap(),
                         ),
                         Multisig::LEN => test_process_withdraw_excess_lamports_account_multisig(
-                            accounts.first_chunk().unwrap()
+                            accounts.first_chunk().unwrap(),
                         ),
                         _ => panic!("Test_proces_withdraw_excess_lamports: Invalid account length"), // TODO: replace with checking for malformed input
-                    }
+                    },
                     Mint::LEN => match accounts[2].data_len() {
                         Account::LEN => test_process_withdraw_excess_lamports_mint(
-                            accounts.first_chunk().unwrap()
+                            accounts.first_chunk().unwrap(),
                         ),
                         Multisig::LEN => test_process_withdraw_excess_lamports_mint_multisig(
-                            accounts.first_chunk().unwrap()
+                            accounts.first_chunk().unwrap(),
                         ),
                         _ => panic!("Test_proces_withdraw_excess_lamports: Invalid account length"), // TODO: replace with checking for malformed input
-                    }
+                    },
                     Multisig::LEN => match accounts[2].data_len() {
                         Account::LEN => test_process_withdraw_excess_lamports_multisig(
-                            accounts.first_chunk().unwrap()
+                            accounts.first_chunk().unwrap(),
                         ),
                         Multisig::LEN => test_process_withdraw_excess_lamports_multisig_multisig(
-                            accounts.first_chunk().unwrap()
+                            accounts.first_chunk().unwrap(),
                         ),
                         _ => panic!("Test_proces_withdraw_excess_lamports: Invalid account length"), // TODO: replace with checking for malformed input
-                    }
+                    },
                     // FIXME: Need harness for this
                     _other => panic!("withdraw_excess_lamports: Unexpected account data_len"),
                 }
@@ -586,11 +621,11 @@ fn cheatcode_is_multisig(_: &AccountInfo) {} // TODO: implement multisig cheatco
 #[inline(never)]
 fn cheatcode_is_rent(_: &AccountInfo) {}
 
-use pinocchio_token_interface::state::mint::Mint;
+use pinocchio::sysvars::rent::Rent;
 use pinocchio_token_interface::state::account::Account;
+use pinocchio_token_interface::state::mint::Mint;
 use pinocchio_token_interface::state::multisig::Multisig;
 use pinocchio_token_interface::state::{load_mut_unchecked, load_unchecked};
-use pinocchio::sysvars::rent::Rent;
 
 fn get_account(account_info: &AccountInfo) -> &Account {
     unsafe {
@@ -617,9 +652,7 @@ fn get_multisig(account_info: &AccountInfo) -> &Multisig {
 }
 
 fn get_rent(account_info: &AccountInfo) -> &Rent {
-    unsafe {
-        Rent::from_bytes_unchecked(account_info.borrow_data_unchecked())
-    }
+    unsafe { Rent::from_bytes_unchecked(account_info.borrow_data_unchecked()) }
 }
 
 /// This function encapsulates the specification of validating the signature requirements
@@ -629,8 +662,8 @@ fn inner_test_validate_owner(
     expected_owner: &Pubkey,
     owner_account_info: &AccountInfo,
     tx_signers: &[AccountInfo],
-    maybe_multisig_is_initialised : Option<Result<bool, ProgramError>>,
-    result : Result<(), ProgramError>
+    maybe_multisig_is_initialised: Option<Result<bool, ProgramError>>,
+    result: Result<(), ProgramError>,
 ) -> Result<(), ProgramError> {
     use pinocchio_token_interface::program::ID;
 
@@ -641,7 +674,8 @@ fn inner_test_validate_owner(
         return result;
     }
     // Line 106-108
-    else if owner_account_info.data_len() == Multisig::LEN && owner_account_info.is_owned_by(&ID) {
+    else if owner_account_info.data_len() == Multisig::LEN && owner_account_info.is_owned_by(&ID)
+    {
         // Guaranteed to succeed by `cheatcode_is_multisig`
         let multisig_is_initialised = maybe_multisig_is_initialised.unwrap();
 
@@ -657,12 +691,11 @@ fn inner_test_validate_owner(
             let multisig = get_multisig(&owner_account_info);
 
             // Lines 119-129: Did all declared and allowed signers sign?
-            let unsigned_exists = tx_signers.iter()
-                .any(|potential_signer| {
-                    multisig.signers
-                        .iter()
-                        .any(|registered_key| registered_key == potential_signer.key() && !potential_signer.is_signer())
-                });
+            let unsigned_exists = tx_signers.iter().any(|potential_signer| {
+                multisig.signers.iter().any(|registered_key| {
+                    registered_key == potential_signer.key() && !potential_signer.is_signer()
+                })
+            });
 
             if unsigned_exists {
                 assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
@@ -670,20 +703,23 @@ fn inner_test_validate_owner(
             }
 
             // Lines 130-132: Were enough signatures received?
-            let signers_count = multisig.signers.iter()
+            let signers_count = multisig
+                .signers
+                .iter()
                 .filter_map(|registered_key| {
-                    tx_signers.iter()
-                        .find(|potential_signer| potential_signer.key() == registered_key && potential_signer.is_signer())
+                    tx_signers.iter().find(|potential_signer| {
+                        potential_signer.key() == registered_key && potential_signer.is_signer()
+                    })
                 })
                 .count();
 
             // Line 130-132: Check if we have enough signers (singers_count < multisig.m)
-              if signers_count < multisig.m as usize {
-                  assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
-                  return result;
-              } else {
-                  return result;
-              }
+            if signers_count < multisig.m as usize {
+                assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                return result;
+            } else {
+                return result;
+            }
         }
     }
     // Line 133-135: Non-multisig case - check if owner_account_info.is_signer()
@@ -717,10 +753,9 @@ fn test_ptoken_domain_data(acc: &AccountInfo, mint: &AccountInfo, rent: &Account
     cheatcode_is_account(&acc);
     unsafe {
         let test = acc.borrow_mut_data_unchecked();
-        let iacc:Result<&mut Account, _> = load_mut_unchecked(test);
+        let iacc: Result<&mut Account, _> = load_mut_unchecked(test);
         let iacc = iacc.unwrap();
         iacc.set_native(true);
-
     }
     let iacc = get_account(&acc);
     assert!(iacc.is_native());
@@ -755,7 +790,10 @@ fn test_ptoken_domain_data(acc: &AccountInfo, mint: &AccountInfo, rent: &Account
 /// instruction_data[33]     // Freeze Authority Exists? 1 for freeze
 /// instruction_data[34..66] // instruction_data[33] == 1 ==> Freeze Authority Pubkey
 #[inline(never)]
-pub fn test_process_initialize_mint_freeze(accounts: &[AccountInfo; 2], instruction_data: &[u8; 66]) -> ProgramResult {
+pub fn test_process_initialize_mint_freeze(
+    accounts: &[AccountInfo; 2],
+    instruction_data: &[u8; 66],
+) -> ProgramResult {
     cheatcode_is_mint(&accounts[0]);
     cheatcode_is_rent(&accounts[1]);
 
@@ -779,17 +817,23 @@ pub fn test_process_initialize_mint_freeze(accounts: &[AccountInfo; 2], instruct
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if mint_is_initialised_prior.is_err() {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
-    } else if mint_is_initialised_prior.unwrap()  {
+    } else if mint_is_initialised_prior.unwrap() {
         assert_eq!(result, Err(ProgramError::Custom(6)))
     } else if accounts[0].lamports() < minimum_balance {
         assert_eq!(result, Err(ProgramError::Custom(0)))
     } else {
         assert!(get_mint(&accounts[0]).is_initialized().unwrap());
-        assert_eq!(get_mint(&accounts[0]).mint_authority().unwrap(), &instruction_data[1..33]);
+        assert_eq!(
+            get_mint(&accounts[0]).mint_authority().unwrap(),
+            &instruction_data[1..33]
+        );
         assert_eq!(get_mint(&accounts[0]).decimals, instruction_data[0]);
 
         if instruction_data[33] == 1 {
-            assert_eq!(get_mint(&accounts[0]).freeze_authority().unwrap(), &instruction_data[34..66]);
+            assert_eq!(
+                get_mint(&accounts[0]).freeze_authority().unwrap(),
+                &instruction_data[34..66]
+            );
         }
     }
 
@@ -802,7 +846,10 @@ pub fn test_process_initialize_mint_freeze(accounts: &[AccountInfo; 2], instruct
 /// instruction_data[1..33]  // Mint Authority Pubkey
 /// instruction_data[33]     // Freeze Authority Exists? 0 for no freeze
 #[inline(never)]
-pub fn test_process_initialize_mint_no_freeze(accounts: &[AccountInfo; 2], instruction_data: &[u8; 34]) -> ProgramResult {
+pub fn test_process_initialize_mint_no_freeze(
+    accounts: &[AccountInfo; 2],
+    instruction_data: &[u8; 34],
+) -> ProgramResult {
     cheatcode_is_mint(&accounts[0]);
     cheatcode_is_rent(&accounts[1]);
 
@@ -826,17 +873,23 @@ pub fn test_process_initialize_mint_no_freeze(accounts: &[AccountInfo; 2], instr
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if mint_is_initialised_prior.is_err() {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
-    } else if mint_is_initialised_prior.unwrap()  {
+    } else if mint_is_initialised_prior.unwrap() {
         assert_eq!(result, Err(ProgramError::Custom(6)))
     } else if accounts[0].lamports() < minimum_balance {
         assert_eq!(result, Err(ProgramError::Custom(0)))
     } else {
         assert!(get_mint(&accounts[0]).is_initialized().unwrap());
-        assert_eq!(get_mint(&accounts[0]).mint_authority().unwrap(), &instruction_data[1..33]);
+        assert_eq!(
+            get_mint(&accounts[0]).mint_authority().unwrap(),
+            &instruction_data[1..33]
+        );
         assert_eq!(get_mint(&accounts[0]).decimals, instruction_data[0]);
 
         if instruction_data[33] == 1 {
-            assert_eq!(get_mint(&accounts[0]).freeze_authority().unwrap(), &instruction_data[34..66]);
+            assert_eq!(
+                get_mint(&accounts[0]).freeze_authority().unwrap(),
+                &instruction_data[34..66]
+            );
         }
     }
 
@@ -857,8 +910,7 @@ pub fn test_process_initialize_account(accounts: &[AccountInfo; 4]) -> ProgramRe
     cheatcode_is_rent(&accounts[3]);
 
     //-Initial State-----------------------------------------------------------
-    let initial_state_new_account =  get_account(&accounts[0])
-        .account_state();
+    let initial_state_new_account = get_account(&accounts[0]).account_state();
 
     let minimum_balance = get_rent(&accounts[3]).minimum_balance(accounts[0].data_len()); // TODO float problem
     let is_native_mint = accounts[1].key() == &pinocchio_token_interface::native_mint::ID;
@@ -883,23 +935,34 @@ pub fn test_process_initialize_account(accounts: &[AccountInfo; 4]) -> ProgramRe
     } else if !is_native_mint && accounts[1].owner() != &pinocchio_token_interface::program::ID {
         assert_eq!(result, Err(ProgramError::IncorrectProgramId))
     } else if !is_native_mint
-            && accounts[1].owner() == &pinocchio_token_interface::program::ID
-            && mint_is_initialised.is_err() {
+        && accounts[1].owner() == &pinocchio_token_interface::program::ID
+        && mint_is_initialised.is_err()
+    {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if !is_native_mint
-            && accounts[1].owner() == &pinocchio_token_interface::program::ID
-            && !mint_is_initialised.unwrap() {
+        && accounts[1].owner() == &pinocchio_token_interface::program::ID
+        && !mint_is_initialised.unwrap()
+    {
         assert_eq!(result, Err(ProgramError::Custom(2)))
     } else {
         assert!(result.is_ok());
-        assert_eq!(get_account(&accounts[0]).account_state().unwrap(), account_state::AccountState::Initialized);
+        assert_eq!(
+            get_account(&accounts[0]).account_state().unwrap(),
+            account_state::AccountState::Initialized
+        );
         assert_eq!(get_account(&accounts[0]).mint, *accounts[1].key());
         assert_eq!(get_account(&accounts[0]).owner, *accounts[2].key());
 
         if is_native_mint {
             assert!(get_account(&accounts[0]).is_native());
-            assert_eq!(get_account(&accounts[0]).native_amount().unwrap(), minimum_balance);
-            assert_eq!(get_account(&accounts[0]).amount(), accounts[0].lamports() - minimum_balance);
+            assert_eq!(
+                get_account(&accounts[0]).native_amount().unwrap(),
+                minimum_balance
+            );
+            assert_eq!(
+                get_account(&accounts[0]).amount(),
+                accounts[0].lamports() - minimum_balance
+            );
         }
     }
 
@@ -956,28 +1019,33 @@ pub fn test_process_transfer(
     } else if accounts[0] != accounts[1] && !dst_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount));
         return result;
-    } else if get_account(&accounts[0]).account_state().unwrap() == account_state::AccountState::Frozen {
+    } else if get_account(&accounts[0]).account_state().unwrap()
+        == account_state::AccountState::Frozen
+    {
         assert_eq!(result, Err(ProgramError::Custom(17)));
         return result;
-    } else if accounts[0] != accounts[1] && get_account(&accounts[1]).account_state().unwrap() == account_state::AccountState::Frozen {
+    } else if accounts[0] != accounts[1]
+        && get_account(&accounts[1]).account_state().unwrap() == account_state::AccountState::Frozen
+    {
         assert_eq!(result, Err(ProgramError::Custom(17)));
         return result;
     } else if src_initial_amount < amount {
         assert_eq!(result, Err(ProgramError::Custom(1)));
         return result;
-    } else if accounts[0] != accounts[1] && get_account(&accounts[0]).mint != get_account(&accounts[1]).mint {
+    } else if accounts[0] != accounts[1]
+        && get_account(&accounts[0]).mint != get_account(&accounts[1]).mint
+    {
         assert_eq!(result, Err(ProgramError::Custom(3)));
         return result;
     } else {
         if old_src_delgate == Some(*accounts[2].key()) {
-
             // Validate Owner
             inner_test_validate_owner(
                 &old_src_delgate.unwrap(), // expected_owner
                 &accounts[2],              // owner_account_info
                 &accounts[3..],            // tx_signers
                 maybe_multisig_is_initialised,
-                result.clone()
+                result.clone(),
             )?;
 
             if old_src_delgated_amount < amount {
@@ -1250,7 +1318,8 @@ pub fn test_process_mint_to(
     } else if !dst_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount));
         return result;
-    } else if dst_init_state.unwrap() == account_state::AccountState::Frozen  { // unwrap must succeed due to dst_initialised not being err
+    } else if dst_init_state.unwrap() == account_state::AccountState::Frozen {
+        // unwrap must succeed due to dst_initialised not being err
         assert_eq!(result, Err(ProgramError::Custom(17)));
         return result;
     } else if get_account(&accounts[1]).is_native() {
@@ -1271,22 +1340,20 @@ pub fn test_process_mint_to(
         return result;
     } else {
         if get_mint(&accounts[0]).mint_authority().is_some() {
-
             // Validate Owner
             inner_test_validate_owner(
                 get_mint(&accounts[0]).mint_authority().unwrap(), // expected_owner
                 &accounts[2],                                     // owner_account_info
                 &accounts[3..],                                   // tx_signers
                 maybe_multisig_is_initialised,
-                result.clone()
+                result.clone(),
             )?;
-
         } else {
             assert_eq!(result, Err(ProgramError::Custom(5)));
             return result;
         }
 
-        let amount =  unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
+        let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
 
         if amount == 0 && accounts[0].owner() != &pinocchio_token_interface::program::ID {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId));
@@ -1350,7 +1417,8 @@ pub fn test_process_mint_to_multisig(
     } else if !dst_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount));
         return result;
-    } else if dst_init_state.unwrap() == account_state::AccountState::Frozen  { // unwrap must succeed due to dst_initialised not being err
+    } else if dst_init_state.unwrap() == account_state::AccountState::Frozen {
+        // unwrap must succeed due to dst_initialised not being err
         assert_eq!(result, Err(ProgramError::Custom(17)));
         return result;
     } else if get_account(&accounts[1]).is_native() {
@@ -1371,22 +1439,20 @@ pub fn test_process_mint_to_multisig(
         return result;
     } else {
         if get_mint(&accounts[0]).mint_authority().is_some() {
-
             // Validate Owner
             inner_test_validate_owner(
                 get_mint(&accounts[0]).mint_authority().unwrap(), // expected_owner
                 &accounts[2],                                     // owner_account_info
                 &accounts[3..],                                   // tx_signers
                 maybe_multisig_is_initialised,
-                result.clone()
+                result.clone(),
             )?;
-
         } else {
             assert_eq!(result, Err(ProgramError::Custom(5)));
             return result;
         }
 
-        let amount =  unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
+        let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
 
         if amount == 0 && accounts[0].owner() != &pinocchio_token_interface::program::ID {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId));
@@ -1412,10 +1478,7 @@ pub fn test_process_mint_to_multisig(
 /// accounts[2] // Authority Info
 /// instruction_data[0..8] // Little Endian Bytes of u64 amount
 #[inline(never)]
-pub fn test_process_burn(
-    accounts: &[AccountInfo; 3],
-    instruction_data: &[u8; 8],
-) -> ProgramResult {
+pub fn test_process_burn(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
     cheatcode_is_account(&accounts[0]);
@@ -2513,7 +2576,10 @@ pub fn test_process_initialize_account3(
 /// instruction_data[33]     // Freeze Authority Exists? 1 for freeze
 /// instruction_data[34..66] // instruction_data[33] == 1 ==> Freeze Authority Pubkey
 #[inline(never)]
-pub fn test_process_initialize_mint2_freeze(accounts: &[AccountInfo; 1], instruction_data: &[u8; 66]) -> ProgramResult {
+pub fn test_process_initialize_mint2_freeze(
+    accounts: &[AccountInfo; 1],
+    instruction_data: &[u8; 66],
+) -> ProgramResult {
     cheatcode_is_mint(&accounts[0]);
 
     //-Initial State-----------------------------------------------------------
@@ -2538,17 +2604,23 @@ pub fn test_process_initialize_mint2_freeze(accounts: &[AccountInfo; 1], instruc
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if mint_is_initialised_prior.is_err() {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
-    } else if mint_is_initialised_prior.unwrap()  {
+    } else if mint_is_initialised_prior.unwrap() {
         assert_eq!(result, Err(ProgramError::Custom(6)))
     } else if accounts[0].lamports() < minimum_balance {
         assert_eq!(result, Err(ProgramError::Custom(0)))
     } else {
         assert!(get_mint(&accounts[0]).is_initialized().unwrap());
-        assert_eq!(get_mint(&accounts[0]).mint_authority().unwrap(), &instruction_data[1..33]);
+        assert_eq!(
+            get_mint(&accounts[0]).mint_authority().unwrap(),
+            &instruction_data[1..33]
+        );
         assert_eq!(get_mint(&accounts[0]).decimals, instruction_data[0]);
 
         if instruction_data[33] == 1 {
-            assert_eq!(get_mint(&accounts[0]).freeze_authority().unwrap(), &instruction_data[34..66]);
+            assert_eq!(
+                get_mint(&accounts[0]).freeze_authority().unwrap(),
+                &instruction_data[34..66]
+            );
         }
     }
 
@@ -2560,7 +2632,10 @@ pub fn test_process_initialize_mint2_freeze(accounts: &[AccountInfo; 1], instruc
 /// instruction_data[1..33]  // Mint Authority Pubkey
 /// instruction_data[33]     // Freeze Authority Exists? 0 for no freeze
 #[inline(never)]
-pub fn test_process_initialize_mint2_no_freeze(accounts: &[AccountInfo; 1], instruction_data: &[u8; 34]) -> ProgramResult {
+pub fn test_process_initialize_mint2_no_freeze(
+    accounts: &[AccountInfo; 1],
+    instruction_data: &[u8; 34],
+) -> ProgramResult {
     cheatcode_is_mint(&accounts[0]);
 
     //-Initial State-----------------------------------------------------------
@@ -2585,17 +2660,23 @@ pub fn test_process_initialize_mint2_no_freeze(accounts: &[AccountInfo; 1], inst
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if mint_is_initialised_prior.is_err() {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
-    } else if mint_is_initialised_prior.unwrap()  {
+    } else if mint_is_initialised_prior.unwrap() {
         assert_eq!(result, Err(ProgramError::Custom(6)))
     } else if accounts[0].lamports() < minimum_balance {
         assert_eq!(result, Err(ProgramError::Custom(0)))
     } else {
         assert!(get_mint(&accounts[0]).is_initialized().unwrap());
-        assert_eq!(get_mint(&accounts[0]).mint_authority().unwrap(), &instruction_data[1..33]);
+        assert_eq!(
+            get_mint(&accounts[0]).mint_authority().unwrap(),
+            &instruction_data[1..33]
+        );
         assert_eq!(get_mint(&accounts[0]).decimals, instruction_data[0]);
 
         if instruction_data[33] == 1 {
-            assert_eq!(get_mint(&accounts[0]).freeze_authority().unwrap(), &instruction_data[34..66]);
+            assert_eq!(
+                get_mint(&accounts[0]).freeze_authority().unwrap(),
+                &instruction_data[34..66]
+            );
         }
     }
 
@@ -2608,8 +2689,11 @@ pub fn test_process_initialize_mint2_no_freeze(accounts: &[AccountInfo; 1], inst
 /// accounts[2..].len() // n
 /// instruction_data[1] // m
 #[inline(never)]
-fn test_process_initialize_multisig(accounts: &[AccountInfo; 5], instruction_data: &[u8; 1]) -> ProgramResult {
-                                                          // ^ FIXME: totally arbitrary for the tests
+fn test_process_initialize_multisig(
+    accounts: &[AccountInfo; 5],
+    instruction_data: &[u8; 1],
+) -> ProgramResult {
+    // ^ FIXME: totally arbitrary for the tests
     cheatcode_is_multisig(&accounts[0]);
     cheatcode_is_rent(&accounts[1]);
     cheatcode_is_account(&accounts[2]); // Signer
@@ -2667,10 +2751,7 @@ fn test_process_initialize_multisig(accounts: &[AccountInfo; 5], instruction_dat
 /// accounts[2] // Owner Info
 /// instruction_data[0..8] // Little Endian Bytes of u64 amount
 #[inline(never)]
-fn test_process_approve(
-    accounts: &[AccountInfo; 3],
-    instruction_data: &[u8; 8],
-) -> ProgramResult {
+fn test_process_approve(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
     cheatcode_is_account(&accounts[0]); // Source Account
@@ -2943,11 +3024,13 @@ fn test_process_set_authority_account(
             } else if src_init_state.unwrap() == account_state::AccountState::Frozen {
                 assert_eq!(result, Err(ProgramError::Custom(17)));
                 return result;
-            } else if instruction_data[0] != 2 && instruction_data[0] != 3 { // AuthorityType neither AccountOwner nor CloseAccount
+            } else if instruction_data[0] != 2 && instruction_data[0] != 3 {
+                // AuthorityType neither AccountOwner nor CloseAccount
                 assert_eq!(result, Err(ProgramError::Custom(15)));
                 return result;
             } else {
-                if instruction_data[0] == 2 { // AccountOwner
+                if instruction_data[0] == 2 {
+                    // AccountOwner
 
                     // Validate Owner
                     inner_test_validate_owner(
@@ -3800,7 +3883,8 @@ fn test_process_mint_to_checked(
     } else if accounts.len() < 3 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
         return result;
-    } else if accounts[1].data_len() != Account::LEN { // TODO Daniel: is it possible for something to be provided that has the same len but is not an account?
+    } else if accounts[1].data_len() != Account::LEN {
+        // TODO Daniel: is it possible for something to be provided that has the same len but is not an account?
         assert_eq!(result, Err(ProgramError::InvalidAccountData));
         return result;
     } else if dst_initialised.is_err() {
@@ -3809,7 +3893,8 @@ fn test_process_mint_to_checked(
     } else if !dst_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount));
         return result;
-    } else if dst_init_state.unwrap() == account_state::AccountState::Frozen  { // unwrap must succeed due to dst_initialised not being err
+    } else if dst_init_state.unwrap() == account_state::AccountState::Frozen {
+        // unwrap must succeed due to dst_initialised not being err
         assert_eq!(result, Err(ProgramError::Custom(17)));
         return result;
     } else if get_account(&accounts[1]).is_native() {
@@ -3833,22 +3918,20 @@ fn test_process_mint_to_checked(
         return result;
     } else {
         if get_mint(&accounts[0]).mint_authority().is_some() {
-
             // Validate Owner
             inner_test_validate_owner(
                 get_mint(&accounts[0]).mint_authority().unwrap(), // expected_owner
                 &accounts[2],                                     // owner_account_info
                 &accounts[3..],                                   // tx_signers
                 maybe_multisig_is_initialised,
-                result.clone()
+                result.clone(),
             )?;
-
         } else {
             assert_eq!(result, Err(ProgramError::Custom(5)));
             return result;
         }
 
-        let amount =  unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
+        let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
 
         if amount == 0 && accounts[0].owner() != &pinocchio_token_interface::program::ID {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId));
@@ -3903,7 +3986,8 @@ fn test_process_mint_to_checked_multisig(
     } else if accounts.len() < 3 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
         return result;
-    } else if accounts[1].data_len() != Account::LEN { // TODO Daniel: is it possible for something to be provided that has the same len but is not an account?
+    } else if accounts[1].data_len() != Account::LEN {
+        // TODO Daniel: is it possible for something to be provided that has the same len but is not an account?
         assert_eq!(result, Err(ProgramError::InvalidAccountData));
         return result;
     } else if dst_initialised.is_err() {
@@ -3912,7 +3996,8 @@ fn test_process_mint_to_checked_multisig(
     } else if !dst_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount));
         return result;
-    } else if dst_init_state.unwrap() == account_state::AccountState::Frozen  { // unwrap must succeed due to dst_initialised not being err
+    } else if dst_init_state.unwrap() == account_state::AccountState::Frozen {
+        // unwrap must succeed due to dst_initialised not being err
         assert_eq!(result, Err(ProgramError::Custom(17)));
         return result;
     } else if get_account(&accounts[1]).is_native() {
@@ -3936,22 +4021,20 @@ fn test_process_mint_to_checked_multisig(
         return result;
     } else {
         if get_mint(&accounts[0]).mint_authority().is_some() {
-
             // Validate Owner
             inner_test_validate_owner(
                 get_mint(&accounts[0]).mint_authority().unwrap(), // expected_owner
                 &accounts[2],                                     // owner_account_info
                 &accounts[3..],                                   // tx_signers
                 maybe_multisig_is_initialised,
-                result.clone()
+                result.clone(),
             )?;
-
         } else {
             assert_eq!(result, Err(ProgramError::Custom(5)));
             return result;
         }
 
-        let amount =  unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
+        let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
 
         if amount == 0 && accounts[0].owner() != &pinocchio_token_interface::program::ID {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId));
@@ -4006,7 +4089,10 @@ fn test_process_sync_native(accounts: &[AccountInfo; 1]) -> ProgramResult {
     } else if src_init_lamports - src_native_amount.unwrap() < src_init_amount {
         assert_eq!(result, Err(ProgramError::Custom(13)))
     } else {
-        assert_eq!(get_account(&accounts[0]).amount(), src_init_lamports - src_native_amount.unwrap());
+        assert_eq!(
+            get_account(&accounts[0]).amount(),
+            src_init_lamports - src_native_amount.unwrap()
+        );
         assert!(result.is_ok())
     }
     result
@@ -4017,8 +4103,11 @@ fn test_process_sync_native(accounts: &[AccountInfo; 1]) -> ProgramResult {
 /// accounts[1..].len() // n
 /// instruction_data[1] // m
 #[inline(never)]
-fn test_process_initialize_multisig2(accounts: &[AccountInfo; 4], instruction_data: &[u8; 1]) -> ProgramResult {
-                                                           // ^ FIXME: totally arbitrary for the tests
+fn test_process_initialize_multisig2(
+    accounts: &[AccountInfo; 4],
+    instruction_data: &[u8; 1],
+) -> ProgramResult {
+    // ^ FIXME: totally arbitrary for the tests
     cheatcode_is_multisig(&accounts[0]);
     cheatcode_is_account(&accounts[1]); // Signer
     cheatcode_is_account(&accounts[2]); // Signer
@@ -4055,14 +4144,11 @@ fn test_process_initialize_multisig2(accounts: &[AccountInfo; 4], instruction_da
         assert!(accounts[1..]
             .iter()
             .map(|signer| *signer.key())
-            .eq(
-                get_multisig(&accounts[0])
+            .eq(get_multisig(&accounts[0])
                 .signers
                 .iter()
                 .take(accounts[1..].len())
-                .copied()
-            )
-        );
+                .copied()));
         assert_eq!(get_multisig(&accounts[0]).m, instruction_data[0]);
         assert_eq!(get_multisig(&accounts[0]).n as usize, accounts.len() - 1);
         assert!(get_multisig(&accounts[0]).is_initialized().is_ok());
@@ -4128,7 +4214,10 @@ fn test_process_initialize_immutable_owner(accounts: &[AccountInfo; 1]) -> Progr
 }
 
 #[inline(never)]
-fn test_process_amount_to_ui_amount(accounts: &[AccountInfo; 1], instruction_data: &[u8; 8]) -> ProgramResult {
+fn test_process_amount_to_ui_amount(
+    accounts: &[AccountInfo; 1],
+    instruction_data: &[u8; 8],
+) -> ProgramResult {
     cheatcode_is_mint(&accounts[0]);
 
     //-Initial State-----------------------------------------------------------
@@ -4157,7 +4246,10 @@ fn test_process_amount_to_ui_amount(accounts: &[AccountInfo; 1], instruction_dat
 }
 
 #[inline(never)]
-fn test_process_ui_amount_to_amount(accounts: &[AccountInfo; 1], instruction_data: &[u8]) -> ProgramResult {
+fn test_process_ui_amount_to_amount(
+    accounts: &[AccountInfo; 1],
+    instruction_data: &[u8],
+) -> ProgramResult {
     cheatcode_is_mint(&accounts[0]);
 
     //-Initial State-----------------------------------------------------------
@@ -4187,23 +4279,37 @@ fn test_process_ui_amount_to_amount(accounts: &[AccountInfo; 1], instruction_dat
         assert_eq!(result, Err(ProgramError::InvalidArgument))
     } else if 1 < ui_amount.unwrap().chars().filter(|&c| c == '.').count() {
         assert_eq!(result, Err(ProgramError::InvalidArgument))
-    } else if ui_amount.unwrap().starts_with('.') && ui_amount.unwrap().chars().skip(1).all(|c| c == '0') {
+    } else if ui_amount.unwrap().starts_with('.')
+        && ui_amount.unwrap().chars().skip(1).all(|c| c == '0')
+    {
         assert_eq!(result, Err(ProgramError::InvalidArgument))
-    } else if ui_amount.unwrap().split_once('.').map_or(false, |(_, frac)| { (get_mint(&accounts[0]).decimals as usize) < frac.trim_end_matches('0').len()}) {
+    } else if ui_amount
+        .unwrap()
+        .split_once('.')
+        .map_or(false, |(_, frac)| {
+            (get_mint(&accounts[0]).decimals as usize) < frac.trim_end_matches('0').len()
+        })
+    {
         assert_eq!(result, Err(ProgramError::InvalidArgument))
     } else if ui_amount.unwrap().split_once('.').map_or(
         257_usize < ui_amount.unwrap().len() + (get_mint(&accounts[0]).decimals as usize),
-        |(ints, _)| { 257_usize < ints.len() + (get_mint(&accounts[0]).decimals as usize) }) {
-            assert_eq!(result, Err(ProgramError::InvalidArgument))
-    } /*else if ui_amount.unwrap() == "+." {
+        |(ints, _)| 257_usize < ints.len() + (get_mint(&accounts[0]).decimals as usize),
+    ) {
+        assert_eq!(result, Err(ProgramError::InvalidArgument))
+    }
+    /*else if ui_amount.unwrap() == "+." {
         // TODO: Why is this valid?
         assert_eq!(result, Err(ProgramError::InvalidArgument))
     } else if ui_amount.unwrap() == "+" {
         // TODO: Why is this valid?
         assert_eq!(result, Err(ProgramError::InvalidArgument))
-    }*/ else if ui_amount.unwrap().chars().nth(0).unwrap() == '-' {
+    }*/
+    else if ui_amount.unwrap().chars().nth(0).unwrap() == '-' {
         assert_eq!(result, Err(ProgramError::InvalidArgument))
-    } else if ui_amount.unwrap().contains(|c: char| !c.is_digit(10) && c != '+' && c != '.') {
+    } else if ui_amount
+        .unwrap()
+        .contains(|c: char| !c.is_digit(10) && c != '+' && c != '.')
+    {
         assert_eq!(result, Err(ProgramError::InvalidArgument))
     } else if ui_amount.unwrap().split_once('.').map_or(
         {
@@ -4221,13 +4327,17 @@ fn test_process_ui_amount_to_amount(accounts: &[AccountInfo; 1], instruction_dat
             const MAX_VAL: &str = "1844674407370955"; // TODO: What should this be?
             let ints = ints.strip_prefix('+').unwrap_or(ints);
             let hi = ints.trim_start_matches('0');
-            let lo = if hi.is_empty() { fracs.trim_start_matches('0') } else { fracs };
+            let lo = if hi.is_empty() {
+                fracs.trim_start_matches('0')
+            } else {
+                fracs
+            };
 
             let total_len = hi.len() + lo.len();
 
             match total_len.cmp(&MAX_VAL.len()) {
                 core::cmp::Ordering::Less => false,
-                core::cmp::Ordering::Greater => { true },
+                core::cmp::Ordering::Greater => true,
                 core::cmp::Ordering::Equal => {
                     if hi.len() > MAX_VAL.len() {
                         return true;
@@ -4295,7 +4405,7 @@ fn test_process_withdraw_excess_lamports_account(accounts: &[AccountInfo; 3]) ->
                 &accounts[2],       // owner_account_info
                 &accounts[3..],     // tx_signers
                 maybe_multisig_is_initialised,
-                result.clone()
+                result.clone(),
             )?;
 
             if src_init_lamports < minimum_balance {
@@ -4307,7 +4417,10 @@ fn test_process_withdraw_excess_lamports_account(accounts: &[AccountInfo; 3]) ->
             }
 
             assert_eq!(accounts[0].lamports(), minimum_balance);
-            assert_eq!(accounts[1].lamports(), dst_init_lamports + src_init_lamports - minimum_balance);
+            assert_eq!(
+                accounts[1].lamports(),
+                dst_init_lamports + src_init_lamports - minimum_balance
+            );
             assert!(result.is_ok())
         }
     }
@@ -4320,7 +4433,9 @@ fn test_process_withdraw_excess_lamports_account(accounts: &[AccountInfo; 3]) ->
 /// accounts[2] // Authority Info
 /// accounts[3..14] // Signers
 #[inline(never)]
-fn test_process_withdraw_excess_lamports_account_multisig(accounts: &[AccountInfo; 4]) -> ProgramResult {
+fn test_process_withdraw_excess_lamports_account_multisig(
+    accounts: &[AccountInfo; 4],
+) -> ProgramResult {
     cheatcode_is_account(&accounts[0]); // Source Account
     cheatcode_is_account(&accounts[1]); // Destination
     cheatcode_is_multisig(&accounts[2]); // Authority
@@ -4365,7 +4480,7 @@ fn test_process_withdraw_excess_lamports_account_multisig(accounts: &[AccountInf
                 &accounts[2],       // owner_account_info
                 &accounts[3..],     // tx_signers
                 maybe_multisig_is_initialised,
-            result.clone()
+                result.clone(),
             )?;
 
             if src_init_lamports < minimum_balance {
@@ -4426,16 +4541,14 @@ fn test_process_withdraw_excess_lamports_mint(accounts: &[AccountInfo; 3]) -> Pr
                 assert_eq!(result, Err(ProgramError::UninitializedAccount));
                 return result;
             } else if src_mint_mint_authority.is_some() {
-
                 // Validate Owner
                 inner_test_validate_owner(
                     &src_mint_mint_authority.unwrap(), // expected_owner
                     &accounts[2],                      // owner_account_info
                     &accounts[3..],                    // tx_signers
                     maybe_multisig_is_initialised,
-                    result.clone()
+                    result.clone(),
                 )?;
-
             } else if accounts[0] != accounts[2] {
                 assert_eq!(result, Err(ProgramError::Custom(15)));
                 return result;
@@ -4467,7 +4580,9 @@ fn test_process_withdraw_excess_lamports_mint(accounts: &[AccountInfo; 3]) -> Pr
 /// accounts[2] // Authority Info
 /// accounts[3..14] // Signers
 #[inline(never)]
-fn test_process_withdraw_excess_lamports_mint_multisig(accounts: &[AccountInfo; 4]) -> ProgramResult {
+fn test_process_withdraw_excess_lamports_mint_multisig(
+    accounts: &[AccountInfo; 4],
+) -> ProgramResult {
     cheatcode_is_mint(&accounts[0]); // Source Account (Mint)
     cheatcode_is_account(&accounts[1]); // Destination
     cheatcode_is_multisig(&accounts[2]); // Authority
@@ -4561,7 +4676,10 @@ fn test_process_withdraw_excess_lamports_multisig(accounts: &[AccountInfo; 3]) -
     if accounts.len() < 3 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
         return result;
-    } else if src_data_len != Account::LEN && src_data_len != Mint::LEN && src_data_len != Multisig::LEN {
+    } else if src_data_len != Account::LEN
+        && src_data_len != Mint::LEN
+        && src_data_len != Multisig::LEN
+    {
         assert_eq!(result, Err(ProgramError::Custom(13)));
         return result;
     } else {
@@ -4573,7 +4691,7 @@ fn test_process_withdraw_excess_lamports_multisig(accounts: &[AccountInfo; 3]) -
             &accounts[2],      // owner_account_info
             &accounts[3..],    // tx_signers
             maybe_multisig_is_initialised,
-            result.clone()
+            result.clone(),
         )?;
 
         if src_init_lamports < minimum_balance {
@@ -4585,7 +4703,10 @@ fn test_process_withdraw_excess_lamports_multisig(accounts: &[AccountInfo; 3]) -
         }
 
         assert_eq!(accounts[0].lamports(), minimum_balance);
-        assert_eq!(accounts[1].lamports(), dst_init_lamports + src_init_lamports - minimum_balance);
+        assert_eq!(
+            accounts[1].lamports(),
+            dst_init_lamports + src_init_lamports - minimum_balance
+        );
         assert!(result.is_ok())
     }
 
@@ -4597,7 +4718,9 @@ fn test_process_withdraw_excess_lamports_multisig(accounts: &[AccountInfo; 3]) -
 /// accounts[2] // Authority Info
 /// accounts[3..14] // Signers
 #[inline(never)]
-fn test_process_withdraw_excess_lamports_multisig_multisig(accounts: &[AccountInfo; 4]) -> ProgramResult {
+fn test_process_withdraw_excess_lamports_multisig_multisig(
+    accounts: &[AccountInfo; 4],
+) -> ProgramResult {
     cheatcode_is_multisig(&accounts[0]); // Source Account (Multisig)
     cheatcode_is_account(&accounts[1]); // Destination
     cheatcode_is_multisig(&accounts[2]); // Authority
@@ -4619,7 +4742,10 @@ fn test_process_withdraw_excess_lamports_multisig_multisig(accounts: &[AccountIn
     if accounts.len() < 3 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
         return result;
-    } else if src_data_len != Account::LEN && src_data_len != Mint::LEN && src_data_len != Multisig::LEN {
+    } else if src_data_len != Account::LEN
+        && src_data_len != Mint::LEN
+        && src_data_len != Multisig::LEN
+    {
         assert_eq!(result, Err(ProgramError::Custom(13)));
         return result;
     } else {
@@ -4631,7 +4757,7 @@ fn test_process_withdraw_excess_lamports_multisig_multisig(accounts: &[AccountIn
             &accounts[2],      // owner_account_info
             &accounts[3..],    // tx_signers
             maybe_multisig_is_initialised,
-            result.clone()
+            result.clone(),
         )?;
 
         if src_init_lamports < minimum_balance {
@@ -4643,7 +4769,10 @@ fn test_process_withdraw_excess_lamports_multisig_multisig(accounts: &[AccountIn
         }
 
         assert_eq!(accounts[0].lamports(), minimum_balance);
-        assert_eq!(accounts[1].lamports(), dst_init_lamports + src_init_lamports - minimum_balance);
+        assert_eq!(
+            accounts[1].lamports(),
+            dst_init_lamports + src_init_lamports - minimum_balance
+        );
         assert!(result.is_ok())
     }
 
