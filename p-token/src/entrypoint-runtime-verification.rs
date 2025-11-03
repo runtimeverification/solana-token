@@ -127,7 +127,8 @@ pub(crate) fn inner_process_instruction(
             pinocchio::msg!("Testing Instruction: Transfer");
 
             // TODO: Thoroughly test for insufficient account length
-            // We should be calling `insufficient_accounts_length_transfer(x)?` in the future
+            // We should be calling `insufficient_accounts_length_transfer(x)?` in the
+            // future
             match accounts.len() {
                 x if accounts.len() < 3 => panic!("Invalid amount of accounts for transfer: {x}"),
                 _ => (),
@@ -142,7 +143,7 @@ pub(crate) fn inner_process_instruction(
                     accounts.first_chunk().unwrap(),
                     instruction_data.first_chunk().unwrap(),
                 ),
-                _ => panic!("Test_proces_transfer: Invalid account length"), // TODO: replace with checking for malformed input
+                _ => panic!("Test_proces_transfer: Invalid account length"), /* TODO: replace with checking for malformed input */
             }
         }
         // 7 - MintTo
@@ -166,7 +167,9 @@ pub(crate) fn inner_process_instruction(
                     accounts.first_chunk().unwrap(),
                     instruction_data.first_chunk().unwrap(),
                 ),
-                _ => panic!("Test_proces_mint_to: Invalid account length"), // TODO: replace with checking for malformed input
+                _ => panic!("Test_proces_mint_to: Invalid account length"), /* TODO: replace with
+                                                                             * checking for
+                                                                             * malformed input */
             }
         }
         // 8 - Test Burn
@@ -190,7 +193,9 @@ pub(crate) fn inner_process_instruction(
                     accounts.first_chunk().unwrap(),
                     instruction_data.first_chunk().unwrap(),
                 ),
-                _ => panic!("Test_proces_burn: Invalid account length"), // TODO: replace with checking for malformed input
+                _ => panic!("Test_proces_burn: Invalid account length"), /* TODO: replace with
+                                                                          * checking for
+                                                                          * malformed input */
             }
         }
         // 9 - Test CloseAccount
@@ -199,7 +204,8 @@ pub(crate) fn inner_process_instruction(
             pinocchio::msg!("Testing Instruction: CloseAccount");
 
             // TODO: Thoroughly test for insufficient account length
-            // We should be calling `insufficient_accounts_length_close_account(x)?` in the future
+            // We should be calling `insufficient_accounts_length_close_account(x)?` in the
+            // future
             match accounts.len() {
                 x if accounts.len() < 3 => {
                     panic!("Invalid amount of accounts for close_account: {x}")
@@ -212,7 +218,7 @@ pub(crate) fn inner_process_instruction(
                 Multisig::LEN => {
                     test_process_close_account_multisig(accounts.first_chunk().unwrap())
                 }
-                _ => panic!("Test_proces_close_account: Invalid account length"), // TODO: replace with checking for malformed input
+                _ => panic!("Test_proces_close_account: Invalid account length"), /* TODO: replace with checking for malformed input */
             }
         }
         // 12 - Test TransferChecked
@@ -221,7 +227,8 @@ pub(crate) fn inner_process_instruction(
             pinocchio::msg!("Testing Instruction: TransferChecked");
 
             // TODO: Thoroughly test for insufficient account length
-            // We should be calling `insufficient_accounts_length_transfer_checked(x)?` in the future
+            // We should be calling `insufficient_accounts_length_transfer_checked(x)?` in
+            // the future
             match accounts.len() {
                 x if accounts.len() < 4 => {
                     panic!("Invalid amount of accounts for transfer_checked: {x}")
@@ -238,7 +245,7 @@ pub(crate) fn inner_process_instruction(
                     accounts.first_chunk().unwrap(),
                     instruction_data.first_chunk().unwrap(),
                 ),
-                _ => panic!("Test_proces_transfer_checked: Invalid account length"), // TODO: replace with checking for malformed input
+                _ => panic!("Test_proces_transfer_checked: Invalid account length"), /* TODO: replace with checking for malformed input */
             }
         }
         // 15 - Test BurnChecked
@@ -247,7 +254,8 @@ pub(crate) fn inner_process_instruction(
             pinocchio::msg!("Testing Instruction: BurnChecked");
 
             // TODO: Thoroughly test for insufficient account length
-            // We should be calling `insufficient_accounts_length_burn_checked(x)?` in the future
+            // We should be calling `insufficient_accounts_length_burn_checked(x)?` in the
+            // future
             match accounts.len() {
                 x if accounts.len() < 3 => {
                     panic!("Invalid amount of accounts for burn_checked: {x}")
@@ -264,7 +272,10 @@ pub(crate) fn inner_process_instruction(
                     accounts.first_chunk().unwrap(),
                     instruction_data.first_chunk().unwrap(),
                 ),
-                _ => panic!("Test_proces_burn_checked: Invalid account length"), // TODO: replace with checking for malformed input
+                _ => panic!("Test_proces_burn_checked: Invalid account length"), /* TODO: replace
+                                                                                  * with checking
+                                                                                  * for malformed
+                                                                                  * input */
             }
         }
         // 16 - Test InitializeAccount2
@@ -351,7 +362,9 @@ fn inner_process_remaining_instruction(
                     accounts.first_chunk().unwrap(),
                     instruction_data.first_chunk().unwrap(),
                 ),
-                _ => panic!("Test_proces_approve: Invalid account length"), // TODO: replace with checking for malformed input
+                _ => panic!("Test_proces_approve: Invalid account length"), /* TODO: replace with
+                                                                             * checking for
+                                                                             * malformed input */
             }
         }
         // 5 - Revoke
@@ -369,7 +382,9 @@ fn inner_process_remaining_instruction(
             match accounts[1].data_len() {
                 Account::LEN => test_process_revoke(accounts.first_chunk().unwrap()),
                 Multisig::LEN => test_process_revoke_multisig(accounts.first_chunk().unwrap()),
-                _ => panic!("Test_proces_revoke: Invalid account length"), // TODO: replace with checking for malformed input
+                _ => panic!("Test_proces_revoke: Invalid account length"), /* TODO: replace with
+                                                                            * checking for
+                                                                            * malformed input */
             }
         }
         // 6 - SetAuthority
@@ -398,7 +413,7 @@ fn inner_process_remaining_instruction(
                             accounts.first_chunk().unwrap(),
                             instruction_data.first_chunk().unwrap(),
                         ),
-                        _ => panic!("Test_proces_set_authority_account: Invalid account length"), // TODO: replace with checking for malformed input
+                        _ => panic!("Test_proces_set_authority_account: Invalid account length"), /* TODO: replace with checking for malformed input */
                     },
                     Mint::LEN => match accounts[1].data_len() {
                         Account::LEN => test_process_set_authority_mint(
@@ -409,7 +424,7 @@ fn inner_process_remaining_instruction(
                             accounts.first_chunk().unwrap(),
                             instruction_data.first_chunk().unwrap(),
                         ),
-                        _ => panic!("Test_proces_set_authority_mint: Invalid account length"), // TODO: replace with checking for malformed input
+                        _ => panic!("Test_proces_set_authority_mint: Invalid account length"), /* TODO: replace with checking for malformed input */
                     },
                     // FIXME: Create proof harness for this
                     _ => panic!("SetAuthority: Unexpected account data length"),
@@ -425,7 +440,8 @@ fn inner_process_remaining_instruction(
             pinocchio::msg!("Instruction: FreezeAccount");
 
             // TODO: Thoroughly test for insufficient account length
-            // We should be calling `insufficient_accounts_length_freeze_account(x)?` in the future
+            // We should be calling `insufficient_accounts_length_freeze_account(x)?` in the
+            // future
             match accounts.len() {
                 x if accounts.len() < 3 => {
                     panic!("Invalid amount of accounts for freeze_account: {x}")
@@ -438,7 +454,7 @@ fn inner_process_remaining_instruction(
                 Multisig::LEN => {
                     test_process_freeze_account_multisig(accounts.first_chunk().unwrap())
                 }
-                _ => panic!("Test_proces_freeze_account: Invalid account length"), // TODO: replace with checking for malformed input
+                _ => panic!("Test_proces_freeze_account: Invalid account length"), /* TODO: replace with checking for malformed input */
             }
         }
         // 11 - ThawAccount
@@ -447,7 +463,8 @@ fn inner_process_remaining_instruction(
             pinocchio::msg!("Instruction: ThawAccount");
 
             // TODO: Thoroughly test for insufficient account length
-            // We should be calling `insufficient_accounts_length_thaw_account(x)?` in the future
+            // We should be calling `insufficient_accounts_length_thaw_account(x)?` in the
+            // future
             match accounts.len() {
                 x if accounts.len() < 3 => {
                     panic!("Invalid amount of accounts for thaw_account: {x}")
@@ -460,7 +477,10 @@ fn inner_process_remaining_instruction(
                 Multisig::LEN => {
                     test_process_thaw_account_multisig(accounts.first_chunk().unwrap())
                 }
-                _ => panic!("Test_proces_thaw_account: Invalid account length"), // TODO: replace with checking for malformed input
+                _ => panic!("Test_proces_thaw_account: Invalid account length"), /* TODO: replace
+                                                                                  * with checking
+                                                                                  * for malformed
+                                                                                  * input */
             }
         }
         // 13 - ApproveChecked
@@ -469,7 +489,8 @@ fn inner_process_remaining_instruction(
             pinocchio::msg!("Instruction: ApproveChecked");
 
             // TODO: Thoroughly test for insufficient account length
-            // We should be calling `insufficient_accounts_length_approve_checked(x)?` in the future
+            // We should be calling `insufficient_accounts_length_approve_checked(x)?` in
+            // the future
             match accounts.len() {
                 x if accounts.len() < 4 => {
                     panic!("Invalid amount of accounts for approve_checked: {x}")
@@ -486,7 +507,7 @@ fn inner_process_remaining_instruction(
                     accounts.first_chunk().unwrap(),
                     instruction_data.first_chunk().unwrap(),
                 ),
-                _ => panic!("Test_proces_approve_checked: Invalid account length"), // TODO: replace with checking for malformed input
+                _ => panic!("Test_proces_approve_checked: Invalid account length"), /* TODO: replace with checking for malformed input */
             }
         }
         // 14 - MintToChecked
@@ -495,7 +516,8 @@ fn inner_process_remaining_instruction(
             pinocchio::msg!("Instruction: MintToChecked");
 
             // TODO: Thoroughly test for insufficient account length
-            // We should be calling `insufficient_accounts_length_mint_to_checked(x)?` in the future
+            // We should be calling `insufficient_accounts_length_mint_to_checked(x)?` in
+            // the future
             match accounts.len() {
                 x if accounts.len() < 3 => {
                     panic!("Invalid amount of accounts for mint_to_checked: {x}")
@@ -512,7 +534,7 @@ fn inner_process_remaining_instruction(
                     accounts.first_chunk().unwrap(),
                     instruction_data.first_chunk().unwrap(),
                 ),
-                _ => panic!("Test_proces_mint_to_checked: Invalid account length"), // TODO: replace with checking for malformed input
+                _ => panic!("Test_proces_mint_to_checked: Invalid account length"), /* TODO: replace with checking for malformed input */
             }
         }
         // 17 - SyncNative
@@ -573,7 +595,8 @@ fn inner_process_remaining_instruction(
             pinocchio::msg!("Instruction: WithdrawExcessLamports");
 
             // TODO: Thoroughly test for insufficient account length
-            // We should be calling `insufficient_accounts_length_mint_to_checked(x)?` in the future
+            // We should be calling `insufficient_accounts_length_mint_to_checked(x)?` in
+            // the future
             match accounts.len() {
                 x if accounts.len() < 3 => {
                     panic!("Invalid amount of accounts for withdraw_excess_lamports: {x}")
@@ -590,7 +613,7 @@ fn inner_process_remaining_instruction(
                         Multisig::LEN => test_process_withdraw_excess_lamports_account_multisig(
                             accounts.first_chunk().unwrap(),
                         ),
-                        _ => panic!("Test_proces_withdraw_excess_lamports: Invalid account length"), // TODO: replace with checking for malformed input
+                        _ => panic!("Test_proces_withdraw_excess_lamports: Invalid account length"), /* TODO: replace with checking for malformed input */
                     },
                     Mint::LEN => match accounts[2].data_len() {
                         Account::LEN => test_process_withdraw_excess_lamports_mint(
@@ -599,7 +622,7 @@ fn inner_process_remaining_instruction(
                         Multisig::LEN => test_process_withdraw_excess_lamports_mint_multisig(
                             accounts.first_chunk().unwrap(),
                         ),
-                        _ => panic!("Test_proces_withdraw_excess_lamports: Invalid account length"), // TODO: replace with checking for malformed input
+                        _ => panic!("Test_proces_withdraw_excess_lamports: Invalid account length"), /* TODO: replace with checking for malformed input */
                     },
                     Multisig::LEN => match accounts[2].data_len() {
                         Account::LEN => test_process_withdraw_excess_lamports_multisig(
@@ -608,7 +631,7 @@ fn inner_process_remaining_instruction(
                         Multisig::LEN => test_process_withdraw_excess_lamports_multisig_multisig(
                             accounts.first_chunk().unwrap(),
                         ),
-                        _ => panic!("Test_proces_withdraw_excess_lamports: Invalid account length"), // TODO: replace with checking for malformed input
+                        _ => panic!("Test_proces_withdraw_excess_lamports: Invalid account length"), /* TODO: replace with checking for malformed input */
                     },
                     // FIXME: Need harness for this
                     _other => panic!("withdraw_excess_lamports: Unexpected account data_len"),
@@ -1952,8 +1975,8 @@ pub fn test_process_transfer_checked(
         return result;
     } else {
         if old_src_delgate == Some(*accounts[3].key()) {
-            // Because of the above if, there is a duplicated check in the following function
-            // Validate Owner
+            // Because of the above if, there is a duplicated check in the following
+            // function Validate Owner
             inner_test_validate_owner(
                 &old_src_delgate.unwrap(), // expected_owner
                 &accounts[3],              // owner_account_info
@@ -2120,8 +2143,8 @@ pub fn test_process_transfer_checked_multisig(
         return result;
     } else {
         if old_src_delgate == Some(*accounts[3].key()) {
-            // Because of the above if, there is a duplicated check in the following function
-            // Validate Owner
+            // Because of the above if, there is a duplicated check in the following
+            // function Validate Owner
             inner_test_validate_owner(
                 &old_src_delgate.unwrap(), // expected_owner
                 &accounts[3],              // owner_account_info
@@ -3900,7 +3923,8 @@ fn test_process_mint_to_checked(
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
         return result;
     } else if accounts[1].data_len() != Account::LEN {
-        // TODO Daniel: is it possible for something to be provided that has the same len but is not an account?
+        // TODO Daniel: is it possible for something to be provided that has the same
+        // len but is not an account?
         assert_eq!(result, Err(ProgramError::InvalidAccountData));
         return result;
     } else if dst_initialised.is_err() {
@@ -4387,7 +4411,8 @@ fn test_process_withdraw_excess_lamports_account(accounts: &[AccountInfo; 3]) ->
     let dst_init_lamports = accounts[1].lamports();
     let maybe_multisig_is_initialised = None; // Value set to `None` since authority is an account
 
-    // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
+    // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be
+    // impossible
     let rent = pinocchio::sysvars::rent::Rent::get().unwrap();
     let minimum_balance = rent.minimum_balance(accounts[0].data_len());
 
@@ -4534,7 +4559,8 @@ fn test_process_withdraw_excess_lamports_mint(accounts: &[AccountInfo; 3]) -> Pr
     let dst_init_lamports = accounts[1].lamports();
     let maybe_multisig_is_initialised = None; // Value set to `None` since authority is an account
 
-    // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
+    // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be
+    // impossible
     let rent = pinocchio::sysvars::rent::Rent::get().unwrap();
     let minimum_balance = rent.minimum_balance(accounts[0].data_len());
 
@@ -4680,7 +4706,8 @@ fn test_process_withdraw_excess_lamports_multisig(accounts: &[AccountInfo; 3]) -
     let dst_init_lamports = accounts[1].lamports();
     let maybe_multisig_is_initialised = None; // Value set to `None` since authority is an account
 
-    // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
+    // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be
+    // impossible
     let rent = pinocchio::sysvars::rent::Rent::get().unwrap();
     let minimum_balance = rent.minimum_balance(accounts[0].data_len());
 
