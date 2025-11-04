@@ -3058,70 +3058,70 @@ fn test_process_set_authority_account(
     } else if account_data_len != Account::LEN && account_data_len != Mint::LEN {
         assert_eq!(result, Err(ProgramError::InvalidArgument));
         return result;
-    } else {
-        assert_eq!(account_data_len, Account::LEN); // established by cheatcode_is_account
-        if account_data_len == Account::LEN {
-            if src_initialised.is_err() {
-                assert_eq!(result, Err(ProgramError::InvalidAccountData));
+    } else if account_data_len == Account::LEN {
+        // established by cheatcode_is_account
+        if src_initialised.is_err() {
+            assert_eq!(result, Err(ProgramError::InvalidAccountData));
+            return result;
+        } else if !src_initialised.unwrap() {
+            assert_eq!(result, Err(ProgramError::UninitializedAccount));
+            return result;
+        } else if src_init_state.unwrap() == account_state::AccountState::Frozen {
+            assert_eq!(result, Err(ProgramError::Custom(17)));
+            return result;
+        } else if instruction_data[0] != 2 && instruction_data[0] != 3 {
+            // AuthorityType neither AccountOwner nor CloseAccount
+            assert_eq!(result, Err(ProgramError::Custom(15)));
+            return result;
+        } else if instruction_data[0] == 2 {
+            // AccountOwner
+            // Validate Owner
+            inner_test_validate_owner(
+                &src_owner,     // expected_owner
+                &accounts[1],   // owner_account_info
+                &accounts[2..], // tx_signers
+                maybe_multisig_is_initialised,
+                result.clone(),
+            )?;
+
+            if instruction_data[1] != 1 || instruction_data.len() < 34 {
+                assert_eq!(result, Err(ProgramError::Custom(12)));
                 return result;
-            } else if !src_initialised.unwrap() {
-                assert_eq!(result, Err(ProgramError::UninitializedAccount));
-                return result;
-            } else if src_init_state.unwrap() == account_state::AccountState::Frozen {
-                assert_eq!(result, Err(ProgramError::Custom(17)));
-                return result;
-            } else if instruction_data[0] != 2 && instruction_data[0] != 3 {
-                // AuthorityType neither AccountOwner nor CloseAccount
-                assert_eq!(result, Err(ProgramError::Custom(15)));
-                return result;
-            } else if instruction_data[0] == 2 {
-                // AccountOwner
-
-                // Validate Owner
-                inner_test_validate_owner(
-                    &src_owner,     // expected_owner
-                    &accounts[1],   // owner_account_info
-                    &accounts[2..], // tx_signers
-                    maybe_multisig_is_initialised,
-                    result.clone(),
-                )?;
-
-                if instruction_data[1] != 1 || instruction_data.len() < 34 {
-                    assert_eq!(result, Err(ProgramError::Custom(12)));
-                    return result;
-                }
-
-                assert_eq!(get_account(&accounts[0]).owner, instruction_data[2..34]);
-                assert_eq!(get_account(&accounts[0]).delegate(), None);
-                assert_eq!(get_account(&accounts[0]).delegated_amount(), 0);
-                if get_account(&accounts[0]).is_native() {
-                    assert_eq!(get_account(&accounts[0]).close_authority(), None);
-                }
-                assert!(result.is_ok())
-            } else {
-                // Close Account
-
-                // Validate Owner
-                inner_test_validate_owner(
-                    &authority,     // expected_owner
-                    &accounts[1],   // owner_account_info
-                    &accounts[2..], // tx_signers
-                    maybe_multisig_is_initialised,
-                    result.clone(),
-                )?;
-
-                if instruction_data[1] == 1 {
-                    // 1 ==> 34 <= instruction_data.len()
-                    assert_eq!(
-                        get_account(&accounts[0]).close_authority().unwrap(),
-                        &instruction_data[2..34]
-                    );
-                } else {
-                    assert_eq!(get_account(&accounts[0]).close_authority(), None);
-                }
-                assert!(result.is_ok())
             }
+
+            assert_eq!(get_account(&accounts[0]).owner, instruction_data[2..34]);
+            assert_eq!(get_account(&accounts[0]).delegate(), None);
+            assert_eq!(get_account(&accounts[0]).delegated_amount(), 0);
+            if get_account(&accounts[0]).is_native() {
+                assert_eq!(get_account(&accounts[0]).close_authority(), None);
+            }
+            assert!(result.is_ok())
+        } else {
+            // CloseAccount
+            assert_eq!(instruction_data[0], 3); // If not AccountOwner (2), must be CloseAccount (3)
+
+            // Validate Owner
+            inner_test_validate_owner(
+                &authority,     // expected_owner
+                &accounts[1],   // owner_account_info
+                &accounts[2..], // tx_signers
+                maybe_multisig_is_initialised,
+                result.clone(),
+            )?;
+
+            if instruction_data[1] == 1 {
+                // 1 ==> 34 <= instruction_data.len()
+                assert_eq!(
+                    get_account(&accounts[0]).close_authority().unwrap(),
+                    &instruction_data[2..34]
+                );
+            } else {
+                assert_eq!(get_account(&accounts[0]).close_authority(), None);
+            }
+            assert!(result.is_ok())
         }
+    } else {
+        unreachable!() // account_data_len == Account::LEN must hold
     }
 
     result
