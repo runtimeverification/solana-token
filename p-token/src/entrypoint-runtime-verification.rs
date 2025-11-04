@@ -1819,18 +1819,19 @@ fn test_process_initialize_multisig(
     } else if !Multisig::is_valid_signer_index(instruction_data[0]) {
         assert_eq!(result, Err(ProgramError::Custom(8)))
     } else {
+        let multisig_new = get_multisig(&accounts[0]);
         assert!(accounts[2..]
             .iter()
             .map(|signer| *signer.key())
-            .eq(get_multisig(&accounts[0])
+            .eq(multisig_new
                 .signers
                 .iter()
                 .take(accounts[2..].len())
                 .copied()));
-        assert_eq!(get_multisig(&accounts[0]).m, instruction_data[0]);
-        assert_eq!(get_multisig(&accounts[0]).n as usize, accounts.len() - 2);
-        assert!(get_multisig(&accounts[0]).is_initialized().is_ok());
-        assert!(get_multisig(&accounts[0]).is_initialized().unwrap());
+        assert_eq!(multisig_new.m, instruction_data[0]);
+        assert_eq!(multisig_new.n as usize, accounts.len() - 2);
+        assert!(multisig_new.is_initialized().is_ok());
+        assert!(multisig_new.is_initialized().unwrap());
         assert!(result.is_ok())
     }
 
