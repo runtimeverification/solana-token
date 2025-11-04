@@ -930,11 +930,13 @@ pub fn test_process_mint_to(
     cheatcode_is_multisig(&accounts[2]);
 
     //-Initial State-----------------------------------------------------------
-    let initial_supply = get_mint(&accounts[0]).supply();
-    let initial_amount = get_account(&accounts[1]).amount();
-    let mint_initialised = get_mint(&accounts[0]).is_initialized();
-    let dst_initialised = get_account(&accounts[1]).is_initialized();
-    let dst_init_state = get_account(&accounts[1]).account_state();
+    let mint_old = get_mint(&accounts[0]);
+    let dst_old = get_account(&accounts[1]);
+    let initial_supply = mint_old.supply();
+    let initial_amount = dst_old.amount();
+    let mint_initialised = mint_old.is_initialized();
+    let dst_initialised = dst_old.is_initialized();
+    let dst_init_state = dst_old.account_state();
     #[cfg(not(feature = "multisig"))]
     let maybe_multisig_is_initialised = None;
     #[cfg(feature = "multisig")]
@@ -980,12 +982,14 @@ pub fn test_process_mint_to(
         assert_eq!(result, Err(ProgramError::UninitializedAccount));
         return result;
     } else {
-        if get_mint(&accounts[0]).mint_authority().is_some() {
+        let mint_new = get_mint(&accounts[0]);
+        let mint_authority_new = mint_new.mint_authority();
+        if mint_authority_new.is_some() {
             // Validate Owner
             inner_test_validate_owner(
-                get_mint(&accounts[0]).mint_authority().unwrap(), // expected_owner
-                &accounts[2],                                     // owner_account_info
-                &accounts[3..],                                   // tx_signers
+                mint_authority_new.unwrap(), // expected_owner
+                &accounts[2],                // owner_account_info
+                &accounts[3..],              // tx_signers
                 maybe_multisig_is_initialised,
                 result.clone(),
             )?;
@@ -1007,7 +1011,7 @@ pub fn test_process_mint_to(
             return result;
         }
 
-        assert_eq!(get_mint(&accounts[0]).supply(), initial_supply + amount);
+        assert_eq!(mint_new.supply(), initial_supply + amount);
         assert_eq!(get_account(&accounts[1]).amount(), initial_amount + amount);
         assert!(result.is_ok());
     }
