@@ -2555,11 +2555,12 @@ fn test_process_sync_native(accounts: &[AccountInfo; 1]) -> ProgramResult {
     cheatcode_is_account(&accounts[0]);
 
     //-Initial State-----------------------------------------------------------
+    let src_old = get_account(&accounts[0]);
     let src_owner = accounts[0].owner();
-    let src_initialised = get_account(&accounts[0]).is_initialized();
-    let src_native_amount = get_account(&accounts[0]).native_amount();
+    let src_initialised = src_old.is_initialized();
+    let src_native_amount = src_old.native_amount();
     let src_init_lamports = accounts[0].lamports();
-    let src_init_amount = get_account(&accounts[0]).amount();
+    let src_init_amount = src_old.amount();
 
     //-Process Instruction-----------------------------------------------------
     let result = process_sync_native(accounts);
