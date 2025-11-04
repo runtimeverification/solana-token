@@ -1979,13 +1979,11 @@ fn test_process_set_authority_account(
     cheatcode_is_multisig(&accounts[1]); // Authority
 
     //-Initial State-----------------------------------------------------------
-    let src_initialised = get_account(&accounts[0]).is_initialized();
-    let src_init_state = get_account(&accounts[0]).account_state();
-    let src_owner = get_account(&accounts[0]).owner;
-    let authority = get_account(&accounts[0])
-        .close_authority()
-        .cloned()
-        .unwrap_or(get_account(&accounts[0]).owner);
+    let src_old = get_account(&accounts[0]);
+    let src_initialised = src_old.is_initialized();
+    let src_init_state = src_old.account_state();
+    let src_owner = src_old.owner;
+    let authority = src_old.close_authority().cloned().unwrap_or(src_old.owner);
     let account_data_len = accounts[0].data_len();
     #[cfg(not(feature = "multisig"))]
     let maybe_multisig_is_initialised = None;
@@ -2016,6 +2014,9 @@ fn test_process_set_authority_account(
         return result;
     } else if account_data_len == Account::LEN {
         // established by cheatcode_is_account
+
+        let src_new = get_account(&accounts[0]);
+
         if src_initialised.is_err() {
             assert_eq!(result, Err(ProgramError::InvalidAccountData));
             return result;
@@ -2045,11 +2046,11 @@ fn test_process_set_authority_account(
                 return result;
             }
 
-            assert_eq!(get_account(&accounts[0]).owner, instruction_data[2..34]);
-            assert_eq!(get_account(&accounts[0]).delegate(), None);
-            assert_eq!(get_account(&accounts[0]).delegated_amount(), 0);
-            if get_account(&accounts[0]).is_native() {
-                assert_eq!(get_account(&accounts[0]).close_authority(), None);
+            assert_eq!(src_new.owner, instruction_data[2..34]);
+            assert_eq!(src_new.delegate(), None);
+            assert_eq!(src_new.delegated_amount(), 0);
+            if src_new.is_native() {
+                assert_eq!(src_new.close_authority(), None);
             }
             assert!(result.is_ok())
         } else {
@@ -2067,12 +2068,9 @@ fn test_process_set_authority_account(
 
             if instruction_data[1] == 1 {
                 // 1 ==> 34 <= instruction_data.len()
-                assert_eq!(
-                    get_account(&accounts[0]).close_authority().unwrap(),
-                    &instruction_data[2..34]
-                );
+                assert_eq!(src_new.close_authority().unwrap(), &instruction_data[2..34]);
             } else {
-                assert_eq!(get_account(&accounts[0]).close_authority(), None);
+                assert_eq!(src_new.close_authority(), None);
             }
             assert!(result.is_ok())
         }
@@ -2101,16 +2099,17 @@ fn test_process_set_authority_mint(
     cheatcode_is_multisig(&accounts[1]); // Authority
 
     //-Initial State-----------------------------------------------------------
+    let mint_old = get_mint(&accounts[0]);
     let mint_data_len = accounts[0].data_len();
-    let old_mint_authority_is_none = get_mint(&accounts[0]).mint_authority().is_none();
-    let old_freeze_authority_is_none = get_mint(&accounts[0]).freeze_authority().is_none();
-    let old_mint_authority = get_mint(&accounts[0]).mint_authority().cloned();
-    let old_freeze_authority = get_mint(&accounts[0]).freeze_authority().cloned();
+    let old_mint_authority_is_none = mint_old.mint_authority().is_none();
+    let old_freeze_authority_is_none = mint_old.freeze_authority().is_none();
+    let old_mint_authority = mint_old.mint_authority().cloned();
+    let old_freeze_authority = mint_old.freeze_authority().cloned();
     #[cfg(not(feature = "multisig"))]
     let maybe_multisig_is_initialised = None;
     #[cfg(feature = "multisig")]
     let maybe_multisig_is_initialised = Some(get_multisig(&accounts[1]).is_initialized());
-    let mint_is_initialised = get_mint(&accounts[0]).is_initialized();
+    let mint_is_initialised = mint_old.is_initialized();
 
     //-Process Instruction-----------------------------------------------------
     let result = process_set_authority(accounts, instruction_data);
@@ -2136,6 +2135,9 @@ fn test_process_set_authority_mint(
         return result;
     } else if mint_data_len == Mint::LEN {
         // established by cheatcode_is_mint
+
+        let mint_new = get_mint(&accounts[0]);
+
         if !mint_is_initialised.unwrap() {
             assert_eq!(result, Err(ProgramError::UninitializedAccount));
             return result;
@@ -2161,12 +2163,9 @@ fn test_process_set_authority_mint(
 
             if instruction_data[1] == 1 {
                 // 1 ==> 34 <= instruction_data.len()
-                assert_eq!(
-                    get_mint(&accounts[0]).mint_authority().unwrap(),
-                    &instruction_data[2..34]
-                );
+                assert_eq!(mint_new.mint_authority().unwrap(), &instruction_data[2..34]);
             } else {
-                assert_eq!(get_mint(&accounts[0]).mint_authority(), None);
+                assert_eq!(mint_new.mint_authority(), None);
             }
             assert!(result.is_ok())
         } else {
@@ -2189,11 +2188,11 @@ fn test_process_set_authority_mint(
             if instruction_data[1] == 1 {
                 // 1 ==> 34 <= instruction_data.len()
                 assert_eq!(
-                    get_mint(&accounts[0]).freeze_authority().unwrap(),
+                    mint_new.freeze_authority().unwrap(),
                     &instruction_data[2..34]
                 );
             } else {
-                assert_eq!(get_mint(&accounts[0]).freeze_authority(), None);
+                assert_eq!(mint_new.freeze_authority(), None);
             }
             assert!(result.is_ok())
         }
