@@ -1036,18 +1036,20 @@ pub fn test_process_burn(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]
     cheatcode_is_multisig(&accounts[2]);
 
     //-Initial State-----------------------------------------------------------
+    let src_old = get_account(&accounts[0]);
+    let mint_old = get_mint(&accounts[1]);
     let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
-    let src_initialised = get_account(&accounts[0]).is_initialized();
-    let src_init_amount = get_account(&accounts[0]).amount();
-    let src_init_state = get_account(&accounts[0]).account_state();
-    let src_is_native = get_account(&accounts[0]).is_native();
-    let src_mint = get_account(&accounts[0]).mint;
-    let src_owned_sys_inc = get_account(&accounts[0]).is_owned_by_system_program_or_incinerator();
-    let src_owner = get_account(&accounts[0]).owner;
-    let old_src_delgate = get_account(&accounts[0]).delegate().cloned();
-    let old_src_delgated_amount = get_account(&accounts[0]).delegated_amount();
-    let mint_initialised = get_mint(&accounts[1]).is_initialized();
-    let mint_init_supply = get_mint(&accounts[1]).supply();
+    let src_initialised = src_old.is_initialized();
+    let src_init_amount = src_old.amount();
+    let src_init_state = src_old.account_state();
+    let src_is_native = src_old.is_native();
+    let src_mint = src_old.mint;
+    let src_owned_sys_inc = src_old.is_owned_by_system_program_or_incinerator();
+    let src_owner = src_old.owner;
+    let old_src_delgate = src_old.delegate().cloned();
+    let old_src_delgated_amount = src_old.delegated_amount();
+    let mint_initialised = mint_old.is_initialized();
+    let mint_init_supply = mint_old.supply();
     let mint_owner = *accounts[1].owner();
     #[cfg(not(feature = "multisig"))]
     let maybe_multisig_is_initialised = None;
@@ -1115,18 +1117,16 @@ pub fn test_process_burn(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]
         } else if amount == 0 && mint_owner != pinocchio_token_interface::program::ID {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId))
         } else {
-            assert!(get_account(&accounts[0]).amount() == src_init_amount - amount);
+            let src_new = get_account(&accounts[0]);
+            assert!(src_new.amount() == src_init_amount - amount);
             assert!(get_mint(&accounts[1]).supply() == mint_init_supply - amount);
             assert!(result.is_ok());
 
             // Delegate updates
             if old_src_delgate.is_some() && *accounts[2].key() == old_src_delgate.unwrap() {
-                assert_eq!(
-                    get_account(&accounts[0]).delegated_amount(),
-                    old_src_delgated_amount - amount
-                );
+                assert_eq!(src_new.delegated_amount(), old_src_delgated_amount - amount);
                 if old_src_delgated_amount - amount == 0 {
-                    assert_eq!(get_account(&accounts[0]).delegate(), None);
+                    assert_eq!(src_new.delegate(), None);
                 }
             }
         }
