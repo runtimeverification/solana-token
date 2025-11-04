@@ -2295,12 +2295,14 @@ fn test_process_thaw_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
     cheatcode_is_multisig(&accounts[2]);
 
     //-Initial State-----------------------------------------------------------
-    let src_initialised = get_account(&accounts[0]).is_initialized();
-    let src_init_state = get_account(&accounts[0]).account_state();
-    let src_is_native = get_account(&accounts[0]).is_native();
-    let src_mint = get_account(&accounts[0]).mint;
-    let mint_initialised = get_mint(&accounts[1]).is_initialized();
-    let mint_freeze_auth = get_mint(&accounts[1]).freeze_authority().cloned();
+    let src_old = get_account(&accounts[0]);
+    let mint_old = get_mint(&accounts[1]);
+    let src_initialised = src_old.is_initialized();
+    let src_init_state = src_old.account_state();
+    let src_is_native = src_old.is_native();
+    let src_mint = src_old.mint;
+    let mint_initialised = mint_old.is_initialized();
+    let mint_freeze_auth = mint_old.freeze_authority().cloned();
     #[cfg(not(feature = "multisig"))]
     let maybe_multisig_is_initialised = None;
     #[cfg(feature = "multisig")]
