@@ -1563,22 +1563,20 @@ pub fn test_process_initialize_account2(
     {
         assert_eq!(result, Err(ProgramError::Custom(2)))
     } else {
+        let new_account_new = get_account(&accounts[0]);
         assert!(result.is_ok());
         assert_eq!(
-            get_account(&accounts[0]).account_state().unwrap(),
+            new_account_new.account_state().unwrap(),
             account_state::AccountState::Initialized
         );
-        assert_eq!(get_account(&accounts[0]).mint, *accounts[1].key());
-        assert_eq!(get_account(&accounts[0]).owner, *instruction_data);
+        assert_eq!(new_account_new.mint, *accounts[1].key());
+        assert_eq!(new_account_new.owner, *instruction_data);
 
         if is_native_mint {
-            assert!(get_account(&accounts[0]).is_native());
+            assert!(new_account_new.is_native());
+            assert_eq!(new_account_new.native_amount().unwrap(), minimum_balance);
             assert_eq!(
-                get_account(&accounts[0]).native_amount().unwrap(),
-                minimum_balance
-            );
-            assert_eq!(
-                get_account(&accounts[0]).amount(),
+                new_account_new.amount(),
                 accounts[0].lamports() - minimum_balance
             );
         }
