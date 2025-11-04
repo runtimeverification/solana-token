@@ -24,6 +24,7 @@ use {
         state::{Initializable, Transmutable},
     },
 };
+use pinocchio_token_interface::program::ID;
 
 program_entrypoint!(process_instruction);
 // Do not allocate memory.
@@ -159,17 +160,15 @@ pub(crate) fn inner_process_instruction(
             }
 
             match accounts[2].data_len() {
-                Account::LEN => test_process_mint_to(
+                // A Multsig is owned by P-Token and has Multisig length
+                Multisig::LEN if accounts[2].is_owned_by(&ID) => test_process_mint_to_multisig(
                     accounts,
                     instruction_data,
                 ),
-                Multisig::LEN => test_process_mint_to_multisig(
+                _ => test_process_mint_to( // Anyone / anything else can be an owner as long as it signs
                     accounts,
                     instruction_data,
                 ),
-                _ => panic!("Test_proces_mint_to: Invalid account length"), /* TODO: replace with
-                                                                             * checking for
-                                                                             * malformed input */
             }
         }
         // 8 - Test Burn
@@ -991,6 +990,7 @@ pub fn test_process_initialize_account(accounts: &[AccountInfo]) -> ProgramResul
         );
         assert_eq!(get_account(&accounts[0]).mint, *accounts[1].key());
         assert_eq!(get_account(&accounts[0]).owner, *accounts[2].key());
+        assert_eq!(accounts[0].data_len(), Account::LEN);
 
         if is_native_mint {
             assert!(get_account(&accounts[0]).is_native());
@@ -2517,6 +2517,7 @@ pub fn test_process_initialize_account2(
         );
         assert_eq!(get_account(&accounts[0]).mint, *accounts[1].key());
         assert_eq!(get_account(&accounts[0]).owner, *instruction_data);
+        assert_eq!(accounts[0].data_len(), Account::LEN);
 
         if is_native_mint {
             assert!(get_account(&accounts[0]).is_native());
@@ -2595,6 +2596,7 @@ pub fn test_process_initialize_account3(
         );
         assert_eq!(get_account(&accounts[0]).mint, *accounts[1].key());
         assert_eq!(get_account(&accounts[0]).owner, *instruction_data);
+        assert_eq!(accounts[0].data_len(), Account::LEN);
 
         if is_native_mint {
             assert!(get_account(&accounts[0]).is_native());
@@ -3483,7 +3485,7 @@ fn test_process_freeze_account(accounts: &[AccountInfo]) -> ProgramResult {
 
      //cheatcode_is_account(&accounts[0]);
      //cheatcode_is_mint(&accounts[1]);
-     //cheatcode_is_account(&accounts[2]);
+     //cheatcode_is_account(&accounts[2]); // WE DON'T KNOW THIS IS AN ACCOUNT, IT COULD BE ANYTHING (OWNER JUST NEEDS TO SIGN)
 
     //-Initial State-----------------------------------------------------------
     let src_initialised = get_account(&accounts[0]).is_initialized();
@@ -3551,7 +3553,7 @@ fn test_process_freeze_account_multisig(accounts: &[AccountInfo]) -> ProgramResu
 
      //cheatcode_is_account(&accounts[0]);
      //cheatcode_is_mint(&accounts[1]);
-     //cheatcode_is_multisig(&accounts[2]);
+     //cheatcode_is_multisig(&accounts[2]); // WE HAVE CHECKED THIS HOLDS THROUGH THE GUARD (instruction dispatch)
 
     //-Initial State-----------------------------------------------------------
     let src_initialised = get_account(&accounts[0]).is_initialized();
