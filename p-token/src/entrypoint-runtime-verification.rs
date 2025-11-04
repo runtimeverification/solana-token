@@ -1855,10 +1855,11 @@ fn test_process_approve(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8])
     cheatcode_is_multisig(&accounts[2]); // Owner
 
     //-Initial State-----------------------------------------------------------
+    let src_old = get_account(&accounts[0]);
     let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
-    let src_owner = get_account(&accounts[0]).owner;
-    let src_initialised = get_account(&accounts[0]).is_initialized();
-    let src_init_state = get_account(&accounts[0]).account_state();
+    let src_owner = src_old.owner;
+    let src_initialised = src_old.is_initialized();
+    let src_init_state = src_old.account_state();
     #[cfg(not(feature = "multisig"))]
     let maybe_multisig_is_initialised = None;
     #[cfg(feature = "multisig")]
@@ -1891,11 +1892,9 @@ fn test_process_approve(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8])
             result.clone(),
         )?;
 
-        assert_eq!(
-            get_account(&accounts[0]).delegate().unwrap(),
-            accounts[1].key()
-        );
-        assert_eq!(get_account(&accounts[0]).delegated_amount(), amount);
+        let src_new = get_account(&accounts[0]);
+        assert_eq!(src_new.delegate().unwrap(), accounts[1].key());
+        assert_eq!(src_new.delegated_amount(), amount);
         assert!(result.is_ok())
     }
 
