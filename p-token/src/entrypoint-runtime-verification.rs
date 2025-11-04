@@ -211,7 +211,7 @@ pub(crate) fn inner_process_instruction(
             match accounts[2].data_len() {
                 Multisig::LEN if accounts[2].is_owned_by(&ID) => {
                     test_process_close_account_multisig(accounts.first_chunk().unwrap())
-                },
+                }
                 _ => test_process_close_account(accounts.first_chunk().unwrap()),
             }
         }
@@ -231,10 +231,12 @@ pub(crate) fn inner_process_instruction(
             }
 
             match accounts[3].data_len() {
-                Multisig::LEN if accounts[2].is_owned_by(&ID) => test_process_transfer_checked_multisig(
-                    accounts.first_chunk().unwrap(),
-                    instruction_data.first_chunk().unwrap(),
-                ),
+                Multisig::LEN if accounts[2].is_owned_by(&ID) => {
+                    test_process_transfer_checked_multisig(
+                        accounts.first_chunk().unwrap(),
+                        instruction_data.first_chunk().unwrap(),
+                    )
+                }
                 _ => test_process_transfer_checked(
                     accounts.first_chunk().unwrap(),
                     instruction_data.first_chunk().unwrap(),
@@ -257,10 +259,12 @@ pub(crate) fn inner_process_instruction(
             }
 
             match accounts[2].data_len() {
-                Multisig::LEN if accounts[2].is_owned_by(&ID) => test_process_burn_checked_multisig(
-                    accounts.first_chunk().unwrap(),
-                    instruction_data.first_chunk().unwrap(),
-                ),
+                Multisig::LEN if accounts[2].is_owned_by(&ID) => {
+                    test_process_burn_checked_multisig(
+                        accounts.first_chunk().unwrap(),
+                        instruction_data.first_chunk().unwrap(),
+                    )
+                }
                 _ => test_process_burn_checked(
                     accounts.first_chunk().unwrap(),
                     instruction_data.first_chunk().unwrap(),
@@ -352,7 +356,7 @@ fn inner_process_remaining_instruction(
                 _ => test_process_approve(
                     accounts.first_chunk().unwrap(),
                     instruction_data.first_chunk().unwrap(),
-                )
+                ),
             }
         }
         // 5 - Revoke
@@ -368,7 +372,9 @@ fn inner_process_remaining_instruction(
             }
 
             match accounts[1].data_len() {
-                Multisig::LEN if accounts[1].is_owned_by(&ID) => test_process_revoke_multisig(accounts.first_chunk().unwrap()),
+                Multisig::LEN if accounts[1].is_owned_by(&ID) => {
+                    test_process_revoke_multisig(accounts.first_chunk().unwrap())
+                }
                 _ => test_process_revoke(accounts.first_chunk().unwrap()),
             }
         }
@@ -390,20 +396,24 @@ fn inner_process_remaining_instruction(
             if let Some(first_account) = accounts.first() {
                 match first_account.data_len() {
                     Account::LEN => match accounts[1].data_len() {
-                        Multisig::LEN if accounts[1].is_owned_by(&ID) => test_process_set_authority_account_multisig(
-                            accounts.first_chunk().unwrap(),
-                            instruction_data.first_chunk().unwrap(),
-                        ),
+                        Multisig::LEN if accounts[1].is_owned_by(&ID) => {
+                            test_process_set_authority_account_multisig(
+                                accounts.first_chunk().unwrap(),
+                                instruction_data.first_chunk().unwrap(),
+                            )
+                        }
                         _ => test_process_set_authority_account(
                             accounts.first_chunk().unwrap(),
                             instruction_data.first_chunk().unwrap(),
                         ),
                     },
                     Mint::LEN => match accounts[1].data_len() {
-                        Multisig::LEN if accounts[1].is_owned_by(&ID) => test_process_set_authority_mint_multisig(
-                            accounts.first_chunk().unwrap(),
-                            instruction_data.first_chunk().unwrap(),
-                        ),
+                        Multisig::LEN if accounts[1].is_owned_by(&ID) => {
+                            test_process_set_authority_mint_multisig(
+                                accounts.first_chunk().unwrap(),
+                                instruction_data.first_chunk().unwrap(),
+                            )
+                        }
                         _ => test_process_set_authority_mint(
                             accounts.first_chunk().unwrap(),
                             instruction_data.first_chunk().unwrap(),
@@ -433,7 +443,9 @@ fn inner_process_remaining_instruction(
             }
 
             match accounts[2].data_len() {
-                Multisig::LEN if accounts[2].is_owned_by(&ID) => test_process_freeze_account_multisig(accounts.first_chunk().unwrap()),
+                Multisig::LEN if accounts[2].is_owned_by(&ID) => {
+                    test_process_freeze_account_multisig(accounts.first_chunk().unwrap())
+                }
                 _ => test_process_freeze_account(accounts.first_chunk().unwrap()),
             }
         }
@@ -455,7 +467,7 @@ fn inner_process_remaining_instruction(
             match accounts[2].data_len() {
                 Multisig::LEN if accounts[2].is_owned_by(&ID) => {
                     test_process_thaw_account_multisig(accounts.first_chunk().unwrap())
-                },
+                }
                 _ => test_process_thaw_account(accounts.first_chunk().unwrap()),
             }
         }
@@ -475,10 +487,12 @@ fn inner_process_remaining_instruction(
             }
 
             match accounts[3].data_len() {
-                Multisig::LEN if accounts[3].is_owned_by(&ID) => test_process_approve_checked_multisig(
-                    accounts.first_chunk().unwrap(),
-                    instruction_data.first_chunk().unwrap(),
-                ),
+                Multisig::LEN if accounts[3].is_owned_by(&ID) => {
+                    test_process_approve_checked_multisig(
+                        accounts.first_chunk().unwrap(),
+                        instruction_data.first_chunk().unwrap(),
+                    )
+                }
                 _ => test_process_approve_checked(
                     accounts.first_chunk().unwrap(),
                     instruction_data.first_chunk().unwrap(),
@@ -501,10 +515,12 @@ fn inner_process_remaining_instruction(
             }
 
             match accounts[2].data_len() {
-                Multisig::LEN if accounts[2].is_owned_by(&ID) => test_process_mint_to_checked_multisig(
-                    accounts.first_chunk().unwrap(),
-                    instruction_data.first_chunk().unwrap(),
-                ),
+                Multisig::LEN if accounts[2].is_owned_by(&ID) => {
+                    test_process_mint_to_checked_multisig(
+                        accounts.first_chunk().unwrap(),
+                        instruction_data.first_chunk().unwrap(),
+                    )
+                }
                 _ => test_process_mint_to_checked(
                     accounts.first_chunk().unwrap(),
                     instruction_data.first_chunk().unwrap(),
@@ -581,25 +597,31 @@ fn inner_process_remaining_instruction(
             if let Some(acc) = accounts.first() {
                 match acc.data_len() {
                     Account::LEN => match accounts[2].data_len() {
-                        Multisig::LEN if accounts[2].is_owned_by(&ID) => test_process_withdraw_excess_lamports_account_multisig(
-                            accounts.first_chunk().unwrap(),
-                        ),
+                        Multisig::LEN if accounts[2].is_owned_by(&ID) => {
+                            test_process_withdraw_excess_lamports_account_multisig(
+                                accounts.first_chunk().unwrap(),
+                            )
+                        }
                         _ => test_process_withdraw_excess_lamports_account(
                             accounts.first_chunk().unwrap(),
                         ),
                     },
                     Mint::LEN => match accounts[2].data_len() {
-                        Multisig::LEN if accounts[2].is_owned_by(&ID) => test_process_withdraw_excess_lamports_mint_multisig(
-                            accounts.first_chunk().unwrap(),
-                        ),
+                        Multisig::LEN if accounts[2].is_owned_by(&ID) => {
+                            test_process_withdraw_excess_lamports_mint_multisig(
+                                accounts.first_chunk().unwrap(),
+                            )
+                        }
                         _ => test_process_withdraw_excess_lamports_mint(
                             accounts.first_chunk().unwrap(),
                         ),
                     },
                     Multisig::LEN => match accounts[2].data_len() {
-                        Multisig::LEN if accounts[2].is_owned_by(&ID) => test_process_withdraw_excess_lamports_multisig_multisig(
-                            accounts.first_chunk().unwrap(),
-                        ),
+                        Multisig::LEN if accounts[2].is_owned_by(&ID) => {
+                            test_process_withdraw_excess_lamports_multisig_multisig(
+                                accounts.first_chunk().unwrap(),
+                            )
+                        }
                         _ => test_process_withdraw_excess_lamports_multisig(
                             accounts.first_chunk().unwrap(),
                         ),
