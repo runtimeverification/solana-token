@@ -2861,10 +2861,11 @@ fn test_process_withdraw_excess_lamports_account(accounts: &[AccountInfo; 3]) ->
     cheatcode_is_multisig(&accounts[2]); // Authority
 
     //-Initial State-----------------------------------------------------------
+    let src_old = get_account(&accounts[0]);
     let src_data_len = accounts[0].data_len();
-    let src_account_initialised = get_account(&accounts[0]).is_initialized();
-    let src_account_owner = get_account(&accounts[0]).owner;
-    let src_account_is_native = get_account(&accounts[0]).is_native();
+    let src_account_initialised = src_old.is_initialized();
+    let src_account_owner = src_old.owner;
+    let src_account_is_native = src_old.is_native();
     let src_init_lamports = accounts[0].lamports();
     let dst_init_lamports = accounts[1].lamports();
     #[cfg(not(feature = "multisig"))]
@@ -2941,9 +2942,10 @@ fn test_process_withdraw_excess_lamports_mint(accounts: &[AccountInfo; 3]) -> Pr
     cheatcode_is_multisig(&accounts[2]); // Authority
 
     //-Initial State-----------------------------------------------------------
+    let src_old = get_mint(&accounts[0]);
     let src_data_len = accounts[0].data_len();
-    let src_mint_initialised = get_mint(&accounts[0]).is_initialized();
-    let src_mint_mint_authority = get_mint(&accounts[0]).mint_authority().cloned();
+    let src_mint_initialised = src_old.is_initialized();
+    let src_mint_mint_authority = src_old.mint_authority().cloned();
     let src_init_lamports = accounts[0].lamports();
     let dst_init_lamports = accounts[1].lamports();
     #[cfg(not(feature = "multisig"))]
