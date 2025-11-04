@@ -1915,9 +1915,10 @@ fn test_process_revoke(accounts: &[AccountInfo; 2]) -> ProgramResult {
     cheatcode_is_multisig(&accounts[1]); // Owner
 
     //-Initial State-----------------------------------------------------------
-    let src_initialised = get_account(&accounts[0]).is_initialized();
-    let src_init_state = get_account(&accounts[0]).account_state();
-    let src_owner = get_account(&accounts[0]).owner;
+    let src_old = get_account(&accounts[0]);
+    let src_initialised = src_old.is_initialized();
+    let src_init_state = src_old.account_state();
+    let src_owner = src_old.owner;
     #[cfg(not(feature = "multisig"))]
     let maybe_multisig_is_initialised = None;
     #[cfg(feature = "multisig")]
@@ -1949,8 +1950,9 @@ fn test_process_revoke(accounts: &[AccountInfo; 2]) -> ProgramResult {
             result.clone(),
         )?;
 
-        assert!(get_account(&accounts[0]).delegate().is_none());
-        assert_eq!(get_account(&accounts[0]).delegated_amount(), 0);
+        let src_new = get_account(&accounts[0]);
+        assert!(src_new.delegate().is_none());
+        assert_eq!(src_new.delegated_amount(), 0);
         assert!(result.is_ok())
     }
 
