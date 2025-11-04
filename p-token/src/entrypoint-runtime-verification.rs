@@ -1238,16 +1238,18 @@ pub fn test_process_transfer_checked(
     cheatcode_is_multisig(&accounts[3]);
 
     //-Initial State-----------------------------------------------------------
+    let src_old = get_account(&accounts[0]);
+    let dst_old = get_account(&accounts[2]);
     let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
-    let src_initialised = get_account(&accounts[0]).is_initialized();
-    let dst_initialised = get_account(&accounts[2]).is_initialized();
-    let src_initial_amount = get_account(&accounts[0]).amount();
-    let dst_initial_amount = get_account(&accounts[2]).amount();
+    let src_initialised = src_old.is_initialized();
+    let dst_initialised = dst_old.is_initialized();
+    let src_initial_amount = src_old.amount();
+    let dst_initial_amount = dst_old.amount();
     let src_initial_lamports = accounts[0].lamports();
     let dst_initial_lamports = accounts[2].lamports();
-    let src_owner = get_account(&accounts[0]).owner;
-    let old_src_delgate = get_account(&accounts[0]).delegate().cloned();
-    let old_src_delgated_amount = get_account(&accounts[0]).delegated_amount();
+    let src_owner = src_old.owner;
+    let old_src_delgate = src_old.delegate().cloned();
+    let old_src_delgated_amount = src_old.delegated_amount();
     let mint_initialised = get_mint(&accounts[1]).is_initialized();
     #[cfg(not(feature = "multisig"))]
     let maybe_multisig_is_initialised = None;
@@ -1336,6 +1338,8 @@ pub fn test_process_transfer_checked(
             )?;
         }
 
+        let src_new = get_account(&accounts[0]);
+
         if (accounts[0] == accounts[2] || amount == 0)
             && accounts[0].owner() != &pinocchio_token_interface::program::ID
         {
@@ -1347,28 +1351,23 @@ pub fn test_process_transfer_checked(
             assert_eq!(result, Err(ProgramError::IncorrectProgramId));
             return result;
         } else if accounts[0] != accounts[2] && amount != 0 {
-            if get_account(&accounts[0]).is_native() && src_initial_lamports < amount {
+            if src_new.is_native() && src_initial_lamports < amount {
                 // Not sure how to fund native mint
                 assert_eq!(result, Err(ProgramError::Custom(14)));
                 return result;
-            } else if get_account(&accounts[0]).is_native()
-                && u64::MAX - amount < dst_initial_lamports
-            {
+            } else if src_new.is_native() && u64::MAX - amount < dst_initial_lamports {
                 // Not sure how to fund native mint
                 assert_eq!(result, Err(ProgramError::Custom(14)));
                 return result;
             }
 
-            assert_eq!(
-                get_account(&accounts[0]).amount(),
-                src_initial_amount - amount
-            );
+            assert_eq!(src_new.amount(), src_initial_amount - amount);
             assert_eq!(
                 get_account(&accounts[2]).amount(),
                 dst_initial_amount + amount
             );
 
-            if get_account(&accounts[0]).is_native() {
+            if src_new.is_native() {
                 assert_eq!(accounts[0].lamports(), src_initial_lamports - amount);
                 assert_eq!(accounts[1].lamports(), dst_initial_lamports + amount);
             }
@@ -1377,12 +1376,9 @@ pub fn test_process_transfer_checked(
         assert!(result.is_ok());
         // Delegate updates
         if old_src_delgate == Some(*accounts[3].key()) && accounts[0] != accounts[2] {
-            assert_eq!(
-                get_account(&accounts[0]).delegated_amount(),
-                old_src_delgated_amount - amount
-            );
+            assert_eq!(src_new.delegated_amount(), old_src_delgated_amount - amount);
             if old_src_delgated_amount - amount == 0 {
-                assert_eq!(get_account(&accounts[0]).delegate(), None);
+                assert_eq!(src_new.delegate(), None);
             }
         }
     }
