@@ -3289,8 +3289,8 @@ fn test_process_set_authority_mint(
     } else if mint_data_len != Account::LEN && mint_data_len != Mint::LEN {
         assert_eq!(result, Err(ProgramError::InvalidArgument));
         return result;
-    } else {
-        assert_eq!(mint_data_len, Mint::LEN); // established by cheatcode_is_mint
+    } else if mint_data_len == Mint::LEN {
+        // established by cheatcode_is_mint
         if !mint_is_initialised.unwrap() {
             assert_eq!(result, Err(ProgramError::UninitializedAccount));
             return result;
@@ -3326,6 +3326,7 @@ fn test_process_set_authority_mint(
             assert!(result.is_ok())
         } else {
             // FreezeAccount
+            assert_eq!(instruction_data[0], 1); // If not MintTokens (0), must be FreezeAccount (1)
             if old_freeze_authority_is_none {
                 assert_eq!(result, Err(ProgramError::Custom(16)));
                 return result;
@@ -3351,6 +3352,8 @@ fn test_process_set_authority_mint(
             }
             assert!(result.is_ok())
         }
+    } else {
+        unreachable!(); // mint_data_len == Mint::LEN must hold
     }
 
     result
