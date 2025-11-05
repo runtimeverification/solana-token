@@ -703,7 +703,11 @@ fn inner_test_validate_owner(
         result
     }
     // Line 106-108
-    else if owner_account_info.data_len() == Multisig::LEN && owner_account_info.is_owned_by(&ID)
+    // We add the `maybe_multisig_is_initialised != None` to not branch vacuously in the
+    // non-multisig cases
+    else if maybe_multisig_is_initialised != None
+        && owner_account_info.data_len() == Multisig::LEN
+        && owner_account_info.is_owned_by(&ID)
     {
         // Guaranteed to succeed by `cheatcode_is_multisig`
         let multisig_is_initialised = maybe_multisig_is_initialised.unwrap();
