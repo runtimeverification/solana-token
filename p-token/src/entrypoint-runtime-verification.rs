@@ -2991,7 +2991,6 @@ fn test_process_set_authority_account(
     use pinocchio_token_interface::state::account_state;
 
     cheatcode_is_account(&accounts[0]); // Assume Account
-    cheatcode_is_account(&accounts[1]); // Authority
 
     //-Initial State-----------------------------------------------------------
     let src_old = get_account(&accounts[0]);
