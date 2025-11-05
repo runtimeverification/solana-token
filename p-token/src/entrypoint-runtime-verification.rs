@@ -1122,10 +1122,7 @@ pub fn test_process_transfer(
             assert_eq!(result, Err(ProgramError::Custom(14)));
             return result;
         } else if accounts[0] != accounts[1] && amount != 0 {
-            assert_eq!(
-                src_new.amount(),
-                src_initial_amount - amount
-            );
+            assert_eq!(src_new.amount(), src_initial_amount - amount);
             assert_eq!(
                 get_account(&accounts[1]).amount(),
                 dst_initial_amount + amount
@@ -1141,10 +1138,7 @@ pub fn test_process_transfer(
 
         // Delegate updates
         if old_src_delgate == Some(*accounts[2].key()) && accounts[0] != accounts[1] {
-            assert_eq!(
-                src_new.delegated_amount(),
-                old_src_delgated_amount - amount
-            );
+            assert_eq!(src_new.delegated_amount(), old_src_delgated_amount - amount);
             if old_src_delgated_amount - amount == 0 {
                 assert_eq!(src_new.delegate(), None);
             }
