@@ -703,9 +703,9 @@ fn inner_test_validate_owner(
         result
     }
     // Line 106-108
-    // We add the `maybe_multisig_is_initialised != None` to not branch vacuously in the
+    // We add the `maybe_multisig_is_initialised.is_some()` to not branch vacuously in the
     // non-multisig cases
-    else if maybe_multisig_is_initialised != None
+    else if maybe_multisig_is_initialised.is_some()
         && owner_account_info.data_len() == Multisig::LEN
         && owner_account_info.is_owned_by(&ID)
     {
