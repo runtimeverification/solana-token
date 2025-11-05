@@ -106,12 +106,12 @@ pub(crate) fn inner_process_instruction(
 
             match instruction_data.len() {
                 x if 66 <= x => test_process_initialize_mint_freeze(
-                    accounts.first_chunk().unwrap(),
-                    instruction_data.first_chunk().unwrap(),
+                    accounts,
+                    instruction_data,
                 ),
                 x if 34 <= x => test_process_initialize_mint_no_freeze(
-                    accounts.first_chunk().unwrap(),
-                    instruction_data.first_chunk().unwrap(),
+                    accounts,
+                    instruction_data,
                 ),
                 _ => panic!("Invalid instruction data length"),
             }
@@ -121,7 +121,7 @@ pub(crate) fn inner_process_instruction(
             #[cfg(feature = "logging")]
             pinocchio::msg!("Testing Instruction: InitializeAccount");
 
-            test_process_initialize_account(accounts.first_chunk().unwrap())
+            test_process_initialize_account(accounts)
         }
         // 3 - Test Transfer
         3 => {
@@ -138,12 +138,12 @@ pub(crate) fn inner_process_instruction(
 
             match accounts[2].data_len() {
                 Multisig::LEN if accounts[2].is_owned_by(&ID) => test_process_transfer_multisig(
-                    accounts.first_chunk().unwrap(),
-                    instruction_data.first_chunk().unwrap(),
+                    accounts,
+                    instruction_data,
                 ),
                 _ => test_process_transfer(
-                    accounts.first_chunk().unwrap(),
-                    instruction_data.first_chunk().unwrap(),
+                    accounts,
+                    instruction_data,
                 ),
             }
         }
@@ -161,12 +161,12 @@ pub(crate) fn inner_process_instruction(
 
             match accounts[2].data_len() {
                 Multisig::LEN if accounts[2].is_owned_by(&ID) => test_process_mint_to_multisig(
-                    accounts.first_chunk().unwrap(),
-                    instruction_data.first_chunk().unwrap(),
+                    accounts,
+                    instruction_data,
                 ),
                 _ => test_process_mint_to(
-                    accounts.first_chunk().unwrap(),
-                    instruction_data.first_chunk().unwrap(),
+                    accounts,
+                    instruction_data,
                 ),
             }
         }
@@ -184,12 +184,12 @@ pub(crate) fn inner_process_instruction(
 
             match accounts[2].data_len() {
                 Multisig::LEN if accounts[2].is_owned_by(&ID) => test_process_burn_multisig(
-                    accounts.first_chunk().unwrap(),
-                    instruction_data.first_chunk().unwrap(),
+                    accounts,
+                    instruction_data,
                 ),
                 _ => test_process_burn(
-                    accounts.first_chunk().unwrap(),
-                    instruction_data.first_chunk().unwrap(),
+                    accounts,
+                    instruction_data,
                 ),
             }
         }
@@ -210,9 +210,9 @@ pub(crate) fn inner_process_instruction(
 
             match accounts[2].data_len() {
                 Multisig::LEN if accounts[2].is_owned_by(&ID) => {
-                    test_process_close_account_multisig(accounts.first_chunk().unwrap())
+                    test_process_close_account_multisig(accounts)
                 }
-                _ => test_process_close_account(accounts.first_chunk().unwrap()),
+                _ => test_process_close_account(accounts),
             }
         }
         // 12 - Test TransferChecked
@@ -233,13 +233,13 @@ pub(crate) fn inner_process_instruction(
             match accounts[3].data_len() {
                 Multisig::LEN if accounts[2].is_owned_by(&ID) => {
                     test_process_transfer_checked_multisig(
-                        accounts.first_chunk().unwrap(),
-                        instruction_data.first_chunk().unwrap(),
+                        accounts,
+                        instruction_data,
                     )
                 }
                 _ => test_process_transfer_checked(
-                    accounts.first_chunk().unwrap(),
-                    instruction_data.first_chunk().unwrap(),
+                    accounts,
+                    instruction_data,
                 ),
             }
         }
@@ -261,13 +261,13 @@ pub(crate) fn inner_process_instruction(
             match accounts[2].data_len() {
                 Multisig::LEN if accounts[2].is_owned_by(&ID) => {
                     test_process_burn_checked_multisig(
-                        accounts.first_chunk().unwrap(),
-                        instruction_data.first_chunk().unwrap(),
+                        accounts,
+                        instruction_data,
                     )
                 }
                 _ => test_process_burn_checked(
-                    accounts.first_chunk().unwrap(),
-                    instruction_data.first_chunk().unwrap(),
+                    accounts,
+                    instruction_data,
                 ),
             }
         }
@@ -277,8 +277,8 @@ pub(crate) fn inner_process_instruction(
             pinocchio::msg!("Testing Instruction: InitializeAccount2");
 
             test_process_initialize_account2(
-                accounts.first_chunk().unwrap(),
-                instruction_data.first_chunk().unwrap(),
+                accounts,
+                instruction_data,
             )
         }
         // 18 - Test InitializeAccount3
@@ -287,8 +287,8 @@ pub(crate) fn inner_process_instruction(
             pinocchio::msg!("Testing Instruction: InitializeAccount3");
 
             test_process_initialize_account3(
-                accounts.first_chunk().unwrap(),
-                instruction_data.first_chunk().unwrap(),
+                accounts,
+                instruction_data,
             )
         }
         // 20 - Test InitializeMint2
@@ -298,12 +298,12 @@ pub(crate) fn inner_process_instruction(
 
             match instruction_data.len() {
                 x if 66 <= x => test_process_initialize_mint2_freeze(
-                    accounts.first_chunk().unwrap(),
-                    instruction_data.first_chunk().unwrap(),
+                    accounts,
+                    instruction_data,
                 ),
                 x if 34 <= x => test_process_initialize_mint2_no_freeze(
-                    accounts.first_chunk().unwrap(),
-                    instruction_data.first_chunk().unwrap(),
+                    accounts,
+                    instruction_data,
                 ),
                 _ => panic!("Invalid instruction data length"),
             }
@@ -332,8 +332,8 @@ fn inner_process_remaining_instruction(
             pinocchio::msg!("Instruction: InitializeMultisig");
 
             test_process_initialize_multisig(
-                accounts.first_chunk().unwrap(),
-                instruction_data.first_chunk().unwrap(),
+                accounts,
+                instruction_data,
             )
         }
         // 4 - Approve
@@ -350,12 +350,12 @@ fn inner_process_remaining_instruction(
 
             match accounts[2].data_len() {
                 Multisig::LEN if accounts[2].is_owned_by(&ID) => test_process_approve_multisig(
-                    accounts.first_chunk().unwrap(),
-                    instruction_data.first_chunk().unwrap(),
+                    accounts,
+                    instruction_data,
                 ),
                 _ => test_process_approve(
-                    accounts.first_chunk().unwrap(),
-                    instruction_data.first_chunk().unwrap(),
+                    accounts,
+                    instruction_data,
                 ),
             }
         }
@@ -373,9 +373,9 @@ fn inner_process_remaining_instruction(
 
             match accounts[1].data_len() {
                 Multisig::LEN if accounts[1].is_owned_by(&ID) => {
-                    test_process_revoke_multisig(accounts.first_chunk().unwrap())
+                    test_process_revoke_multisig(accounts)
                 }
-                _ => test_process_revoke(accounts.first_chunk().unwrap()),
+                _ => test_process_revoke(accounts),
             }
         }
         // 6 - SetAuthority
@@ -398,25 +398,25 @@ fn inner_process_remaining_instruction(
                     Account::LEN => match accounts[1].data_len() {
                         Multisig::LEN if accounts[1].is_owned_by(&ID) => {
                             test_process_set_authority_account_multisig(
-                                accounts.first_chunk().unwrap(),
-                                instruction_data.first_chunk().unwrap(),
+                                accounts,
+                                instruction_data,
                             )
                         }
                         _ => test_process_set_authority_account(
-                            accounts.first_chunk().unwrap(),
-                            instruction_data.first_chunk().unwrap(),
+                            accounts,
+                            instruction_data,
                         ),
                     },
                     Mint::LEN => match accounts[1].data_len() {
                         Multisig::LEN if accounts[1].is_owned_by(&ID) => {
                             test_process_set_authority_mint_multisig(
-                                accounts.first_chunk().unwrap(),
-                                instruction_data.first_chunk().unwrap(),
+                                accounts,
+                                instruction_data,
                             )
                         }
                         _ => test_process_set_authority_mint(
-                            accounts.first_chunk().unwrap(),
-                            instruction_data.first_chunk().unwrap(),
+                            accounts,
+                            instruction_data,
                         ),
                     },
                     // FIXME: Create proof harness for this
@@ -444,9 +444,9 @@ fn inner_process_remaining_instruction(
 
             match accounts[2].data_len() {
                 Multisig::LEN if accounts[2].is_owned_by(&ID) => {
-                    test_process_freeze_account_multisig(accounts.first_chunk().unwrap())
+                    test_process_freeze_account_multisig(accounts)
                 }
-                _ => test_process_freeze_account(accounts.first_chunk().unwrap()),
+                _ => test_process_freeze_account(accounts),
             }
         }
         // 11 - ThawAccount
@@ -466,9 +466,9 @@ fn inner_process_remaining_instruction(
 
             match accounts[2].data_len() {
                 Multisig::LEN if accounts[2].is_owned_by(&ID) => {
-                    test_process_thaw_account_multisig(accounts.first_chunk().unwrap())
+                    test_process_thaw_account_multisig(accounts)
                 }
-                _ => test_process_thaw_account(accounts.first_chunk().unwrap()),
+                _ => test_process_thaw_account(accounts),
             }
         }
         // 13 - ApproveChecked
@@ -489,13 +489,13 @@ fn inner_process_remaining_instruction(
             match accounts[3].data_len() {
                 Multisig::LEN if accounts[3].is_owned_by(&ID) => {
                     test_process_approve_checked_multisig(
-                        accounts.first_chunk().unwrap(),
-                        instruction_data.first_chunk().unwrap(),
+                        accounts,
+                        instruction_data,
                     )
                 }
                 _ => test_process_approve_checked(
-                    accounts.first_chunk().unwrap(),
-                    instruction_data.first_chunk().unwrap(),
+                    accounts,
+                    instruction_data,
                 ),
             }
         }
@@ -517,13 +517,13 @@ fn inner_process_remaining_instruction(
             match accounts[2].data_len() {
                 Multisig::LEN if accounts[2].is_owned_by(&ID) => {
                     test_process_mint_to_checked_multisig(
-                        accounts.first_chunk().unwrap(),
-                        instruction_data.first_chunk().unwrap(),
+                        accounts,
+                        instruction_data,
                     )
                 }
                 _ => test_process_mint_to_checked(
-                    accounts.first_chunk().unwrap(),
-                    instruction_data.first_chunk().unwrap(),
+                    accounts,
+                    instruction_data,
                 ),
             }
         }
@@ -532,7 +532,7 @@ fn inner_process_remaining_instruction(
             #[cfg(feature = "logging")]
             pinocchio::msg!("Instruction: SyncNative");
 
-            test_process_sync_native(accounts.first_chunk().unwrap())
+            test_process_sync_native(accounts)
         }
         // 19 - InitializeMultisig2
         19 => {
@@ -540,8 +540,8 @@ fn inner_process_remaining_instruction(
             pinocchio::msg!("Instruction: InitializeMultisig2");
 
             test_process_initialize_multisig2(
-                accounts.first_chunk().unwrap(),
-                instruction_data.first_chunk().unwrap(),
+                accounts,
+                instruction_data,
             )
         }
         // 21 - GetAccountDataSize
@@ -549,14 +549,14 @@ fn inner_process_remaining_instruction(
             #[cfg(feature = "logging")]
             pinocchio::msg!("Instruction: GetAccountDataSize");
 
-            test_process_get_account_data_size(accounts.first_chunk().unwrap())
+            test_process_get_account_data_size(accounts)
         }
         // 22 - InitializeImmutableOwner
         22 => {
             #[cfg(feature = "logging")]
             pinocchio::msg!("Instruction: InitializeImmutableOwner");
 
-            test_process_initialize_immutable_owner(accounts.first_chunk().unwrap())
+            test_process_initialize_immutable_owner(accounts)
         }
         // 23 - AmountToUiAmount
         23 => {
@@ -564,8 +564,8 @@ fn inner_process_remaining_instruction(
             pinocchio::msg!("Instruction: AmountToUiAmount");
 
             test_process_amount_to_ui_amount(
-                accounts.first_chunk().unwrap(),
-                instruction_data.first_chunk().unwrap(),
+                accounts,
+                instruction_data,
             )
         }
         // 24 - UiAmountToAmount
@@ -574,8 +574,8 @@ fn inner_process_remaining_instruction(
             pinocchio::msg!("Instruction: UiAmountToAmount");
 
             test_process_ui_amount_to_amount(
-                accounts.first_chunk().unwrap(),
-                // instruction_data.first_chunk().unwrap(),
+                accounts,
+                // instruction_data,
                 instruction_data, // Sized won't work
             )
         }
@@ -599,31 +599,31 @@ fn inner_process_remaining_instruction(
                     Account::LEN => match accounts[2].data_len() {
                         Multisig::LEN if accounts[2].is_owned_by(&ID) => {
                             test_process_withdraw_excess_lamports_account_multisig(
-                                accounts.first_chunk().unwrap(),
+                                accounts,
                             )
                         }
                         _ => test_process_withdraw_excess_lamports_account(
-                            accounts.first_chunk().unwrap(),
+                            accounts,
                         ),
                     },
                     Mint::LEN => match accounts[2].data_len() {
                         Multisig::LEN if accounts[2].is_owned_by(&ID) => {
                             test_process_withdraw_excess_lamports_mint_multisig(
-                                accounts.first_chunk().unwrap(),
+                                accounts,
                             )
                         }
                         _ => test_process_withdraw_excess_lamports_mint(
-                            accounts.first_chunk().unwrap(),
+                            accounts,
                         ),
                     },
                     Multisig::LEN => match accounts[2].data_len() {
                         Multisig::LEN if accounts[2].is_owned_by(&ID) => {
                             test_process_withdraw_excess_lamports_multisig_multisig(
-                                accounts.first_chunk().unwrap(),
+                                accounts,
                             )
                         }
                         _ => test_process_withdraw_excess_lamports_multisig(
-                            accounts.first_chunk().unwrap(),
+                            accounts,
                         ),
                     },
                     // FIXME: Need harness for this
@@ -821,8 +821,8 @@ fn test_ptoken_domain_data(acc: &AccountInfo, mint: &AccountInfo, rent: &Account
 /// Pubkey
 #[inline(never)]
 pub fn test_process_initialize_mint_freeze(
-    accounts: &[AccountInfo; 2],
-    instruction_data: &[u8; 66],
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
 ) -> ProgramResult {
     cheatcode_is_mint(&accounts[0]);
     cheatcode_is_rent(&accounts[1]);
@@ -877,8 +877,8 @@ pub fn test_process_initialize_mint_freeze(
 /// instruction_data[33]     // Freeze Authority Exists? 0 for no freeze
 #[inline(never)]
 pub fn test_process_initialize_mint_no_freeze(
-    accounts: &[AccountInfo; 2],
-    instruction_data: &[u8; 34],
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
 ) -> ProgramResult {
     cheatcode_is_mint(&accounts[0]);
     cheatcode_is_rent(&accounts[1]);
@@ -933,7 +933,7 @@ pub fn test_process_initialize_mint_no_freeze(
 /// accounts[2] // Owner Info
 /// accounts[3] // Rent Sysvar Info
 #[inline(never)]
-pub fn test_process_initialize_account(accounts: &[AccountInfo; 4]) -> ProgramResult {
+pub fn test_process_initialize_account(accounts: &[AccountInfo]) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
     cheatcode_is_account(&accounts[0]);
@@ -1007,8 +1007,8 @@ pub fn test_process_initialize_account(accounts: &[AccountInfo; 4]) -> ProgramRe
 /// instruction_data[0..8] // Little Endian Bytes of u64 amount
 #[inline(never)]
 pub fn test_process_transfer(
-    accounts: &[AccountInfo; 3],
-    instruction_data: &[u8; 8],
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
 ) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
@@ -1160,8 +1160,8 @@ pub fn test_process_transfer(
 /// instruction_data[0..8] // Little Endian Bytes of u64 amount
 #[inline(never)]
 pub fn test_process_transfer_multisig(
-    accounts: &[AccountInfo; 4],
-    instruction_data: &[u8; 8],
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
 ) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
@@ -1313,8 +1313,8 @@ pub fn test_process_transfer_multisig(
 /// instruction_data[0..8] // Little Endian Bytes of u64 amount
 #[inline(never)]
 pub fn test_process_mint_to(
-    accounts: &[AccountInfo; 3],
-    instruction_data: &[u8; 8],
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
 ) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
@@ -1411,8 +1411,8 @@ pub fn test_process_mint_to(
 /// instruction_data[0..8] // Little Endian Bytes of u64 amount
 #[inline(never)]
 pub fn test_process_mint_to_multisig(
-    accounts: &[AccountInfo; 4],
-    instruction_data: &[u8; 8],
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
 ) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
@@ -1508,7 +1508,7 @@ pub fn test_process_mint_to_multisig(
 /// accounts[2] // Authority Info
 /// instruction_data[0..8] // Little Endian Bytes of u64 amount
 #[inline(never)]
-pub fn test_process_burn(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]) -> ProgramResult {
+pub fn test_process_burn(accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
     cheatcode_is_account(&accounts[0]);
@@ -1618,8 +1618,8 @@ pub fn test_process_burn(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]
 /// instruction_data[0..8] // Little Endian Bytes of u64 amount
 #[inline(never)]
 pub fn test_process_burn_multisig(
-    accounts: &[AccountInfo; 4],
-    instruction_data: &[u8; 8],
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
 ) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
@@ -1728,7 +1728,7 @@ pub fn test_process_burn_multisig(
 /// accounts[1] // Destination Info
 /// accounts[2] // Authority Info
 #[inline(never)]
-pub fn test_process_close_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
+pub fn test_process_close_account(accounts: &[AccountInfo]) -> ProgramResult {
     use pinocchio_token_interface::state::account::INCINERATOR_ID;
 
     cheatcode_is_account(&accounts[0]);
@@ -1804,7 +1804,7 @@ pub fn test_process_close_account(accounts: &[AccountInfo; 3]) -> ProgramResult 
 /// accounts[2] // Authority Info
 /// accounts[3..14] // Multisig Signers
 #[inline(never)]
-pub fn test_process_close_account_multisig(accounts: &[AccountInfo; 4]) -> ProgramResult {
+pub fn test_process_close_account_multisig(accounts: &[AccountInfo]) -> ProgramResult {
     use pinocchio_token_interface::state::account::INCINERATOR_ID;
 
     cheatcode_is_account(&accounts[0]);
@@ -1884,8 +1884,8 @@ pub fn test_process_close_account_multisig(accounts: &[AccountInfo; 4]) -> Progr
 /// instruction_data[0..9] // Little Endian Bytes of u64 amount, and decimals
 #[inline(never)]
 pub fn test_process_transfer_checked(
-    accounts: &[AccountInfo; 4],
-    instruction_data: &[u8; 9],
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
 ) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
@@ -2051,8 +2051,8 @@ pub fn test_process_transfer_checked(
 /// instruction_data[0..9] // Little Endian Bytes of u64 amount, and decimals
 #[inline(never)]
 pub fn test_process_transfer_checked_multisig(
-    accounts: &[AccountInfo; 5],
-    instruction_data: &[u8; 9],
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
 ) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
@@ -2217,8 +2217,8 @@ pub fn test_process_transfer_checked_multisig(
 /// instruction_data[0..9] // Little Endian Bytes of u64 amount, and decimals
 #[inline(never)]
 pub fn test_process_burn_checked(
-    accounts: &[AccountInfo; 3],
-    instruction_data: &[u8; 9],
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
 ) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
@@ -2332,8 +2332,8 @@ pub fn test_process_burn_checked(
 /// instruction_data[0..9] // Little Endian Bytes of u64 amount, and decimals
 #[inline(never)]
 pub fn test_process_burn_checked_multisig(
-    accounts: &[AccountInfo; 4],
-    instruction_data: &[u8; 9],
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
 ) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
@@ -2447,8 +2447,8 @@ pub fn test_process_burn_checked_multisig(
 /// instruction_data[..] // Owner
 #[inline(never)]
 pub fn test_process_initialize_account2(
-    accounts: &[AccountInfo; 3],
-    instruction_data: &[u8; 32],
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
 ) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
@@ -2525,8 +2525,8 @@ pub fn test_process_initialize_account2(
 /// instruction_data[..] // Owner
 #[inline(never)]
 pub fn test_process_initialize_account3(
-    accounts: &[AccountInfo; 2],
-    instruction_data: &[u8; 32],
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
 ) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
@@ -2606,8 +2606,8 @@ pub fn test_process_initialize_account3(
 /// Pubkey
 #[inline(never)]
 pub fn test_process_initialize_mint2_freeze(
-    accounts: &[AccountInfo; 1],
-    instruction_data: &[u8; 66],
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
 ) -> ProgramResult {
     cheatcode_is_mint(&accounts[0]);
 
@@ -2663,8 +2663,8 @@ pub fn test_process_initialize_mint2_freeze(
 /// instruction_data[33]     // Freeze Authority Exists? 0 for no freeze
 #[inline(never)]
 pub fn test_process_initialize_mint2_no_freeze(
-    accounts: &[AccountInfo; 1],
-    instruction_data: &[u8; 34],
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
 ) -> ProgramResult {
     cheatcode_is_mint(&accounts[0]);
 
@@ -2723,14 +2723,14 @@ pub fn test_process_initialize_mint2_no_freeze(
 /// instruction_data[1] // m
 #[inline(never)]
 fn test_process_initialize_multisig(
-    accounts: &[AccountInfo; 5],
-    instruction_data: &[u8; 1],
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
 ) -> ProgramResult {
     cheatcode_is_multisig(&accounts[0]);
     cheatcode_is_rent(&accounts[1]);
     cheatcode_is_account(&accounts[2]); // Signer
-    cheatcode_is_account(&accounts[3]); // Signer
-    cheatcode_is_account(&accounts[4]); // Signer
+    // cheatcode_is_account(&accounts[3]); // Signer  // Commented for concrete execution
+    // cheatcode_is_account(&accounts[4]); // Signer  // Commented for concrete execution
 
     //-Initial State-----------------------------------------------------------
     let multisig_already_initialised = get_multisig(&accounts[0]).is_initialized();
@@ -2783,7 +2783,7 @@ fn test_process_initialize_multisig(
 /// accounts[2] // Owner Info
 /// instruction_data[0..8] // Little Endian Bytes of u64 amount
 #[inline(never)]
-fn test_process_approve(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]) -> ProgramResult {
+fn test_process_approve(accounts: &[AccountInfo], instruction_data: &[u8]) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
     cheatcode_is_account(&accounts[0]); // Source Account
@@ -2841,8 +2841,8 @@ fn test_process_approve(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8])
 /// instruction_data[0..8] // Little Endian Bytes of u64 amount
 #[inline(never)]
 fn test_process_approve_multisig(
-    accounts: &[AccountInfo; 4],
-    instruction_data: &[u8; 8],
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
 ) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
@@ -2899,7 +2899,7 @@ fn test_process_approve_multisig(
 /// accounts[1] // Owner Info
 /// accounts[2..13] // Signers
 #[inline(never)]
-fn test_process_revoke(accounts: &[AccountInfo; 2]) -> ProgramResult {
+fn test_process_revoke(accounts: &[AccountInfo]) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
     cheatcode_is_account(&accounts[0]); // Source Account
@@ -2949,7 +2949,7 @@ fn test_process_revoke(accounts: &[AccountInfo; 2]) -> ProgramResult {
 /// accounts[1] // Owner Info
 /// accounts[2..13] // Signers
 #[inline(never)]
-fn test_process_revoke_multisig(accounts: &[AccountInfo; 3]) -> ProgramResult {
+fn test_process_revoke_multisig(accounts: &[AccountInfo]) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
     cheatcode_is_account(&accounts[0]); // Source Account
@@ -3002,8 +3002,8 @@ fn test_process_revoke_multisig(accounts: &[AccountInfo; 3]) -> ProgramResult {
 /// instruction_data[2..34] // New Authority Pubkey
 #[inline(never)]
 fn test_process_set_authority_account(
-    accounts: &[AccountInfo; 2],
-    instruction_data: &[u8; 34],
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
 ) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
@@ -3120,8 +3120,8 @@ fn test_process_set_authority_account(
 /// instruction_data[2..34] // New Authority Pubkey
 #[inline(never)]
 fn test_process_set_authority_account_multisig(
-    accounts: &[AccountInfo; 3],
-    instruction_data: &[u8; 34],
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
 ) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
@@ -3237,8 +3237,8 @@ fn test_process_set_authority_account_multisig(
 /// instruction_data[2..34] // New Authority Pubkey
 #[inline(never)]
 fn test_process_set_authority_mint(
-    accounts: &[AccountInfo; 2],
-    instruction_data: &[u8; 34],
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
 ) -> ProgramResult {
     cheatcode_is_mint(&accounts[0]); // Assume Mint
     cheatcode_is_account(&accounts[1]); // Authority
@@ -3349,8 +3349,8 @@ fn test_process_set_authority_mint(
 /// instruction_data[2..34] // New Authority Pubkey
 #[inline(never)]
 fn test_process_set_authority_mint_multisig(
-    accounts: &[AccountInfo; 3],
-    instruction_data: &[u8; 34],
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
 ) -> ProgramResult {
     cheatcode_is_mint(&accounts[0]); // Assume Mint
     cheatcode_is_multisig(&accounts[1]); // Authority
@@ -3460,7 +3460,7 @@ fn test_process_set_authority_mint_multisig(
 /// accounts[1] // Mint Info
 /// accounts[2] // Authority Info
 #[inline(never)]
-fn test_process_freeze_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
+fn test_process_freeze_account(accounts: &[AccountInfo]) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
     cheatcode_is_account(&accounts[0]);
@@ -3527,7 +3527,7 @@ fn test_process_freeze_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
 /// accounts[2] // Authority Info
 /// accounts[3..13] // Signers
 #[inline(never)]
-fn test_process_freeze_account_multisig(accounts: &[AccountInfo; 4]) -> ProgramResult {
+fn test_process_freeze_account_multisig(accounts: &[AccountInfo]) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
     cheatcode_is_account(&accounts[0]);
@@ -3595,7 +3595,7 @@ fn test_process_freeze_account_multisig(accounts: &[AccountInfo; 4]) -> ProgramR
 /// accounts[2] // Authority Info
 /// accounts[3..13] // Signers
 #[inline(never)]
-fn test_process_thaw_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
+fn test_process_thaw_account(accounts: &[AccountInfo]) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
     cheatcode_is_account(&accounts[0]);
@@ -3662,7 +3662,7 @@ fn test_process_thaw_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
 /// accounts[2] // Authority Info
 /// accounts[3..13] // Signers
 #[inline(never)]
-fn test_process_thaw_account_multisig(accounts: &[AccountInfo; 4]) -> ProgramResult {
+fn test_process_thaw_account_multisig(accounts: &[AccountInfo]) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
     cheatcode_is_account(&accounts[0]);
@@ -3732,8 +3732,8 @@ fn test_process_thaw_account_multisig(accounts: &[AccountInfo; 4]) -> ProgramRes
 /// instruction_data[0..9] // Little Endian Bytes of u64 amount, and decimals
 #[inline(never)]
 fn test_process_approve_checked(
-    accounts: &[AccountInfo; 4],
-    instruction_data: &[u8; 9],
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
 ) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
@@ -3806,8 +3806,8 @@ fn test_process_approve_checked(
 /// instruction_data[0..9] // Little Endian Bytes of u64 amount, and decimals
 #[inline(never)]
 fn test_process_approve_checked_multisig(
-    accounts: &[AccountInfo; 5],
-    instruction_data: &[u8; 9],
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
 ) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
@@ -3879,8 +3879,8 @@ fn test_process_approve_checked_multisig(
 /// instruction_data[0..9] // Little Endian Bytes of u64 amount, and decimals
 #[inline(never)]
 fn test_process_mint_to_checked(
-    accounts: &[AccountInfo; 3],
-    instruction_data: &[u8; 9],
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
 ) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
@@ -3982,8 +3982,8 @@ fn test_process_mint_to_checked(
 /// instruction_data[0..9] // Little Endian Bytes of u64 amount, and decimals
 #[inline(never)]
 fn test_process_mint_to_checked_multisig(
-    accounts: &[AccountInfo; 4],
-    instruction_data: &[u8; 9],
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
 ) -> ProgramResult {
     use pinocchio_token_interface::state::account_state;
 
@@ -4080,7 +4080,7 @@ fn test_process_mint_to_checked_multisig(
 }
 
 #[inline(never)]
-fn test_process_sync_native(accounts: &[AccountInfo; 1]) -> ProgramResult {
+fn test_process_sync_native(accounts: &[AccountInfo]) -> ProgramResult {
     use pinocchio_token_interface::program;
 
     cheatcode_is_account(&accounts[0]);
@@ -4128,13 +4128,13 @@ fn test_process_sync_native(accounts: &[AccountInfo; 1]) -> ProgramResult {
 /// instruction_data[1] // m
 #[inline(never)]
 fn test_process_initialize_multisig2(
-    accounts: &[AccountInfo; 4],
-    instruction_data: &[u8; 1],
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
 ) -> ProgramResult {
     cheatcode_is_multisig(&accounts[0]);
     cheatcode_is_account(&accounts[1]); // Signer
-    cheatcode_is_account(&accounts[2]); // Signer
-    cheatcode_is_account(&accounts[3]); // Signer
+    // cheatcode_is_account(&accounts[2]); // Signer  // Commented for concrete execution
+    // cheatcode_is_account(&accounts[3]); // Signer  // Commented for concrete execution
 
     //-Initial State-----------------------------------------------------------
     let multisig_already_initialised = get_multisig(&accounts[0]).is_initialized();
@@ -4185,7 +4185,7 @@ fn test_process_initialize_multisig2(
 
 /// accounts[0] // Mint Info
 #[inline(never)]
-fn test_process_get_account_data_size(accounts: &[AccountInfo; 1]) -> ProgramResult {
+fn test_process_get_account_data_size(accounts: &[AccountInfo]) -> ProgramResult {
     cheatcode_is_mint(&accounts[0]);
 
     //-Initial State-----------------------------------------------------------
@@ -4213,7 +4213,7 @@ fn test_process_get_account_data_size(accounts: &[AccountInfo; 1]) -> ProgramRes
 }
 
 #[inline(never)]
-fn test_process_initialize_immutable_owner(accounts: &[AccountInfo; 1]) -> ProgramResult {
+fn test_process_initialize_immutable_owner(accounts: &[AccountInfo]) -> ProgramResult {
     cheatcode_is_account(&accounts[0]);
 
     //-Initial State-----------------------------------------------------------
@@ -4239,8 +4239,8 @@ fn test_process_initialize_immutable_owner(accounts: &[AccountInfo; 1]) -> Progr
 
 #[inline(never)]
 fn test_process_amount_to_ui_amount(
-    accounts: &[AccountInfo; 1],
-    instruction_data: &[u8; 8],
+    accounts: &[AccountInfo],
+    instruction_data: &[u8],
 ) -> ProgramResult {
     cheatcode_is_mint(&accounts[0]);
 
@@ -4271,7 +4271,7 @@ fn test_process_amount_to_ui_amount(
 
 #[inline(never)]
 fn test_process_ui_amount_to_amount(
-    accounts: &[AccountInfo; 1],
+    accounts: &[AccountInfo],
     instruction_data: &[u8],
 ) -> ProgramResult {
     cheatcode_is_mint(&accounts[0]);
@@ -4380,7 +4380,7 @@ fn test_process_ui_amount_to_amount(
 /// accounts[1] // Destination Info
 /// accounts[2] // Authority Info
 #[inline(never)]
-fn test_process_withdraw_excess_lamports_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
+fn test_process_withdraw_excess_lamports_account(accounts: &[AccountInfo]) -> ProgramResult {
     cheatcode_is_account(&accounts[0]); // Source Account
     cheatcode_is_account(&accounts[1]); // Destination
 
@@ -4454,7 +4454,7 @@ fn test_process_withdraw_excess_lamports_account(accounts: &[AccountInfo; 3]) ->
 /// accounts[3..14] // Signers
 #[inline(never)]
 fn test_process_withdraw_excess_lamports_account_multisig(
-    accounts: &[AccountInfo; 4],
+    accounts: &[AccountInfo],
 ) -> ProgramResult {
     cheatcode_is_account(&accounts[0]); // Source Account
     cheatcode_is_account(&accounts[1]); // Destination
@@ -4528,7 +4528,7 @@ fn test_process_withdraw_excess_lamports_account_multisig(
 /// accounts[1] // Destination Info
 /// accounts[2] // Authority Info
 #[inline(never)]
-fn test_process_withdraw_excess_lamports_mint(accounts: &[AccountInfo; 3]) -> ProgramResult {
+fn test_process_withdraw_excess_lamports_mint(accounts: &[AccountInfo]) -> ProgramResult {
     cheatcode_is_mint(&accounts[0]); // Source Account (Mint)
     cheatcode_is_account(&accounts[1]); // Destination
 
@@ -4602,7 +4602,7 @@ fn test_process_withdraw_excess_lamports_mint(accounts: &[AccountInfo; 3]) -> Pr
 /// accounts[3..14] // Signers
 #[inline(never)]
 fn test_process_withdraw_excess_lamports_mint_multisig(
-    accounts: &[AccountInfo; 4],
+    accounts: &[AccountInfo],
 ) -> ProgramResult {
     cheatcode_is_mint(&accounts[0]); // Source Account (Mint)
     cheatcode_is_account(&accounts[1]); // Destination
@@ -4676,7 +4676,7 @@ fn test_process_withdraw_excess_lamports_mint_multisig(
 /// accounts[1] // Destination Info
 /// accounts[2] // Authority Info
 #[inline(never)]
-fn test_process_withdraw_excess_lamports_multisig(accounts: &[AccountInfo; 3]) -> ProgramResult {
+fn test_process_withdraw_excess_lamports_multisig(accounts: &[AccountInfo]) -> ProgramResult {
     cheatcode_is_multisig(&accounts[0]); // Source Account (Multisig)
     cheatcode_is_account(&accounts[1]); // Destination
 
@@ -4741,7 +4741,7 @@ fn test_process_withdraw_excess_lamports_multisig(accounts: &[AccountInfo; 3]) -
 /// accounts[3..14] // Signers
 #[inline(never)]
 fn test_process_withdraw_excess_lamports_multisig_multisig(
-    accounts: &[AccountInfo; 4],
+    accounts: &[AccountInfo],
 ) -> ProgramResult {
     cheatcode_is_multisig(&accounts[0]); // Source Account (Multisig)
     cheatcode_is_account(&accounts[1]); // Destination
