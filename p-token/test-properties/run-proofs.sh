@@ -8,6 +8,7 @@
 #   -a       : run all start symbols from first table in `proofs.md` (1st column)
 #   -m       : run all start symbols from multisig table in `proofs.md` (2nd column)
 #   -c       : continue existing proofs instead of reloading (which is default)
+#   -l FILE  : log output to file "$NAME.PID" instead of stdout
 #
 # Always runs verbosely, always uses artefacts/proof
 # as proof directory
@@ -25,14 +26,18 @@ MULTISIG_NAMES=$(sed -n -e 's/^| m | \(test_p[a-zA-Z0-9:_]*\) *|.*/\1/p' proofs.
 TIMEOUT=3600
 PROVE_OPTS="--max-iterations 500 --max-depth 2000"
 RELOAD_OPT="--reload"
+LOG_FILE=""
 
-while getopts ":t:o:amc" opt; do
+while getopts ":t:o:l:amc" opt; do
     case $opt in
         t)
             TIMEOUT=$OPTARG
             ;;
         o)
             PROVE_OPTS=$OPTARG
+            ;;
+        l)
+            LOG_FILE="$OPTARG.$$"
             ;;
         a)
             TESTS=${ALL_NAMES}
@@ -55,11 +60,16 @@ shift $((OPTIND-1))
 
 # Collect tests
 if [ -z "$TESTS" ]; then
-    if [ -z "$@" ]; then
+    if [ "$#" -eq 0 ]; then
         echo "[ERROR] No test function names given. Use -a or provide at least one name." 1>&2
         exit 2
     fi
     TESTS=$@
+fi
+
+if [ ! -z "$LOG_FILE" ]; then
+    echo "[INFO] Logging output to file $LOG_FILE instead of stdout"
+    exec &> $LOG_FILE
 fi
 
 set -u
