@@ -38,12 +38,12 @@ This table keeps track of the remaining thuk-types in the proofs.
 | test_process_thaw_account                     | 4                            | [2](#2) [3](#3) [5](#5) [6](#6)         |
 | test_process_withdraw_excess_lamports_account | 5                            | [2](#2) [3](#3) [4](#4) [5](#5) [6](#6) |
 | test_process_withdraw_excess_lamports_mint    | 4                            | [2](#2) [4](#4) [5](#5) [6](#6)         |
-| test_process_burn                             |                              |                                         |
-| test_process_burn_checked                     |                              |                                         |
-| test_process_close_account                    |                              |                                         |
-| test_process_set_authority_account            |                              |                                         |
-| test_process_set_authority_mint               |                              |                                         |
-| test_process_transfer_checked                 |                              |                                         |
+| test_process_burn                             | 2                            | [2](#2) [3](#3)                         |
+| test_process_burn_checked                     | 2                            | [2](#2) [3](#3)                         |
+| test_process_close_account                    | 3                            | [2](#2) [3](#3) [6](#6)                 |
+| test_process_set_authority_account            | 3                            | [2](#2) [3](#3) [6](#6)                 |
+| test_process_set_authority_mint               | 4                            | [2](#2) [3](#3) [5](#5)                 |
+| test_process_transfer_checked                 | 2                            | [2](#2) [3](#3)                         |
 | test_process_transfer                         | 2                            | [2](#2) [3](#3)                         |
 | test_process_amount_to_ui_amount              | 2                            | [2](#2) [7](#7)                         |
 | test_process_ui_amount_to_amount              | stuck                        | stuck                                   |
