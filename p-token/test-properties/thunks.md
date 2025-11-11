@@ -4,12 +4,13 @@ This file documents known thunks in the proofs and ties them to where they appea
 
 Here's the summary table. To get the full thunk go to the references
 
-| Details | Thunks                                                                   | Problematic |
-|---------|--------------------------------------------------------------------------|-------------|
-| [1](#1) | `#cast ( Range ( ListItem (Integer ( ARG_UINT214:Int , 8 , false ))...`  | ?           |
-| [2](#2) | `operandConstant ( constOperand ( ... span: span ( 600186 ) , ...`       | ?           |
-| [3](#3) | `#cast ( Integer ( ?STATE:Int , 8 , false ) , castKindTransmute , ... `  | No          |
-| [4](#4) | `#cast ( Float ( 0.20000000000000000e1 , 64 ) , castKindTransmute , ...` | ?           |
+| Details | Thunks                                                                         | Problematic |
+|---------|--------------------------------------------------------------------------------|-------------|
+| [1](#1) | `#cast ( Range ( ListItem (Integer ( ARG_UINT214:Int , 8 , false ))...`        | ?           |
+| [2](#2) | `operandConstant ( constOperand ( ... span: span ( 600186 ) , ...`             | ?           |
+| [3](#3) | `#cast ( Integer ( ?STATE:Int , 8 , false ) , castKindTransmute , ... `        | No          |
+| [4](#4) | `#cast ( Float ( 0.20000000000000000e1 , 64 ) , castKindTransmute , ...`       | ?           |
+| [5](#5) | `#cast ( Range ( ListItem (Integer ( ?AMOUNT0:Int &Int 255 , 8 , false )) ...` | ?           |
 
 This table keeps track of the remaining thuk-types in the proofs.
 
@@ -19,6 +20,7 @@ This table keeps track of the remaining thuk-types in the proofs.
 | test_process_approve                          | 3                            |
 | test_process_approve_checked                  | 3                            |
 | test_process_withdraw_excess_lamports_account | 3                            |
+| test_process_transfer                         | 3                            |
 
 ## 1
 
@@ -49,6 +51,7 @@ Cast between an array of 8 `u8`s (`ty ( 600721 )`) and a `U64` (`ty ( 600142 )`)
 Appears on:
 - `test_process_approve`
 - `test_process_approve_checked`
+- `test_process_transfer`
 
 ## 2
 
@@ -73,6 +76,7 @@ Appears on:
 - `test_process_approve`
 - `test_process_approve_checked`
 - `test_process_withdraw_excess_lamports_account`
+- `test_process_transfer`
 
 ## 3
 
@@ -129,3 +133,31 @@ Transmute cast between an `F64` (`ty ( 601188 )`) and a `U64` (`ty ( 600142 )`).
 ### Appeareances
 
 - `test_process_withdraw_excess_lamports_account`
+
+## 5
+
+### Full Thunk
+
+```
+thunk ( #cast ( Range ( ListItem (Integer ( ?AMOUNT0:Int &Int 255 , 8 , false ))
+                        ListItem (Integer ( ?AMOUNT0:Int >>Int 8 &Int 255 , 8 , false ))
+                        ListItem (Integer ( ?AMOUNT0:Int >>Int 8 >>Int 8 &Int 255 , 8 , false ))
+                        ListItem (Integer ( ?AMOUNT0:Int >>Int 8 >>Int 8 >>Int 8 &Int 255 , 8 , false ))
+                        ListItem (Integer ( ?AMOUNT0:Int >>Int 8 >>Int 8 >>Int 8 >>Int 8 &Int 255 , 8 , false ))
+                        ListItem (Integer ( ?AMOUNT0:Int >>Int 8 >>Int 8 >>Int 8 >>Int 8 >>Int 8 &Int 255 , 8 , false ))
+                        ListItem (Integer ( ?AMOUNT0:Int >>Int 8 >>Int 8 >>Int 8 >>Int 8 >>Int 8 >>Int 8 &Int 255 , 8 , false ))
+                        ListItem (Integer ( ?AMOUNT0:Int >>Int 8 >>Int 8 >>Int 8 >>Int 8 >>Int 8 >>Int 8 >>Int 8 &Int 255 , 8 , false ))
+                        ) , castKindTransmute , ty ( 600721 ) , ty ( 600142 ) ) )
+```
+
+### Explanation
+
+Cast between an array of 8 `u8` elements (`ty ( 600721 )`) and `U64`.
+
+### Safety
+
+???
+
+### Appeareances
+
+- `test_process_transfer`
