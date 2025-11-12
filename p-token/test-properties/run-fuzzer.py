@@ -6,6 +6,7 @@ import logging
 import re
 import sys
 from argparse import ArgumentParser
+from copy import deepcopy
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -19,19 +20,19 @@ if TYPE_CHECKING:
     from collections.abc import Iterable
     from typing import Final
 
+# Enable semantics reduction
+REDUCE_SEMANTICS: Final = True
 
 # Basic configuration
 TEST_PREFIX: Final = 'pinocchio_token_program::entrypoint::'
 TEST_PATTERN: Final = re.compile(r'\|\s*(test_[a-zA-Z0-9_]+)\s*\|')
 DEFAULT_SEEDS: Final = list(range(10))
 
-
 # Logger setup
 LOGGER: Final = logging.getLogger('ptoken.fuzzer')
 LOG_FORMAT: Final = '%(levelname)s %(asctime)s %(name)s - %(message)s'
 logging.basicConfig(level=logging.INFO, format=LOG_FORMAT)
 logging.getLogger('pyk').setLevel(logging.WARNING)
-
 
 # Paths
 CWD: Final = Path().resolve()
@@ -47,6 +48,7 @@ sys.setrecursionlimit(10**8)
 
 
 def main(
+    reduce_semantics: bool,
     tests: Iterable[str] | None,
     seeds: Iterable[int] | None,
 ) -> None:
@@ -63,14 +65,21 @@ def main(
     smir_info = load_smir()
     LOGGER.info(f'SMIR file parsed: {SMIR_FILE}')
 
-    kmir = load_kmir(smir_info)
+    if not reduce_semantics:
+        kmir = load_kmir(TARGET_DIR, smir_info, start_symbol=None)
+        LOGGER.info(f'Unreduced KMIR definition compiled: {TARGET_DIR}')
 
     RESULT_DIR.mkdir(exist_ok=True)
 
     LOGGER.info('Starting fuzzer')
     for test in tests:
+        start_symbol = f'{TEST_PREFIX}{test}'
+        test_target_dir = TARGET_DIR / test if reduce_semantics else TARGET_DIR
+        if reduce_semantics:
+            kmir = load_kmir(test_target_dir, smir_info, start_symbol)
+            LOGGER.info(f'Reduced KMIR definition compiled: {test_target_dir}')
         for seed in seeds:
-            fuzz(kmir=kmir, smir_info=smir_info, test=test, seed=seed)
+            fuzz(test_target_dir=test_target_dir, kmir=kmir, smir_info=smir_info, test=test, seed=seed, start_symbol=start_symbol)
 
     LOGGER.info('Fuzzing complete')
 
@@ -97,16 +106,18 @@ def load_smir() -> SMIRInfo:
     return SMIRInfo.from_file(SMIR_FILE)
 
 
-def load_kmir(smir_info: SMIRInfo) -> KMIR:
-    return KMIR.from_kompiled_kore(smir_info, target_dir=TARGET_DIR, symbolic=False)
+def load_kmir(test_target_dir: Path, smir_info: SMIRInfo, start_symbol: str | None) -> KMIR:
+    if start_symbol is not None:
+        smir_info = deepcopy(smir_info).reduce_to(start_symbol)
+    return KMIR.from_kompiled_kore(smir_info, target_dir=test_target_dir, symbolic=False)
 
 
-def fuzz(kmir: KMIR, smir_info: SMIRInfo, test: str, seed: int) -> None:
+def fuzz(test_target_dir: Path, kmir: KMIR, smir_info: SMIRInfo, test: str, seed: int, start_symbol: str) -> None:
     LOGGER.info(f'Fuzzing: test={test}, seed={seed}')
 
     pattern = kmir.run_smir(
         smir_info=smir_info,
-        start_symbol=f'{TEST_PREFIX}{test}',
+        start_symbol=start_symbol,
         depth=None,
         seed=seed,
     )
@@ -118,7 +129,7 @@ def fuzz(kmir: KMIR, smir_info: SMIRInfo, test: str, seed: int) -> None:
 
     pretty_text = kore_print(
         pattern=kore_text,
-        definition_dir=TARGET_DIR / 'llvm',
+        definition_dir=test_target_dir / 'llvm',
     )
     pretty_file = RESULT_DIR / f'{test}-{seed}.pretty'
     pretty_file.write_text(pretty_text)
@@ -134,4 +145,4 @@ def parse_args() -> Namespace:
 
 if __name__ == '__main__':
     ns = parse_args()
-    main(tests=ns.tests, seeds=ns.seeds)
+    main(REDUCE_SEMANTICS, tests=ns.tests, seeds=ns.seeds)
