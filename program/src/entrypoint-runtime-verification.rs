@@ -636,8 +636,8 @@ fn test_process_initialize_mint_freeze(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 66] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_mint(&accounts[0]);
-    // cheatcode_is_spl_rent(&accounts[1]);
+    cheatcode_is_spl_mint(&accounts[0]);
+    cheatcode_is_spl_rent(&accounts[1]);
 
     //-Initial State-----------------------------------------------------------
     let minimum_balance = get_rent(&accounts[1]).minimum_balance(accounts[0].data_len()); // TODO float problem
@@ -702,8 +702,8 @@ fn test_process_initialize_mint_no_freeze(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 34] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_mint(&accounts[0]);
-    // cheatcode_is_spl_rent(&accounts[1]);
+    cheatcode_is_spl_mint(&accounts[0]);
+    cheatcode_is_spl_rent(&accounts[1]);
 
     //-Initial State-----------------------------------------------------------
     let minimum_balance = get_rent(&accounts[1]).minimum_balance(accounts[0].data_len()); // TODO float problem
@@ -769,10 +769,10 @@ fn test_process_initialize_account(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 0] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_account(&accounts[0]);
-    // cheatcode_is_spl_mint(&accounts[1]);
-    // cheatcode_is_spl_account(&accounts[2]);
-    // cheatcode_is_spl_rent(&accounts[3]);
+    cheatcode_is_spl_account(&accounts[0]);
+    cheatcode_is_spl_mint(&accounts[1]);
+    cheatcode_is_spl_account(&accounts[2]);
+    cheatcode_is_spl_rent(&accounts[3]);
 
     //-Initial State-----------------------------------------------------------
     let initial_state_new_account =  get_account(&accounts[0])
@@ -850,10 +850,10 @@ fn test_process_initialize_multisig(
 
                                                           // ^ FIXME: totally arbitrary for the tests
     // cheatcode_is_spl_multisig(&accounts[0]);
-    // cheatcode_is_spl_rent(&accounts[1]);
-    // cheatcode_is_spl_account(&accounts[2]); // Signer
-    // cheatcode_is_spl_account(&accounts[3]); // Signer
-    // cheatcode_is_spl_account(&accounts[4]); // Signer
+    cheatcode_is_spl_rent(&accounts[1]);
+    cheatcode_is_spl_account(&accounts[2]); // Signer
+    cheatcode_is_spl_account(&accounts[3]); // Signer
+    cheatcode_is_spl_account(&accounts[4]); // Signer
 
     //-Initial State-----------------------------------------------------------
     let multisig_already_initialised = get_multisig(&accounts[0]).is_initialized();
@@ -930,10 +930,10 @@ fn test_process_transfer(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 8] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_account(&accounts[0]);
-    // cheatcode_is_spl_account(&accounts[1]);
+    cheatcode_is_spl_account(&accounts[0]);
+    cheatcode_is_spl_account(&accounts[1]);
     // #[cfg(not(feature="multisig"))]
-    // cheatcode_is_spl_account(&accounts[2]);
+    cheatcode_is_spl_account(&accounts[2]);
     // #[cfg(feature="multisig")]
     // cheatcode_is_spl_multisig(&accounts[2]);
 
@@ -1082,10 +1082,10 @@ fn test_process_approve(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 8] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_account(&accounts[0]); // Source Account
-    // cheatcode_is_spl_account(&accounts[1]); // Delegate
+    cheatcode_is_spl_account(&accounts[0]); // Source Account
+    cheatcode_is_spl_account(&accounts[1]); // Delegate
     // #[cfg(not(feature="multisig"))]
-    // cheatcode_is_spl_account(&accounts[2]); // Owner
+    cheatcode_is_spl_account(&accounts[2]); // Owner
     // #[cfg(feature="multisig")]
     // cheatcode_is_spl_multisig(&accounts[2]); // Owner
 
@@ -1159,9 +1159,9 @@ fn test_process_revoke(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 0] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_account(&accounts[0]); // Source Account
+    cheatcode_is_spl_account(&accounts[0]); // Source Account
     // #[cfg(not(feature="multisig"))]
-    // cheatcode_is_spl_account(&accounts[1]); // Owner
+    cheatcode_is_spl_account(&accounts[1]); // Owner
     // #[cfg(feature="multisig")]
     // cheatcode_is_spl_multisig(&accounts[1]); // Owner
 
@@ -1237,9 +1237,9 @@ fn test_process_set_authority_account(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 34] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_account(&accounts[0]); // Assume Account
+    cheatcode_is_spl_account(&accounts[0]); // Assume Account
     // #[cfg(not(feature="multisig"))]
-    // cheatcode_is_spl_account(&accounts[1]); // Authority
+    cheatcode_is_spl_account(&accounts[1]); // Authority
     // #[cfg(feature="multisig")]
     // cheatcode_is_spl_multisig(&accounts[1]); // Authority
 
@@ -1369,9 +1369,9 @@ fn test_process_set_authority_mint(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 34] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_mint(&accounts[0]);     // Assume Mint
+    cheatcode_is_spl_mint(&accounts[0]);     // Assume Mint
     // #[cfg(not(feature="multisig"))]
-    // cheatcode_is_spl_account(&accounts[1]);  // Authority
+    cheatcode_is_spl_account(&accounts[1]);  // Authority
     // #[cfg(feature="multisig")]
     // cheatcode_is_spl_multisig(&accounts[1]); // Authority
 
@@ -1495,10 +1495,10 @@ fn test_process_mint_to(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 8] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_mint(&accounts[0]);
-    // cheatcode_is_spl_account(&accounts[1]);
+    cheatcode_is_spl_mint(&accounts[0]);
+    cheatcode_is_spl_account(&accounts[1]);
     // #[cfg(not(feature="multisig"))]
-    // cheatcode_is_spl_account(&accounts[2]);
+    cheatcode_is_spl_account(&accounts[2]);
     // #[cfg(feature="multisig")]
     // cheatcode_is_spl_multisig(&accounts[2]);
 
@@ -1616,10 +1616,10 @@ fn test_process_burn(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 8] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_account(&accounts[0]);
-    // cheatcode_is_spl_mint(&accounts[1]);
+    cheatcode_is_spl_account(&accounts[0]);
+    cheatcode_is_spl_mint(&accounts[1]);
     // #[cfg(not(feature="multisig"))]
-    // cheatcode_is_spl_account(&accounts[2]);
+    cheatcode_is_spl_account(&accounts[2]);
     // #[cfg(feature="multisig")]
     // cheatcode_is_spl_multisig(&accounts[2]);
 
@@ -1751,10 +1751,10 @@ fn test_process_close_account(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 0] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_account(&accounts[0]);
-    // cheatcode_is_spl_account(&accounts[1]);
+    cheatcode_is_spl_account(&accounts[0]);
+    cheatcode_is_spl_account(&accounts[1]);
     // #[cfg(not(feature="multisig"))]
-    // cheatcode_is_spl_account(&accounts[2]);
+    cheatcode_is_spl_account(&accounts[2]);
     // #[cfg(feature="multisig")]
     // cheatcode_is_spl_multisig(&accounts[2]);
 
@@ -1854,10 +1854,10 @@ fn test_process_freeze_account(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 0] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_account(&accounts[0]);
-    // cheatcode_is_spl_mint(&accounts[1]);
+    cheatcode_is_spl_account(&accounts[0]);
+    cheatcode_is_spl_mint(&accounts[1]);
     // #[cfg(not(feature="multisig"))]
-    // cheatcode_is_spl_account(&accounts[2]);
+    cheatcode_is_spl_account(&accounts[2]);
     // #[cfg(feature="multisig")]
     // cheatcode_is_spl_multisig(&accounts[2]);
 
@@ -1945,10 +1945,10 @@ fn test_process_thaw_account(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 0] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_account(&accounts[0]);
-    // cheatcode_is_spl_mint(&accounts[1]);
+    cheatcode_is_spl_account(&accounts[0]);
+    cheatcode_is_spl_mint(&accounts[1]);
     // #[cfg(not(feature="multisig"))]
-    // cheatcode_is_spl_account(&accounts[2]);
+    cheatcode_is_spl_account(&accounts[2]);
     // #[cfg(feature="multisig")]
     // cheatcode_is_spl_multisig(&accounts[2]);
 
@@ -2038,11 +2038,11 @@ fn test_process_transfer_checked(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 9] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_account(&accounts[0]);
-    // cheatcode_is_spl_mint(&accounts[1]);
-    // cheatcode_is_spl_account(&accounts[2]);
+    cheatcode_is_spl_account(&accounts[0]);
+    cheatcode_is_spl_mint(&accounts[1]);
+    cheatcode_is_spl_account(&accounts[2]);
     // #[cfg(not(feature="multisig"))]
-    // cheatcode_is_spl_account(&accounts[3]);
+    cheatcode_is_spl_account(&accounts[3]);
     // #[cfg(feature="multisig")]
     // cheatcode_is_spl_multisig(&accounts[3]);
 
@@ -2210,11 +2210,11 @@ fn test_process_approve_checked(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 9] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_account(&accounts[0]); // Source Account
-    // cheatcode_is_spl_mint(&accounts[1]);    // Expected Mint
-    // cheatcode_is_spl_account(&accounts[2]); // Delegate
+    cheatcode_is_spl_account(&accounts[0]); // Source Account
+    cheatcode_is_spl_mint(&accounts[1]);    // Expected Mint
+    cheatcode_is_spl_account(&accounts[2]); // Delegate
     // #[cfg(not(feature="multisig"))]
-    // cheatcode_is_spl_account(&accounts[3]); // Owner
+    cheatcode_is_spl_account(&accounts[3]); // Owner
     // #[cfg(feature="multisig")]
     // cheatcode_is_spl_multisig(&accounts[3]); // Owner
 
@@ -2302,10 +2302,10 @@ fn test_process_mint_to_checked(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 9] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_mint(&accounts[0]);
-    // cheatcode_is_spl_account(&accounts[1]);
+    cheatcode_is_spl_mint(&accounts[0]);
+    cheatcode_is_spl_account(&accounts[1]);
     // #[cfg(not(feature="multisig"))]
-    // cheatcode_is_spl_account(&accounts[2]);
+    cheatcode_is_spl_account(&accounts[2]);
     // #[cfg(feature="multisig")]
     // cheatcode_is_spl_multisig(&accounts[2]);
 
@@ -2425,10 +2425,10 @@ fn test_process_burn_checked(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 9] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_account(&accounts[0]);
-    // cheatcode_is_spl_mint(&accounts[1]);
+    cheatcode_is_spl_account(&accounts[0]);
+    cheatcode_is_spl_mint(&accounts[1]);
     // #[cfg(not(feature="multisig"))]
-    // cheatcode_is_spl_account(&accounts[2]);
+    cheatcode_is_spl_account(&accounts[2]);
     // #[cfg(feature="multisig")]
     // cheatcode_is_spl_multisig(&accounts[2]);
 
@@ -2563,9 +2563,9 @@ fn test_process_initialize_account2(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 32] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_account(&accounts[0]);
-    // cheatcode_is_spl_mint(&accounts[1]);
-    // cheatcode_is_spl_rent(&accounts[2]);
+    cheatcode_is_spl_account(&accounts[0]);
+    cheatcode_is_spl_mint(&accounts[1]);
+    cheatcode_is_spl_rent(&accounts[2]);
 
     //-Initial State-----------------------------------------------------------
     let initial_state_new_account =  get_account(&accounts[0])
@@ -2638,7 +2638,7 @@ fn test_process_sync_native(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 0] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_account(&accounts[0]);
+    cheatcode_is_spl_account(&accounts[0]);
 
     //-Initial State-----------------------------------------------------------
     let src_owner = accounts[0].owner;
@@ -2699,8 +2699,8 @@ fn test_process_initialize_account3(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 32] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_account(&accounts[0]);
-    // cheatcode_is_spl_mint(&accounts[1]);
+    cheatcode_is_spl_account(&accounts[0]);
+    cheatcode_is_spl_mint(&accounts[1]);
 
     //-Initial State-----------------------------------------------------------
     let initial_state_new_account =  get_account(&accounts[0])
@@ -2781,9 +2781,9 @@ fn test_process_initialize_multisig2(
 
                                                            // ^ FIXME: totally arbitrary for the tests
     // cheatcode_is_spl_multisig(&accounts[0]);
-    // cheatcode_is_spl_account(&accounts[1]); // Signer
-    // cheatcode_is_spl_account(&accounts[2]); // Signer
-    // cheatcode_is_spl_account(&accounts[3]); // Signer
+    cheatcode_is_spl_account(&accounts[1]); // Signer
+    cheatcode_is_spl_account(&accounts[2]); // Signer
+    cheatcode_is_spl_account(&accounts[3]); // Signer
 
     //-Initial State-----------------------------------------------------------
     let multisig_already_initialised = get_multisig(&accounts[0]).is_initialized();
@@ -2858,7 +2858,7 @@ fn test_process_initialize_mint2_freeze(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 66] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_mint(&accounts[0]);
+    cheatcode_is_spl_mint(&accounts[0]);
 
     //-Initial State-----------------------------------------------------------
     // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
@@ -2922,7 +2922,7 @@ fn test_process_initialize_mint2_no_freeze(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 34] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_mint(&accounts[0]);
+    cheatcode_is_spl_mint(&accounts[0]);
 
     //-Initial State-----------------------------------------------------------
     // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be impossible
@@ -2983,7 +2983,7 @@ fn test_process_get_account_data_size(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 0] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_mint(&accounts[0]);
+    cheatcode_is_spl_mint(&accounts[0]);
 
     //-Initial State-----------------------------------------------------------
     let mint_initialised = get_mint(&accounts[0]).is_initialized();
@@ -3027,7 +3027,7 @@ fn test_process_initialize_immutable_owner(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 0] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_account(&accounts[0]);
+    cheatcode_is_spl_account(&accounts[0]);
 
     //-Initial State-----------------------------------------------------------
     let src_initialised = get_account(&accounts[0]).is_initialized();
@@ -3068,7 +3068,7 @@ fn test_process_amount_to_ui_amount(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 8] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_mint(&accounts[0]);
+    cheatcode_is_spl_mint(&accounts[0]);
 
     //-Initial State-----------------------------------------------------------
     let mint_initialised = get_mint(&accounts[0]).is_initialized();
@@ -3113,7 +3113,7 @@ fn test_process_ui_amount_to_amount(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8] = &instruction_data[1..];
 
-    // cheatcode_is_spl_mint(&accounts[0]);
+    cheatcode_is_spl_mint(&accounts[0]);
 
     //-Initial State-----------------------------------------------------------
     let ui_amount = core::str::from_utf8(instruction_data);
@@ -3225,10 +3225,10 @@ fn test_process_withdraw_excess_lamports_account(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 0] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_account(&accounts[0]); // Source Account
-    // cheatcode_is_spl_account(&accounts[1]); // Destination
+    cheatcode_is_spl_account(&accounts[0]); // Source Account
+    cheatcode_is_spl_account(&accounts[1]); // Destination
     // #[cfg(not(feature="multisig"))]
-    // cheatcode_is_spl_account(&accounts[2]); // Authority
+    cheatcode_is_spl_account(&accounts[2]); // Authority
     // #[cfg(feature="multisig")]
     // cheatcode_is_spl_multisig(&accounts[2]); // Authority
 
@@ -3319,10 +3319,10 @@ fn test_process_withdraw_excess_lamports_mint(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 0] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_mint(&accounts[0]); // Source Account (Mint)
-    // cheatcode_is_spl_account(&accounts[1]); // Destination
+    cheatcode_is_spl_mint(&accounts[0]); // Source Account (Mint)
+    cheatcode_is_spl_account(&accounts[1]); // Destination
     // #[cfg(not(feature="multisig"))]
-    // cheatcode_is_spl_account(&accounts[2]); // Authority
+    cheatcode_is_spl_account(&accounts[2]); // Authority
     // #[cfg(feature="multisig")]
     // cheatcode_is_spl_multisig(&accounts[2]); // Authority
 
@@ -3417,9 +3417,9 @@ fn test_process_withdraw_excess_lamports_multisig(
     let instruction_data: &[u8; 0] = instruction_data.last_chunk().unwrap();
 
     // cheatcode_is_spl_multisig(&accounts[0]); // Source Account (Multisig)
-    // cheatcode_is_spl_account(&accounts[1]); // Destination
+    cheatcode_is_spl_account(&accounts[1]); // Destination
     // #[cfg(not(feature="multisig"))]
-    // cheatcode_is_spl_account(&accounts[2]); // Authority
+    cheatcode_is_spl_account(&accounts[2]); // Authority
     // #[cfg(feature="multisig")]
     // cheatcode_is_spl_multisig(&accounts[2]); // Authority
 
