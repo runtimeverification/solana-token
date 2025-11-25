@@ -1812,7 +1812,7 @@ pub fn test_process_close_account(accounts: &[AccountInfo; 3]) -> ProgramResult 
         } else if accounts[1].key() != &INCINERATOR_ID {
             assert_eq!(result, Err(ProgramError::InvalidAccountData));
             return result;
-        } else if u64::MAX - src_init_lamports < dst_init_lamports {
+        } else if dst_init_lamports.checked_add(src_init_lamports).is_none() {
             assert_eq!(result, Err(ProgramError::Custom(14)));
             return result;
         }
@@ -2037,7 +2037,7 @@ pub fn test_process_transfer_checked(
                 // Not sure how to fund native mint
                 assert_eq!(result, Err(ProgramError::Custom(14)));
                 return result;
-            } else if src_new.is_native() && u64::MAX - amount < dst_initial_lamports {
+            } else if src_new.is_native() && dst_initial_lamports.checked_add(amount).is_none() {
                 // Not sure how to fund native mint
                 assert_eq!(result, Err(ProgramError::Custom(14)));
                 return result;
