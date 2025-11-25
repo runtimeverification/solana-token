@@ -1336,6 +1336,14 @@ pub fn test_process_mint_to(
     let dst_init_state = dst_old.account_state();
     let maybe_multisig_is_initialised = None; // Value set to `None` since authority is an account
 
+    // Do not execute if adding to the account balance would overflow.
+    // shared::mint_to.rs,L68 is based on the assumption that initial_amount <= mint.supply
+    // and therefore cannot overflow because the minting itself would already error out.
+    let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
+    if initial_amount.checked_add(amount).is_none() {
+        return Err(ProgramError::ArithmeticOverflow);
+    }
+
     //-Process Instruction-----------------------------------------------------
     let result = process_mint_to(accounts, instruction_data);
 
@@ -1400,7 +1408,7 @@ pub fn test_process_mint_to(
         } else if amount == 0 && accounts[1].owner() != &pinocchio_token_interface::program::ID {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId));
             return result;
-        } else if amount != 0 && u64::MAX - amount < initial_supply {
+        } else if amount != 0 && amount.checked_add(initial_supply).is_none() {
             assert_eq!(result, Err(ProgramError::Custom(14)));
             return result;
         }
