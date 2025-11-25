@@ -1123,7 +1123,7 @@ pub fn test_process_transfer(
             && u64::MAX - amount < dst_initial_lamports
         {
             // Not sure how to fund native mint
-            assert_eq!(result, Err(ProgramError::Custom(14)));
+            assert_eq!(result, Err(ProgramError::Custom(14))); // not true, assertion fails. Will it overflow later?
             return result;
         } else if accounts[0] != accounts[1]
             && amount != 0
@@ -1131,7 +1131,11 @@ pub fn test_process_transfer(
         {
             assert_eq!(result, Err(ProgramError::Custom(14)));
             return result;
-        } else if accounts[0] != accounts[1] && amount != 0 {
+        }
+
+        assert!(result.is_ok());
+        
+        if accounts[0] != accounts[1] && amount != 0 {
             assert_eq!(src_new.amount(), src_initial_amount - amount); // OK **
             assert_eq!(
                 get_account(&accounts[1]).amount(),
@@ -1140,11 +1144,9 @@ pub fn test_process_transfer(
 
             if src_new.is_native() { // lamports == amount?
                 assert_eq!(accounts[0].lamports(), src_initial_lamports - amount); // OK *
-                assert_eq!(accounts[1].lamports(), dst_initial_lamports + amount); // unchecked
+                assert_eq!(accounts[1].lamports(), dst_initial_lamports + amount); // unchecked?
             }
         }
-
-        assert!(result.is_ok());
 
         // Delegate updates
         if old_src_delgate == Some(*accounts[2].key()) && accounts[0] != accounts[1] {
