@@ -4002,7 +4002,7 @@ fn test_process_mint_to_checked(
         } else if amount == 0 && accounts[1].owner() != &pinocchio_token_interface::program::ID {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId));
             return result;
-        } else if amount != 0 && u64::MAX - amount < initial_supply {
+        } else if amount != 0 && initial_supply.checked_add(amount).is_none() {
             assert_eq!(result, Err(ProgramError::Custom(14)));
             return result;
         }
