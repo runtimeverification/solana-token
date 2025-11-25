@@ -1120,14 +1120,14 @@ pub fn test_process_transfer(
         } else if accounts[0] != accounts[1]
             && amount != 0
             && src_new.is_native()
-            && u64::MAX - amount < dst_initial_lamports
+            && dst_initial_lamports.checked_add(amount).is_none() // overflow, u64::MAX - amount < dst_initial_lamports
         {
             // Not sure how to fund native mint
-            assert_eq!(result, Err(ProgramError::Custom(14))); // not true, assertion fails. Will it overflow later?
+            assert_eq!(result, Err(ProgramError::Custom(14)));
             return result;
         } else if accounts[0] != accounts[1]
             && amount != 0
-            && u64::MAX - amount < dst_initial_amount // destination amount overflowed ***
+            && dst_initial_amount.checked_add(amount).is_none() // u64::MAX - amount < dst_initial_amount // destination amount overflowed ***
         {
             assert_eq!(result, Err(ProgramError::Custom(14)));
             return result;
