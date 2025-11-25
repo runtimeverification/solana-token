@@ -373,7 +373,7 @@ fn inner_process_instruction(
         3 => {
             if accounts.len() >= 4
                 && accounts[2].data_len() == Multisig::LEN
-                && accounts[2].owner() == &crate::id()
+                && accounts[2].owner == &crate::id()
             {
                 test_process_transfer_multisig(
                     program_id,
@@ -392,7 +392,7 @@ fn inner_process_instruction(
         4 => {
             if accounts.len() >= 4
                 && accounts[2].data_len() == Multisig::LEN
-                && accounts[2].owner() == &crate::id()
+                && accounts[2].owner == &crate::id()
             {
                 test_process_approve_multisig(
                     program_id,
@@ -411,7 +411,7 @@ fn inner_process_instruction(
         5 => {
             if accounts.len() >= 3
                 && accounts[1].data_len() == Multisig::LEN
-                && accounts[1].owner() == &crate::id()
+                && accounts[1].owner == &crate::id()
             {
                 test_process_revoke_multisig(
                     program_id,
@@ -435,7 +435,7 @@ fn inner_process_instruction(
                     Account::LEN => {
                         if accounts.len() >= 3
                             && accounts[1].data_len() == Multisig::LEN
-                            && accounts[1].owner() == &crate::id()
+                            && accounts[1].owner == &crate::id()
                         {
                             test_process_set_authority_account_multisig(
                                 program_id,
@@ -453,7 +453,7 @@ fn inner_process_instruction(
                     Mint::LEN => {
                         if accounts.len() >= 3
                             && accounts[1].data_len() == Multisig::LEN
-                            && accounts[1].owner() == &crate::id()
+                            && accounts[1].owner == &crate::id()
                         {
                             test_process_set_authority_mint_multisig(
                                 program_id,
@@ -478,7 +478,7 @@ fn inner_process_instruction(
         7 => {
             if accounts.len() >= 4
                 && accounts[2].data_len() == Multisig::LEN
-                && accounts[2].owner() == &crate::id()
+                && accounts[2].owner == &crate::id()
             {
                 test_process_mint_to_multisig(
                     program_id,
@@ -497,7 +497,7 @@ fn inner_process_instruction(
         8 => {
             if accounts.len() >= 4
                 && accounts[2].data_len() == Multisig::LEN
-                && accounts[2].owner() == &crate::id()
+                && accounts[2].owner == &crate::id()
             {
                 test_process_burn_multisig(
                     program_id,
@@ -516,7 +516,7 @@ fn inner_process_instruction(
         9 => {
             if accounts.len() >= 4
                 && accounts[2].data_len() == Multisig::LEN
-                && accounts[2].owner() == &crate::id()
+                && accounts[2].owner == &crate::id()
             {
                 test_process_close_account_multisig(
                     program_id,
@@ -535,7 +535,7 @@ fn inner_process_instruction(
         10 => {
             if accounts.len() >= 4
                 && accounts[2].data_len() == Multisig::LEN
-                && accounts[2].owner() == &crate::id()
+                && accounts[2].owner == &crate::id()
             {
                 test_process_freeze_account_multisig(
                     program_id,
@@ -554,7 +554,7 @@ fn inner_process_instruction(
         11 => {
             if accounts.len() >= 4
                 && accounts[2].data_len() == Multisig::LEN
-                && accounts[2].owner() == &crate::id()
+                && accounts[2].owner == &crate::id()
             {
                 test_process_thaw_account_multisig(
                     program_id,
@@ -573,7 +573,7 @@ fn inner_process_instruction(
         12 => {
             if accounts.len() >= 5
                 && accounts[3].data_len() == Multisig::LEN
-                && accounts[3].owner() == &crate::id()
+                && accounts[3].owner == &crate::id()
             {
                 test_process_transfer_checked_multisig(
                     program_id,
@@ -592,7 +592,7 @@ fn inner_process_instruction(
         13 => {
             if accounts.len() >= 5
                 && accounts[3].data_len() == Multisig::LEN
-                && accounts[3].owner() == &crate::id()
+                && accounts[3].owner == &crate::id()
             {
                 test_process_approve_checked_multisig(
                     program_id,
@@ -611,7 +611,7 @@ fn inner_process_instruction(
         14 => {
             if accounts.len() >= 4
                 && accounts[2].data_len() == Multisig::LEN
-                && accounts[2].owner() == &crate::id()
+                && accounts[2].owner == &crate::id()
             {
                 test_process_mint_to_checked_multisig(
                     program_id,
@@ -630,7 +630,7 @@ fn inner_process_instruction(
         15 => {
             if accounts.len() >= 4
                 && accounts[2].data_len() == Multisig::LEN
-                && accounts[2].owner() == &crate::id()
+                && accounts[2].owner == &crate::id()
             {
                 test_process_burn_checked_multisig(
                     program_id,
@@ -743,7 +743,7 @@ fn inner_process_instruction(
                     Account::LEN => {
                         if accounts.len() >= 4
                             && accounts[2].data_len() == Multisig::LEN
-                            && accounts[2].owner() == &crate::id()
+                            && accounts[2].owner == &crate::id()
                         {
                             test_process_withdraw_excess_lamports_account_multisig(
                                 program_id,
@@ -761,7 +761,7 @@ fn inner_process_instruction(
                     Mint::LEN => {
                         if accounts.len() >= 4
                             && accounts[2].data_len() == Multisig::LEN
-                            && accounts[2].owner() == &crate::id()
+                            && accounts[2].owner == &crate::id()
                         {
                             test_process_withdraw_excess_lamports_mint_multisig(
                                 program_id,
@@ -779,7 +779,7 @@ fn inner_process_instruction(
                     Multisig::LEN => {
                         if accounts.len() >= 4
                             && accounts[2].data_len() == Multisig::LEN
-                            && accounts[2].owner() == &crate::id()
+                            && accounts[2].owner == &crate::id()
                         {
                             test_process_withdraw_excess_lamports_multisig_multisig(
                                 program_id,
@@ -1805,16 +1805,16 @@ fn test_process_transfer_checked_multisig(
     } else if !src_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount));
         return result;
-    } else if accounts[0] != accounts[2] && dst_initialised.is_err() {
+    } else if accounts[0].key != accounts[2].key && dst_initialised.is_err() {
         assert_eq!(result, Err(ProgramError::InvalidAccountData));
         return result;
-    } else if accounts[0] != accounts[2] && !dst_initialised.unwrap() {
+    } else if accounts[0].key != accounts[2].key && !dst_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount));
         return result;
     } else if get_account(&accounts[0]).account_state().unwrap() == AccountState::Frozen {
         assert_eq!(result, Err(ProgramError::Custom(17)));
         return result;
-    } else if accounts[0] != accounts[2]
+    } else if accounts[0].key != accounts[2].key
         && get_account(&accounts[2]).account_state().unwrap() == AccountState::Frozen
     {
         assert_eq!(result, Err(ProgramError::Custom(17)));
@@ -1822,7 +1822,7 @@ fn test_process_transfer_checked_multisig(
     } else if src_initial_amount < amount {
         assert_eq!(result, Err(ProgramError::Custom(1)));
         return result;
-    } else if accounts[0] != accounts[2]
+    } else if accounts[0].key != accounts[2].key
         && get_account(&accounts[0]).mint() != get_account(&accounts[2]).mint()
     {
         assert_eq!(result, Err(ProgramError::Custom(3)));
@@ -1839,12 +1839,12 @@ fn test_process_transfer_checked_multisig(
     } else if !mint_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount));
         return result;
-    } else if instruction_data[8] != get_mint(&accounts[1]).decimals {
+    } else if instruction_data[8] != get_mint(&accounts[1]).decimals() {
         assert_eq!(result, Err(ProgramError::Custom(18)));
         return result;
     } else {
         let tx_signers: &[AccountInfo] = &accounts[4..];
-        if old_src_delgate == Some(*accounts[3].key()) {
+        if old_src_delgate == Some(*accounts[3].key) {
             // Because of the above if, there is a duplicated check in the following
             // function Validate Owner
             inner_test_validate_owner(
@@ -1872,17 +1872,17 @@ fn test_process_transfer_checked_multisig(
 
         let src_new = get_account(&accounts[0]);
 
-        if (accounts[0] == accounts[2] || amount == 0)
-            && accounts[0].owner() != &crate::id()
+        if (accounts[0].key == accounts[2].key || amount == 0)
+            && accounts[0].owner != &crate::id()
         {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId));
             return result;
-        } else if (accounts[0] == accounts[2] || amount == 0)
-            && accounts[2].owner() != &crate::id()
+        } else if (accounts[0].key == accounts[2].key || amount == 0)
+            && accounts[2].owner != &crate::id()
         {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId));
             return result;
-        } else if accounts[0] != accounts[2] && amount != 0 {
+        } else if accounts[0].key != accounts[2].key && amount != 0 {
             if src_new.is_native() && src_initial_lamports < amount {
                 // Not sure how to fund native mint
                 assert_eq!(result, Err(ProgramError::Custom(14)));
@@ -1907,7 +1907,7 @@ fn test_process_transfer_checked_multisig(
 
         assert!(result.is_ok());
         // Delegate updates
-        if old_src_delgate == Some(*accounts[3].key()) && accounts[0] != accounts[2] {
+        if old_src_delgate == Some(*accounts[3].key) && accounts[0].key != accounts[2].key {
             assert_eq!(src_new.delegated_amount(), old_src_delgated_amount - amount);
             if old_src_delgated_amount - amount == 0 {
                 assert_eq!(src_new.delegate(), None);
