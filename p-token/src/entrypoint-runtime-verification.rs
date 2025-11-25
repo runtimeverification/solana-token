@@ -1064,7 +1064,7 @@ pub fn test_process_transfer(
     {
         assert_eq!(result, Err(ProgramError::Custom(17)));
         return result;
-    } else if src_initial_amount < amount {
+    } else if src_initial_amount < amount { // **
         assert_eq!(result, Err(ProgramError::Custom(1)));
         return result;
     } else if accounts[0] != accounts[1]
@@ -1112,7 +1112,7 @@ pub fn test_process_transfer(
         } else if accounts[0] != accounts[1]
             && amount != 0
             && src_new.is_native()
-            && src_initial_lamports < amount
+            && src_initial_lamports < amount // *
         {
             // Not sure how to fund native mint
             assert_eq!(result, Err(ProgramError::Custom(14)));
@@ -1125,16 +1125,22 @@ pub fn test_process_transfer(
             // Not sure how to fund native mint
             assert_eq!(result, Err(ProgramError::Custom(14)));
             return result;
+        } else if accounts[0] != accounts[1]
+            && amount != 0
+            && u64::MAX - amount < dst_initial_amount // destination amount overflowed ***
+        {
+            assert_eq!(result, Err(ProgramError::Custom(14)));
+            return result;
         } else if accounts[0] != accounts[1] && amount != 0 {
-            assert_eq!(src_new.amount(), src_initial_amount - amount);
+            assert_eq!(src_new.amount(), src_initial_amount - amount); // OK **
             assert_eq!(
                 get_account(&accounts[1]).amount(),
-                dst_initial_amount + amount
+                dst_initial_amount + amount // new check ***
             );
 
-            if src_new.is_native() {
-                assert_eq!(accounts[0].lamports(), src_initial_lamports - amount);
-                assert_eq!(accounts[1].lamports(), dst_initial_lamports + amount);
+            if src_new.is_native() { // lamports == amount?
+                assert_eq!(accounts[0].lamports(), src_initial_lamports - amount); // OK *
+                assert_eq!(accounts[1].lamports(), dst_initial_lamports + amount); // unchecked
             }
         }
 
