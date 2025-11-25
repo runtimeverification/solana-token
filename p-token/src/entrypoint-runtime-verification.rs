@@ -1553,6 +1553,12 @@ pub fn test_process_burn(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]
     let mint_owner = *accounts[1].owner();
     let maybe_multisig_is_initialised = None; // Value set to `None` since authority is an account
 
+    // establishing some assumed invariants: mint.supply() >= account.amount(), account.amount() >= account.delegated_amount()
+    // otherwise processing could lead to overflows, see *** and processor::shared::burn,L83
+    if !(src_init_amount <= mint_init_supply && old_src_delgated_amount <= src_init_amount) {
+        return Err(ProgramError::ArithmeticOverflow)
+    }
+
     //-Process Instruction-----------------------------------------------------
     let result = process_burn(accounts, instruction_data);
 
@@ -1616,12 +1622,12 @@ pub fn test_process_burn(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]
         } else {
             let src_new = get_account(&accounts[0]);
             assert!(src_new.amount() == src_init_amount - amount);
-            assert!(get_mint(&accounts[1]).supply() == mint_init_supply - amount);
+            assert!(get_mint(&accounts[1]).supply() == mint_init_supply - amount); // ***
             assert!(result.is_ok());
 
             // Delegate updates
             if old_src_delgate.is_some() && *accounts[2].key() == old_src_delgate.unwrap() {
-                assert_eq!(src_new.delegated_amount(), old_src_delgated_amount - amount);
+                assert_eq!(src_new.delegated_amount(), old_src_delgated_amount - amount); // ***
                 if old_src_delgated_amount - amount == 0 {
                     assert_eq!(src_new.delegate(), None);
                 }
