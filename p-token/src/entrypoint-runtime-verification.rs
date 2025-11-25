@@ -1017,6 +1017,7 @@ pub fn test_process_transfer(
 
     cheatcode_is_account(&accounts[0]);
     cheatcode_is_account(&accounts[1]);
+    cheatcode_is_account(&accounts[2]); // Excluding the multisig case
 
     //-Initial State-----------------------------------------------------------
     let src_old = get_account(&accounts[0]);
@@ -1325,6 +1326,7 @@ pub fn test_process_mint_to(
 
     cheatcode_is_mint(&accounts[0]);
     cheatcode_is_account(&accounts[1]);
+    cheatcode_is_account(&accounts[2]); // Excluding the multisig case
 
     //-Initial State-----------------------------------------------------------
     let mint_old = get_mint(&accounts[0]);
@@ -1534,6 +1536,7 @@ pub fn test_process_burn(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]
 
     cheatcode_is_account(&accounts[0]);
     cheatcode_is_mint(&accounts[1]);
+    cheatcode_is_account(&accounts[2]); // Excluding the multisig case
 
     //-Initial State-----------------------------------------------------------
     let src_old = get_account(&accounts[0]);
@@ -1760,6 +1763,7 @@ pub fn test_process_close_account(accounts: &[AccountInfo; 3]) -> ProgramResult 
 
     cheatcode_is_account(&accounts[0]);
     cheatcode_is_account(&accounts[1]);
+    cheatcode_is_account(&accounts[2]); // Excluding the multisig case
 
     //-Initial State-----------------------------------------------------------
     let src_old = get_account(&accounts[0]);
@@ -1916,6 +1920,7 @@ pub fn test_process_transfer_checked(
     cheatcode_is_account(&accounts[0]);
     cheatcode_is_mint(&accounts[1]);
     cheatcode_is_account(&accounts[2]);
+    cheatcode_is_account(&accounts[3]); // Excluding the multisig case
 
     //-Initial State-----------------------------------------------------------
     let src_old = get_account(&accounts[0]);
@@ -2240,6 +2245,7 @@ pub fn test_process_burn_checked(
 
     cheatcode_is_account(&accounts[0]);
     cheatcode_is_mint(&accounts[1]);
+    cheatcode_is_account(&accounts[2]); // Excluding the multisig case
 
     //-Initial State-----------------------------------------------------------
     let src_old = get_account(&accounts[0]);
@@ -2797,6 +2803,7 @@ fn test_process_approve(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8])
 
     cheatcode_is_account(&accounts[0]); // Source Account
     cheatcode_is_account(&accounts[1]); // Delegate
+    cheatcode_is_account(&accounts[2]); // Excluding the multisig case
 
     //-Initial State-----------------------------------------------------------
     let src_old = get_account(&accounts[0]);
@@ -3019,6 +3026,7 @@ fn test_process_set_authority_account(
     use pinocchio_token_interface::state::account_state;
 
     cheatcode_is_account(&accounts[0]); // Assume Account
+    cheatcode_is_account(&accounts[1]); // Excluding the multisig case
 
     //-Initial State-----------------------------------------------------------
     let src_old = get_account(&accounts[0]);
@@ -3476,6 +3484,7 @@ fn test_process_freeze_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
 
     cheatcode_is_account(&accounts[0]);
     cheatcode_is_mint(&accounts[1]);
+    cheatcode_is_account(&accounts[2]); // Excluding the multisig case
 
     //-Initial State-----------------------------------------------------------
     let src_old = get_account(&accounts[0]);
@@ -3615,6 +3624,7 @@ fn test_process_thaw_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
 
     cheatcode_is_account(&accounts[0]);
     cheatcode_is_mint(&accounts[1]);
+    cheatcode_is_account(&accounts[2]); // Excluding the multisig case
 
     //-Initial State-----------------------------------------------------------
     let src_old = get_account(&accounts[0]);
@@ -3759,6 +3769,7 @@ fn test_process_approve_checked(
     cheatcode_is_account(&accounts[0]); // Source Account
     cheatcode_is_mint(&accounts[1]); // Expected Mint
     cheatcode_is_account(&accounts[2]); // Delegate
+    cheatcode_is_account(&accounts[3]); // Excluding the multisig case
 
     //-Initial State-----------------------------------------------------------
     let src_old = get_account(&accounts[0]);
@@ -3903,6 +3914,7 @@ fn test_process_mint_to_checked(
 
     cheatcode_is_mint(&accounts[0]);
     cheatcode_is_account(&accounts[1]);
+    cheatcode_is_account(&accounts[2]); // Excluding the multisig case
 
     //-Initial State-----------------------------------------------------------
     let mint_old = get_mint(&accounts[0]);
@@ -4408,6 +4420,7 @@ fn test_process_ui_amount_to_amount(
 fn test_process_withdraw_excess_lamports_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
     cheatcode_is_account(&accounts[0]); // Source Account
     cheatcode_is_account(&accounts[1]); // Destination
+    cheatcode_is_account(&accounts[2]); // Excluding the multisig case
 
     //-Initial State-----------------------------------------------------------
     let src_old = get_account(&accounts[0]);
@@ -4558,6 +4571,7 @@ fn test_process_withdraw_excess_lamports_account_multisig(
 fn test_process_withdraw_excess_lamports_mint(accounts: &[AccountInfo; 3]) -> ProgramResult {
     cheatcode_is_mint(&accounts[0]); // Source Account (Mint)
     cheatcode_is_account(&accounts[1]); // Destination
+    cheatcode_is_account(&accounts[2]); // Excluding the multisig case
 
     //-Initial State-----------------------------------------------------------
     let src_old = get_mint(&accounts[0]);
@@ -4708,6 +4722,7 @@ fn test_process_withdraw_excess_lamports_mint_multisig(
 fn test_process_withdraw_excess_lamports_multisig(accounts: &[AccountInfo; 3]) -> ProgramResult {
     cheatcode_is_multisig(&accounts[0]); // Source Account (Multisig)
     cheatcode_is_account(&accounts[1]); // Destination
+    cheatcode_is_account(&accounts[2]); // Excluding the multisig case
 
     //-Initial State-----------------------------------------------------------
     let src_data_len = accounts[0].data_len();
