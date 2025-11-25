@@ -1032,6 +1032,14 @@ pub fn test_process_transfer(
     let old_src_delgated_amount = src_old.delegated_amount();
     let maybe_multisig_is_initialised = None; // Value set to `None` since authority is an account
 
+    // WIP: check potential overflow in destination account before, skip entire execution if overflowing
+    if accounts[0] != accounts[1]
+            && amount != 0
+            && dst_initial_amount.checked_add(amount).is_none() // destination amount would overflow ***
+        {
+            return Err(ProgramError::Custom(14));
+        }
+
     //-Process Instruction-----------------------------------------------------
     let result = process_transfer(accounts, instruction_data);
 
@@ -1120,15 +1128,9 @@ pub fn test_process_transfer(
         } else if accounts[0] != accounts[1]
             && amount != 0
             && src_new.is_native()
-            && dst_initial_lamports.checked_add(amount).is_none() // overflow, u64::MAX - amount < dst_initial_lamports
+            && dst_initial_lamports.checked_add(amount).is_none() // **** overflow, u64::MAX - amount < dst_initial_lamports
         {
             // Not sure how to fund native mint
-            assert_eq!(result, Err(ProgramError::Custom(14)));
-            return result;
-        } else if accounts[0] != accounts[1]
-            && amount != 0
-            && dst_initial_amount.checked_add(amount).is_none() // u64::MAX - amount < dst_initial_amount // destination amount overflowed ***
-        {
             assert_eq!(result, Err(ProgramError::Custom(14)));
             return result;
         }
@@ -1139,12 +1141,12 @@ pub fn test_process_transfer(
             assert_eq!(src_new.amount(), src_initial_amount - amount); // OK **
             assert_eq!(
                 get_account(&accounts[1]).amount(),
-                dst_initial_amount + amount // new check ***
+                dst_initial_amount + amount // overflow checked before  process_transfer ***
             );
 
             if src_new.is_native() { // lamports == amount?
                 assert_eq!(accounts[0].lamports(), src_initial_lamports - amount); // OK *
-                assert_eq!(accounts[1].lamports(), dst_initial_lamports + amount); // unchecked?
+                assert_eq!(accounts[1].lamports(), dst_initial_lamports + amount); // OK ****
             }
         }
 
