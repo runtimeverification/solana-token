@@ -1168,7 +1168,7 @@ fn test_process_initialize_multisig(
     let instruction_data: &[u8; 1] = instruction_data.last_chunk().unwrap();
 
                                                           // ^ FIXME: totally arbitrary for the tests
-    // cheatcode_is_spl_multisig(&accounts[0]);
+    cheatcode_is_spl_multisig(&accounts[0]);
     cheatcode_is_spl_rent(&accounts[1]);
     cheatcode_is_spl_account(&accounts[2]); // Signer
     cheatcode_is_spl_account(&accounts[3]); // Signer
@@ -4121,7 +4121,7 @@ fn test_process_withdraw_excess_lamports_multisig_multisig(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 0] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_multisig(&accounts[0]); // Source Account (Multisig)
+    cheatcode_is_spl_multisig(&accounts[0]); // Source Account (Multisig)
     cheatcode_is_spl_account(&accounts[1]); // Destination
     cheatcode_is_spl_multisig(&accounts[2]); // Authority
 
@@ -4413,7 +4413,7 @@ fn test_process_initialize_multisig2(
     let instruction_data: &[u8; 1] = instruction_data.last_chunk().unwrap();
 
                                                            // ^ FIXME: totally arbitrary for the tests
-    // cheatcode_is_spl_multisig(&accounts[0]);
+    cheatcode_is_spl_multisig(&accounts[0]);
     cheatcode_is_spl_account(&accounts[1]); // Signer
     cheatcode_is_spl_account(&accounts[2]); // Signer
     cheatcode_is_spl_account(&accounts[3]); // Signer
@@ -5204,7 +5204,7 @@ fn test_process_withdraw_excess_lamports_multisig(
     let instruction_data_with_discriminator = &instruction_data.clone();
     let instruction_data: &[u8; 0] = instruction_data.last_chunk().unwrap();
 
-    // cheatcode_is_spl_multisig(&accounts[0]); // Source Account (Multisig)
+    cheatcode_is_spl_multisig(&accounts[0]); // Source Account (Multisig)
     cheatcode_is_spl_account(&accounts[1]); // Destination
     cheatcode_is_spl_account(&accounts[2]); // Authority
 
