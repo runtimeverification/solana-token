@@ -1339,8 +1339,9 @@ pub fn test_process_mint_to(
     #[cfg(feature = "assumptions")]
     {
         // Do not execute if adding to the account balance would overflow.
-        // shared::mint_to.rs,L68 is based on the assumption that initial_amount <= mint.supply
-        // and therefore cannot overflow because the minting itself would already error out.
+        // shared::mint_to.rs,L68 is based on the assumption that initial_amount <=
+        // mint.supply and therefore cannot overflow because the minting itself
+        // would already error out.
         let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
         if initial_amount.checked_add(amount).is_none() {
             return Err(ProgramError::Custom(99));
@@ -3946,8 +3947,9 @@ fn test_process_mint_to_checked(
     #[cfg(feature = "assumptions")]
     {
         // Do not execute if adding to the account balance would overflow.
-        // shared::mint_to.rs,L68 is based on the assumption that initial_amount <= mint.supply
-        // and therefore cannot overflow because the minting itself would already error out.
+        // shared::mint_to.rs,L68 is based on the assumption that initial_amount <=
+        // mint.supply and therefore cannot overflow because the minting itself
+        // would already error out.
         let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
         if initial_amount.checked_add(amount).is_none() {
             return Err(ProgramError::Custom(99));
