@@ -4486,7 +4486,7 @@ fn test_process_withdraw_excess_lamports_account(accounts: &[AccountInfo; 3]) ->
             assert_eq!(accounts[0].lamports(), minimum_balance);
             assert_eq!(
                 accounts[1].lamports(),
-                dst_init_lamports + src_init_lamports - minimum_balance
+                dst_init_lamports + (src_init_lamports - minimum_balance)
             );
             assert!(result.is_ok())
         }
@@ -4637,7 +4637,7 @@ fn test_process_withdraw_excess_lamports_mint(accounts: &[AccountInfo; 3]) -> Pr
             assert_eq!(accounts[0].lamports(), minimum_balance);
             assert_eq!(
                 accounts[1].lamports(),
-                dst_init_lamports + src_init_lamports - minimum_balance
+                dst_init_lamports + (src_init_lamports - minimum_balance)
             );
             assert!(result.is_ok())
         }
@@ -4779,7 +4779,7 @@ fn test_process_withdraw_excess_lamports_multisig(accounts: &[AccountInfo; 3]) -
         assert_eq!(accounts[0].lamports(), minimum_balance);
         assert_eq!(
             accounts[1].lamports(),
-            dst_init_lamports + src_init_lamports - minimum_balance
+            dst_init_lamports + (src_init_lamports - minimum_balance)
         );
         assert!(result.is_ok())
     }
