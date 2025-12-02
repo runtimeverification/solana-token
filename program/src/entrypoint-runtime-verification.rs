@@ -60,11 +60,17 @@ impl MintWrapper {
     }
 
     fn supply(&self) -> u64 {
-        self.0.as_ref().map(|m| m.supply).unwrap_or(0)
+        match &self.0 {
+            Ok(m) => m.supply,
+            Err(_) => 0,
+        }
     }
 
     fn decimals(&self) -> u8 {
-        self.0.as_ref().map(|m| m.decimals).unwrap_or(0)
+        match &self.0 {
+            Ok(m) => m.decimals,
+            Err(_) => 0,
+        }
     }
 }
 
@@ -86,34 +92,55 @@ impl AccountWrapper {
     }
 
     fn amount(&self) -> u64 {
-        self.0.as_ref().map(|a| a.amount).unwrap()
+        match &self.0 {
+            Ok(a) => a.amount,
+            Err(_) => panic!("AccountWrapper amount: underlying account missing"),
+        }
     }
 
     fn mint(&self) -> Pubkey {
-        self.0.as_ref().map(|a| a.mint).unwrap()
+        match &self.0 {
+            Ok(a) => a.mint,
+            Err(_) => panic!("AccountWrapper mint: underlying account missing"),
+        }
     }
 
     fn owner(&self) -> Pubkey {
-        self.0.as_ref().map(|a| a.owner).unwrap()
+        match &self.0 {
+            Ok(a) => a.owner,
+            Err(_) => panic!("AccountWrapper owner: underlying account missing"),
+        }
     }
 
     fn delegate(&self) -> Option<&Pubkey> {
-        match self.0.as_ref().unwrap().delegate.as_ref() {
-            solana_program_option::COption::None => None,
-            solana_program_option::COption::Some(delegate) => Some(delegate),
+        match &self.0 {
+            Ok(a) => match a.delegate.as_ref() {
+                solana_program_option::COption::None => None,
+                solana_program_option::COption::Some(delegate) => Some(delegate),
+            },
+            Err(_) => None,
         }
     }
 
     fn delegated_amount(&self) -> u64 {
-        self.0.as_ref().map(|a| a.delegated_amount).unwrap()
+        match &self.0 {
+            Ok(a) => a.delegated_amount,
+            Err(_) => panic!("AccountWrapper delegated_amount: underlying account missing"),
+        }
     }
 
     fn account_state(&self) -> Result<AccountState, ProgramError> {
-        self.0.as_ref().map(|a| a.state).map_err(|e| e.clone())
+        match &self.0 {
+            Ok(a) => Ok(a.state),
+            Err(e) => Err(e.clone()),
+        }
     }
 
     fn is_native(&self) -> bool {
-        self.0.as_ref().map(|a| a.is_native.is_some()).unwrap()
+        match &self.0 {
+            Ok(a) => a.is_native.is_some(),
+            Err(_) => false,
+        }
     }
 
     fn native_amount(&self) -> Option<u64> {
@@ -178,11 +205,17 @@ impl MultisigWrapper {
     }
 
     fn m(&self) -> u8 {
-        self.0.as_ref().map(|m| m.m).unwrap_or(0) // FIXME: Change to stright unwrap?
+        match &self.0 {
+            Ok(m) => m.m,
+            Err(_) => 0,
+        }
     }
 
     fn n(&self) -> u8 {
-        self.0.as_ref().map(|m| m.n).unwrap_or(0)
+        match &self.0 {
+            Ok(m) => m.n,
+            Err(_) => 0,
+        }
     }
 }
 
