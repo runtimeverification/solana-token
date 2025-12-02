@@ -2845,16 +2845,6 @@ fn test_process_mint_to(
         }
     }
 
-    #[cfg(feature = "assumptions")]
-    {
-        // Skip cases that would overflow the destination balance assuming total supply fits in u64
-        let amount =
-            u64::from_le_bytes([instruction_data[0], instruction_data[1], instruction_data[2], instruction_data[3], instruction_data[4], instruction_data[5], instruction_data[6], instruction_data[7]]);
-        if initial_amount.checked_add(amount).is_none() {
-            return Err(ProgramError::Custom(99));
-        }
-    }
-
     //-Process Instruction-----------------------------------------------------
     let result = Processor::process(program_id, accounts, instruction_data_with_discriminator);
 
