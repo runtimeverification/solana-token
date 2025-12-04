@@ -14,9 +14,8 @@ pub fn process_transfer(
     amount: u64,
     expected_decimals: Option<u8>,
 ) -> ProgramResult {
-    // Accounts expected depend on whether we have the mint `decimals` or not; when
-    // we have the mint `decimals`, we expect the mint account to be present.
 
+    // VALIDATE NUMBER OF ACCOUNTS TO LOAD
     let (
         source_account_info,
         expected_mint_info,
@@ -51,10 +50,9 @@ pub fn process_transfer(
         )
     };
 
-    // Validates source and destination accounts.
+    // VALIDATE SOURCE TOKEN ACCOUNT STRUCTURE
 
-    // SAFETY: single mutable borrow to `source_account_info` account data and
-    // `load_mut` validates that the account is initialized.
+    // SAFETY: single mutable borrow to `source_account_info` account data and `load_mut` validates that the account is initialized.
     let source_account =
         unsafe { load_mut::<Account>(source_account_info.borrow_mut_data_unchecked())? };
 
@@ -63,19 +61,10 @@ pub fn process_transfer(
     // raw pointer.
     let self_transfer = source_account_info == destination_account_info;
 
-    // Implicitly validates that the account has enough tokens by calculating the
-    // remaining amount - the amount is only updated on the account if the transfer
-    // is successful.
-    //
-    // Note: the logic is partially duplicated for self transfers and transfers
-    // to different accounts to improve CU consumption:
-    //
-    //   - self-transfer: we only need to check that the source account is not
-    //     frozen and has enough tokens.
-    //
-    //   - transfers to different accounts: we need to check that the source and
-    //     destination accounts are not frozen, have the same mint, and the source
-    //     account has enough tokens.
+    // VALIDATE ACCOUNT FROZENNESS
+    // VALIDATE FUND SUFFICIENCY
+    // VALIDATE DESTINATION TOKEN ACCOUNT STRUCTURE
+    // VALIDATE TOKEN TYPE MATCH
     let remaining_amount = if self_transfer {
         if source_account.is_frozen()? {
             return Err(TokenError::AccountFrozen.into());
@@ -86,9 +75,7 @@ pub fn process_transfer(
             .checked_sub(amount)
             .ok_or(TokenError::InsufficientFunds)?
     } else {
-        // SAFETY: scoped immutable borrow to `destination_account_info` account data
-        // and `load` validates that the account is initialized; additionally,
-        // the account is guaranteed to be different than `source_account_info`.
+        // SAFETY: scoped immutable borrow to `destination_account_info` account data and `load` validates that the account is initialized; additionally, the account is guaranteed to be different than `source_account_info`.
         let destination_account =
             unsafe { load::<Account>(destination_account_info.borrow_data_unchecked())? };
 
@@ -108,15 +95,15 @@ pub fn process_transfer(
         remaining_amount
     };
 
-    // Validates the mint information.
-
+    // VALIDATE MINT KEY
+    // VALIDATE MINT ACCOUNT STRUCTURE
+    // VALIDATE EXPECTED DECIMALS
     if let Some((mint_info, decimals)) = expected_mint_info {
         if mint_info.key() != &source_account.mint {
             return Err(TokenError::MintMismatch.into());
         }
 
-        // SAFETY: single immutable borrow of `mint_info` account data and
-        // `load` validates that the mint is initialized.
+        // SAFETY: single immutable borrow of `mint_info` account data and `load` validates that the mint is initialized.
         let mint = unsafe { load::<Mint>(mint_info.borrow_data_unchecked())? };
 
         if decimals != mint.decimals {
@@ -124,8 +111,7 @@ pub fn process_transfer(
         }
     }
 
-    // Validates the authority (delegate or owner).
-
+    // VALIDATE TRANSFER AUTHORITY
     if source_account.delegate() == Some(authority_info.key()) {
         // SAFETY: `authority_info` is not currently borrowed.
         unsafe { validate_owner(authority_info.key(), authority_info, remaining)? };
@@ -147,25 +133,22 @@ pub fn process_transfer(
         unsafe { validate_owner(&source_account.owner, authority_info, remaining)? };
     }
 
+    // VALIDATE TOKEN ACCOUNT OWNERSHIP (IN NON-SELF-TRANSFER CASE, RUNTIME AUTOMATICALLY CHECKS
+    // ACCOUNT OWNERSHIP BY WRITES TO THE LAMPORTS FIELD)
+    // PERFORM CUSTOM TRANSFER
+    // IF NATIVE, PERFORM NATIVE TRANSFER
     if self_transfer || amount == 0 {
-        // Validates the token accounts owner since we are not writing
-        // to these account.
+        // Validates the token accounts owner since we are not writing to these account.
         check_account_owner(source_account_info)?;
         check_account_owner(destination_account_info)?;
     } else {
-        // Moves the tokens.
-
         source_account.set_amount(remaining_amount);
 
-        // SAFETY: single mutable borrow to `destination_account_info` account data; the
-        // account is guaranteed to be initialized and different than
-        // `source_account_info`; it was also already validated to be a token
-        // account.
+        // SAFETY: single mutable borrow to `destination_account_info` account data; the account is guaranteed to be initialized and different than `source_account_info`; it was also already validated to be a token account.
         let destination_account = unsafe {
             load_mut_unchecked::<Account>(destination_account_info.borrow_mut_data_unchecked())?
         };
-        // Note: The amount of a token account is always within the range of the
-        // mint supply (`u64`).
+        // Note: The amount of a token account is always within the range of the mint supply (`u64`).
         destination_account.set_amount(destination_account.amount() + amount);
 
         if source_account.is_native() {
@@ -175,9 +158,7 @@ pub fn process_transfer(
                 .checked_sub(amount)
                 .ok_or(TokenError::Overflow)?;
 
-            // SAFETY: single mutable borrow to `destination_account_info` lamports; the
-            // account is already validated to be different from
-            // `source_account_info`.
+            // SAFETY: single mutable borrow to `destination_account_info` lamports; the account is already validated to be different from `source_account_info`.
             let destination_lamports =
                 unsafe { destination_account_info.borrow_mut_lamports_unchecked() };
             *destination_lamports = destination_lamports
@@ -188,3 +169,17 @@ pub fn process_transfer(
 
     Ok(())
 }
+
+    // VALIDATE NUMBER OF ACCOUNTS TO LOAD
+    // VALIDATE SOURCE TOKEN ACCOUNT STRUCTURE
+    // VALIDATE ACCOUNT FROZENNESS
+    // VALIDATE FUND SUFFICIENCY
+    // VALIDATE DESTINATION TOKEN ACCOUNT STRUCTURE
+    // VALIDATE TOKEN TYPE MATCH
+    // VALIDATE MINT KEY
+    // VALIDATE MINT ACCOUNT STRUCTURE
+    // VALIDATE EXPECTED DECIMALS
+    // VALIDATE TRANSFER AUTHORITY
+    // VALIDATE TOKEN ACCOUNT OWNERSHIP (IN NON-SELF-TRANSFER CASE, RUNTIME AUTOMATICALLY CHECKS
+    // PERFORM CUSTOM TRANSFER
+    // IF NATIVE, PERFORM NATIVE TRANSFER

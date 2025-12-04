@@ -14,35 +14,37 @@ const SYSTEM_PROGRAM_ID: Pubkey = pinocchio_pubkey::pubkey!("1111111111111111111
 #[repr(C)]
 pub struct Account {
     /// The mint associated with this account
-    pub mint: Pubkey,
+    pub mint: Pubkey,  // always aligned
 
     /// The owner of this account.
-    pub owner: Pubkey,
+    pub owner: Pubkey, // always aligned
 
     /// The amount of tokens this account holds.
-    amount: [u8; 8],
+    amount: [u8; 8],   // always aligned
 
     /// If `delegate` is `Some` then `delegated_amount` represents
     /// the amount authorized by the delegate.
-    delegate: COption<Pubkey>,
+    delegate: COption<Pubkey>, // always aligned because:
+                               // tag is byte-array
+                               // pubkey is byte-array
 
     /// The account's state.
-    state: u8,
+    state: u8,                 // always aligned
 
     /// Indicates whether this account represents a native token or not.
-    is_native: [u8; 4],
+    is_native: [u8; 4],        // always aligned
 
     /// If `is_native.is_some`, this is a native token, and the value logs the
     /// rent-exempt reserve. An Account is required to be rent-exempt, so
     /// the value is used by the Processor to ensure that wrapped SOL
     /// accounts do not drop below this threshold.
-    native_amount: [u8; 8],
+    native_amount: [u8; 8],    // always aligned
 
     /// The amount delegated.
-    delegated_amount: [u8; 8],
+    delegated_amount: [u8; 8], // always aligned
 
     /// Optional authority to close the account.
-    close_authority: COption<Pubkey>,
+    close_authority: COption<Pubkey>, // always aligned
 }
 
 impl Account {
