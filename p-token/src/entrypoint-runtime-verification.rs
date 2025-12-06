@@ -4504,7 +4504,7 @@ fn test_process_withdraw_excess_lamports_account(accounts: &[AccountInfo; 3]) ->
                 .checked_add(src_init_lamports - minimum_balance)
                 .is_none()
             {
-                assert_eq!(result, Err(ProgramError::Custom(0)));
+                assert_eq!(result, Err(ProgramError::Custom(14)));
                 return result;
             }
 
@@ -4658,7 +4658,7 @@ fn test_process_withdraw_excess_lamports_mint(accounts: &[AccountInfo; 3]) -> Pr
                 .checked_add(src_init_lamports - minimum_balance)
                 .is_none()
             {
-                assert_eq!(result, Err(ProgramError::Custom(0)));
+                assert_eq!(result, Err(ProgramError::Custom(14)));
                 return result;
             }
 
