@@ -1829,8 +1829,8 @@ pub fn test_process_close_account(accounts: &[AccountInfo; 3]) -> ProgramResult 
             dst_init_lamports + src_init_lamports
         );
         // assert_eq!(accounts[0].data_len(), 0); // TODO: More sol_memset stuff?
-        return result;
     }
+    result
 }
 
 /// accounts[0] // Source Info
@@ -4672,9 +4672,9 @@ fn test_process_withdraw_excess_lamports_mint(accounts: &[AccountInfo; 3]) -> Pr
                     .checked_add(src_init_lamports - minimum_balance)
                     .unwrap()
             );
-            return result;
         }
     }
+    result
 }
 
 /// accounts[0] // Source Account Info (Mint)
