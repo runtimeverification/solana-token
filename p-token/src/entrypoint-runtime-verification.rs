@@ -4668,12 +4668,13 @@ fn test_process_withdraw_excess_lamports_mint(accounts: &[AccountInfo; 3]) -> Pr
             assert_eq!(accounts[0].lamports(), minimum_balance);
             assert_eq!(
                 accounts[1].lamports(),
-                dst_init_lamports.checked_add(src_init_lamports - minimum_balance).unwrap()
+                dst_init_lamports
+                    .checked_add(src_init_lamports - minimum_balance)
+                    .unwrap()
             );
             return result;
         }
     }
-
 }
 
 /// accounts[0] // Source Account Info (Mint)
