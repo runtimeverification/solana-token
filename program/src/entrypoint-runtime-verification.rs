@@ -248,8 +248,11 @@ fn inner_test_validate_owner(
 
     if expected_owner != owner_account_info.key {
         assert_eq!(result, Err(ProgramError::Custom(4)));
-        result
-    } else if maybe_multisig_is_initialised.is_some()
+        return result;
+    }
+    // We add the `maybe_multisig_is_initialised.is_some()` to not branch vacuously in the
+    // non-multisig cases
+    else if maybe_multisig_is_initialised.is_some()
         && owner_account_info.data_len() == Multisig::LEN
         && owner_account_info.owner == &id()
     {
@@ -287,13 +290,15 @@ fn inner_test_validate_owner(
             return result;
         }
 
-        result
-    } else if !owner_account_info.is_signer {
-        assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
-        result
-    } else {
-        result
+        return Ok(());
     }
+    // Non-multisig case - check if owner_account_info.is_signer
+    else if !owner_account_info.is_signer {
+        assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+        return result;
+    }
+
+    Ok(())
 }
 
 // TODO: Not sure if these are needed since there is no UB like p-token
