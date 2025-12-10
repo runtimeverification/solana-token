@@ -113,107 +113,56 @@ A program _P_ _simulates_ a program _Q_ if and only if,
 Sometimes, we may not want to consider the entire set of possible operations/inputs for a program $P$, but only a subset of them.
 Given a program _P_ with operations/inputs $\Sigma$, define the _restriction_ of _P_ to $\Sigma_0\subseteq \Sigma$ (denoted $P|_{\Sigma_0}$) as a program with the same states and initial state as $P$, the set of operations/inputs $\Sigma_0$, where $P|_{\Sigma_0}$ contains the $P$-transition $a\overset{\sigma}{\rightarrow}b$ whenever $\sigma\in\Sigma_0$.
 
-### Symbolic Execution Primer
-
-Most programming systems focus on concrete execution.
-For example, suppose we have a stateful function:
-
-$f(X,Y)\ \{\ X := (3 + X) * (4 + Y)\ \}$
-
-that takes two variables and reassigns one of them.
-When performing concrete execution, we have to substitute each function parameter with a concrete value in order to execute the function.
-In other words, each function is executed from a _concrete_ state and returns a _concrete_ state.
-In this example, a state is just a tuple of numbers, e.g., a valid state could be $\{X\mapsto 5,\ Y\mapsto  2\}$.
-Then from this state we obtain the concrete execution:
-
-$f(5,2) \rightarrow X := (3 + 5) * (4 + 2) = 8 * 6 = 48$
-
-which returns a new concrete state: $\{X\mapsto 48,\ Y\mapsto  2\}$
-
-When doing symbolic execution, we can leave some variables uninstantiated.
-For example, we might have a state $\{Y\mapsto  2\}$.
-A state with some variables uninstantiated is _abstract_ and represents a possibly infinite family of states that share some common features.
-Evaluating a function symbolically on an abstract state returns a (possibly abstract) state:
-
-$f(X,2) \rightarrow X := (3 + X) * (4 + 2) = (3 + X) * 6 = 18 + 6X$
-
-In this case, the returned state is abstract and given by $\{X\mapsto 18 + 6X,\ Y\mapsto  2\}$
-
-But note that an abstract state is just another way of writing a state _predicate_!
-In the symbolic exeuction example above, we can write an equivalent initial state predicate with the syntax $Y = 2$, i.e., the predicate filters out all potential states where $Y \neq 2$.
-
 ### Formal Verification Methodology
 
 To verify that the P-Token program simulates the SPL Token program, we follow a particular formal verification methodology which breaks down the equivalence into a few parts.
-
-1. We manually prove that any valid SPL Token instruction format is also valid for P-Token.
-   This means that any P-Token instruction format is byte-for-byte compatible with SPL Token.
-
-2. For each SPL Token operation (e.g. Transfer, Mint, Burn, TransferChecked, etc...), we symbolically define all possible operation instances by representing instruction-embedded data as symbolic values (e.g., symbolic numbers, account keys, etc...).
-
-3. We formally model the state set of a Solana program $P$ as the set of finite maps from owned account keys to owned account values.
-   However, normal programs do not need to examine the `rent_epoch` or `executable` fields, so we can simple our finite map structure to $[Key \rightharpoonup (Lamports, Data)]$ where $Lamports=[0,2^{64})$ and $Data=[0,255]^*$.
-
-4. We manually derive and prove an inductive invariant $\Iota$ for _both_ SPL Token and P-Token.
-   This invariant is the union of the following properties:
-
-   1. the account formats for all SPL Token (resp. P-Token) owned accounts are either:
-      - fully zeroed out (when the account is uninitialized) or;
-      - correspond to an encoded and properly initialized Mint, Token Account, or Multisig.
-
-   2. the `lamports` field for all SPL Token (resp. P-Token) owned accounts is sufficient for rent exemption
-
-   3. for a given Mint, the sum of all Token Account balances for that Mint equals the Mint's supply
-
-   4. the `lamports` field for a native Token Account is greater than or equal to the Token Account's balance plus its rent exemption price.
-
-   Later, we will use $\Iota$ as an abstract starting state for symbolic execution that uniformly over-approximates both of their state sets.
-   
-5. Using our semantics-based symbolic execution engine, we symbolically execute both the SPL Token and P-Token program as follows:
-
-   - (a) for each abstract SPL Token operation, we perform a separate symbolic execution from our abstract starting state
-   - (b) for each terminating branch of our symbolic execution, we verify that:
-
-      1. the resulting abstract state is contained within our invariant;
-      2. the resulting abstract state is consistent with the instruction format in step (a).
-
-The entire process is depicted in the Figure 1 below:
-
-**TODO:** Update this figure to better fit the text above.
+We survey our overall methodology in Figure 1 below:
 
 ```
-┏━━━━━━━━━━━━━━━━━━━━━┓                 ┏━━━━━━━━━━━━━━━━━━━┓                
-┃ SPL Token Rust Code ┃                 ┃ P-Token Rust Code ┃
-┗━━━━━━━━━━━━━━━━━━━━━┛                 ┗━━━━━━━━━━━━━━━━━━━┛
-           🡻                                     🡻
-┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓
-┃                     KMIR Rust Compiler                    ┃
-┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛
-           🡻                                     🡻
-┏━━━━━━━━━━━━━━━━━━━━━┓                 ┏━━━━━━━━━━━━━━━━━━━┓                
-┃ SPL Token MIR Code  ┃                 ┃ P-Token MIR Code  ┃
-┗━━━━━━━━━━━━━━━━━━━━━┛                 ┗━━━━━━━━━━━━━━━━━━━┛
-           🡻                                     🡻
-┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓ 
-┃                       MIR Semantics                       ┃ 
-┃      ┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┓      ┃ 
-┃      ┃                  K Prover                   ┃      ┃
-┃      ┃       Symbolic Execution Proof Engine       ┃      ┃ 
-┃      ┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛      ┃ 
-┗━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┛ 
-           🡻                                     🡻
-┏━━━━━━━━━━━━━━━━━━━━━┓                 ┏━━━━━━━━━━━━━━━━━━━┓                
-┃   SPL Token State   ┃       ??        ┃   P-Token State   ┃
-┃     Transition      ┃   ━━━━━━━━━🡺   ┃    Transition     ┃
-┗━━━━━━━━━━━━━━━━━━━━━┛                 ┗━━━━━━━━━━━━━━━━━━━┛
+┏━━━━━━━━━━━━━━━━━━━━━┓               ┏━━━━━━━━━━━━━━━━━━━━━┓
+┃ SPL Token Rust Code ┃               ┃  P-Token Rust Code  ┃
+┗━━━━━━━━━━━━━━━━━━━━━┛               ┗━━━━━━━━━━━━━━━━━━━━━┛     Rust-to-K-MIR Compilation
+-----------🡻-------------------------------------🡻---------------------------------------
+┏━━━━━━━━━━━━━━━━━━━━━┓               ┏━━━━━━━━━━━━━━━━━━━━━┓
+┃ SPL Token MIR Code  ┃               ┃   P-Token MIR Code  ┃       MIR Program Interpreter
+┗━━━━━━━━━━━━━━━━━━━━━┛               ┗━━━━━━━━━━━━━━━━━━━━━┛    Generation via K Framework
+-----------🡻-------------------------------------🡻---------------------------------------
+┏━━━━━━━━━━━━━━━━━━━━━━┓              ┏━━━━━━━━━━━━━━━━━━━━━┓
+┃  SPL Token Concrete  ┃              ┃  P-Token Concrete   ┃            State Abstraction/
+┃    MIR Semantics     ┃              ┃    MIR Semantics    ┃               Reachable State 
+┗━━━━━━━━━━━━━━━━━━━━━━┛              ┗━━━━━━━━━━━━━━━━━━━━━┛            Over-Approximation 
+-----------🡻-------------------------------------🡻---------------------------------------
+┏━━━━━━━━━━━━━━━━━━━━━━┓              ┏━━━━━━━━━━━━━━━━━━━━━┓
+┃  SPL Token Symbolic  ┃              ┃  P-Token Symbolic   ┃   
+┃    MIR Semantics     ┃              ┃    MIR Semantics    ┃  Instruction Variant Specific         
+┗━━━━━━━━━━━━━━━━━━━━━━┛              ┗━━━━━━━━━━━━━━━━━━━━━┛            State Partitioning
+-----------🡻-------------------------------------🡻---------------------------------------
+┏━━━━━━━━━━━━━━━━━━━━━━┓              ┏━━━━━━━━━━━━━━━━━━━━━┓
+┃      SPL Token       ┃              ┃      P-Token        ┃
+|  Instruction Variant ┃              ┃ Instruction Variant ┃
+┃  Symb. MIR Semantics ┃              ┃ Symb. MIR Semantics ┃          
+┗━━━━━━━━━━━━━━━━━━━━━━┛              ┗━━━━━━━━━━━━━━━━━━━━━┛          Big-Step Abstraction
+-----------🡻-------------------------------------🡻---------------------------------------
+┏━━━━━━━━━━━━━━━━━━━━━━┓              ┏━━━━━━━━━━━━━━━━━━━━━┓
+┃      SPL Token       ┃              ┃      P-Token        ┃
+┃       Labeled        ┃  =========>  ┃      Labeled        ┃
+|  Transition System   ┃              ┃  Transition System  ┃
+┗━━━━━━━━━━━━━━━━━━━━━━┛              ┗━━━━━━━━━━━━━━━━━━━━━┛              Check Simulation
+-------------------------------------------------------------------------------------------
 
                            Figure 1.
                  Formal Verification Methodology
 ```
 
-We describe each of the key components below:
+There are many details to discuss, but, to summarize the entire process in a single sentence:
 
-1. KMIR Rust Compiler - a modified version of the Rust compiler that emits a simplified version of Rust code referred to as the Rust compiler's Mid-level Intermediate Representation (MIR) for use with the K symbolic proof engine; compared to standard Rust code, in MIR code:
+We perform a multi-phase abstraction of the SPL Token and P-Token programs that converts their Rust source into labeled transitions systems with identical states and identical labels where we can apply standard program simulation checks using standard equality as our state equivalence relation.
+
+Let us now break down the formal equivalence check methodology step-by-step:
+
+1. Compile Rust to MIR via KMIR Rust Compiler
+
+   We use a modified version of the Rust compiler that emits a simplified version of Rust code referred to as the Rust compiler's Mid-level Intermediate Representation (MIR) for use with the K symbolic proof engine; compared to standard Rust code, in MIR code:
 
    - all references to module items are fully qualified;
    - all generic items are fully [monomorphized](https://rustc-dev-guide.rust-lang.org/backend/monomorph.html);
@@ -231,31 +180,97 @@ We describe each of the key components below:
    - borrow checking
    - type layout and alignment
 
-2. MIR Semantics - a set of rules that defines how well-formed MIR programs behave; to conservatively over-approximate real implementations, our semantics will get stuck on undefined behaviors (in practice, the Rust compiler will choose some arbitrary behavior).
+2. Generate Program-Specific Concrete Semantics via $\mathbb{K}$ Formal Verification Framework + MIR Semantics
 
-3. K Prover - a symbolic execution-based prover that uses symbolic states and co-induction to reason about (a potentially infinite number of) program states and transitions in a finite amount of time[^limitations].
+   The $\mathbb{K}$ framework is a toolkit for designing and modeling any programming language (PL) and also for formally reasoning about programs in a particular language.
+   The $\mathbb{K}$ framework takes a formal PL semantics and generates a suite of correct-by-construction tools for that specific PL including:
 
-<!-- NOTE: This text is mostly subsumed by the text above the figure.
-     However, there is some details below that we might want to use above.
+   - a parser and unparser
+   - a concrete interpreter
+   - a symbolic execution engine and theorem prover
 
-Finally, we compare state transitions as follows:
+   In this step, we use our MIR semantics as an input to the $\mathbb{K}$ framework in order to a MIR interpreter.
+   For those unfamiliar with the idea, a program language semantics is a complete set of rules that defines precisely how well-formed MIR programs behave.
+   We then pass our MIR source programs as an input to the MIR interpreter and obtain a semantics for SPL Token and P-Token programs, i.e., program-specific interpreters which consume SPL Token/P-Token formatted byte strings as inputs and return a status code as an output.
 
-1. We partition the complete set of possible instruction formats into a finite (and small!) set $\{instr_i\}_i$ using symbolic constraints.
-3. For each instruction format instance $instr_i$, we partition the complete set of potential account format sequences that it can accept $\alpha_{(i,j)}=\{acct_{(i,j,0)},\cdots,acct_{(i,j,\#(i,j))}\}_{(i,j)}$ --- also using symbolic constraints where $\#(i,j)$ denotes the arity of the account format sequenced indexed by $(i,j)$.
-3. For each combination of an instruction format $instr_i$ and corresponding account sequence $\alpha_{(i,j)}$, we symbolically execute the SPL Token program and record its return code $ret_{(i,j)}$ and updated account set $\alpha'_{(i,j)}$.
+   The goal of this step is to precisely capture of the SPL Token and P-Token programs so that we can analyze them.
+   The correct-by-construction nature of these generated tools ensures _soundness_, i.e., if our semantics witness a particular state, then that state is reachable when we execute the actual program.
 
-<!-- 3.(b) We check that, if $ret_{(i,j)}$ is 0, then $\alpha'_{(i,j)}$ is a well-formed account format sequence. --<
+   Note that, in order conservatively over-approximate real implementations, a semantics will get stuck on undefined behaviors (while in practice, the Rust compiler will choose some arbitrary behavior).
 
-4. Finally, we repeat step (3) but with P-Token instead of SPL Token and verify that the returned status code and updated account set are equal to what the SPL Token produced.
+3. Generate Program-Specific Symbolic Semantics via State Abstraction/Reachable State Over-approximation
 
-Combined together, steps (1)-(4) prove that the P-Token program inductively simulates the SPL Token program. 
+   While examining the behavior of the program-specific formal semantics from step (2) might seem sufficient, we cannot be certain, when we execute them, that we will cover _all_ possible program states.
+   So in this step, we over-approximate the entire set of reachable program states using a constrained term and update our semantics to now perform execution symbolically beginning from this abstract state.
+   The goal of making this move is to ensure _completeness_, i.e., if the source programs can perform some behavior, than when we execute our symbolic semantics, we will be able to reproduce.
+   Note that, as part of this shift, we also rely on $\mathbb{K}$'s built-in theorem proving capabilities that let us use matching logic, co-induction, and SMT solvers to reason about (a potentially infinite number of) program states and transitions in a finite amount of time[^limitations].
 
-<!-- Note that step (4) is essential to prove that the simulation holds inductively, since otherwise, our partitioning of the complete set of account format sequences would be incomplete (i.e., we would need more cases to describe the complete set of account format sequences) --<
+4. Generate Program+Instruction-Variant-Specific Symbolic Semantics via State Partitioning
 
--->
+   While state abstraction alone ensures completeness of reasoning, it makes for very large and complex proofs.
+   To counteract this tendency, we perform a per-instruction-variant partitioning of the abstract state space.
+   In essense, after performing this partitioning, we obtain a per-instruction-variant-specific symbolic semantics for the SPL Token and P-Token programs that can only accept a that instruction variant (e.g., one variant only accepts `Transfer`s, one variant only accepts `InitializeAccount`, etc...).
+   As mentioned above, we don't gain any additional reasoning capabilities by making this move; this is purely _proof engineering_.
+   In essence, this is a form of _modularization_, and the payoffs exactly mirror those that we in broader software development world.
+
+5. Perform a Big-Step Semantics Style Abstraction
+
+   In this step, we apply a big-step semantics style abstraction to our semantics.
+   For those familiar with big-step style semantics, they evaluate a program, from its initial state to its final state, in one-shot.
+   By that we mean, the notion of intermediate states is entirely dropped.
+   Here, we view each execution of the SPL Token or P-Token program as just a quadruple that contains:
+
+   1. an input state (a set of program-owned accounts with certain keys, lamport balances, and data payloads)
+   2. a string of input instruction bytes
+   3. an unsigned 64-bit output status code
+   4. an output state (also a set of program-owned accounts with certain keys, lamport balances, and data payloads)
+
+   By concatenating items (2)-(3) together into a single item, we now have just what we need to construct a labelled transition system where:
+
+   - states are partial functions from account keys to pairs of lamport balances and data payloads;
+   - transitions are triples containing an input state, a label (which is a pair of an instruction format plus the return code obtained from executing that instruction format), and an output state.
+
+6. Check Simulation; Show When Provided Identical Pre-states/Inputs, Identical Post-States Reached
+   
+   Finally, to check that the P-Token program actually simulates the SPL Token program, we execute each instruction-specific semantics for SPL Token and P-Token from the same starting symbolic state with the same symbolic input.
+   We then verify that each exeuction reaches an identical set of symbolic output states.
+   This is equivalent to _batching_ the required P-Token-can-copy-SPL-Token-moves checks instead of checking that for each individual SPL-Token transition, we can find a corresponding individual P-Token transition.
+   In fact, without this batching, performing an exhaustive simulation check would be extremely difficult (if not impossible) on modern hardware.
 
 [^limitations]: Note that there is no free lunch and symbolic execution is not a panacea that can be trivially used to solve all verification problems. In certain cases, we must provide the execution engine
 with lemmas (in other words, hints) that help the execution engine make progress when it gets stuck.
+
+**TODO:** CLeanup detail section.
+
+Now that we have surveyed the entire equivalence check process, there are a few details that we need to fill in.
+We needed to prove the following lemmas by hand in order for the verification to work:
+
+1. We manually prove that any valid SPL Token instruction format is also valid for P-Token.
+   This means that any P-Token instruction format is byte-for-byte compatible with SPL Token.
+
+2. We manually derive and prove an inductive invariant $\Iota$ for _both_ SPL Token and P-Token and use this as our reachable state over-approximation.
+   This invariant is the union of the following properties:
+
+   1. The account formats for all SPL Token (resp. P-Token) owned accounts are either:
+
+      - fully zeroed out (when the account is uninitialized) or;
+      - correspond to an encoded and properly initialized Mint, Token Account, or Multisig.
+
+      An easy corollary of (1) is that the total set of states (ignoring reachability) that the SPL Token or P-Token program can take on are identical.
+
+   2. The `lamports` field for all SPL Token (resp. P-Token) owned accounts is sufficient for rent exemption
+
+   3. For a given Mint, the sum of all Token Account balances for that Mint equals the Mint's supply
+
+   4. The `lamports` field for a native Token Account is greater than or equal to the Token Account's balance plus its rent exemption price.
+
+Additionally, we now describe our state paritioning process in more detail:
+
+1. We partition the complete set of possible instruction formats into a finite (and small!) set $\{instr_i\}_i$ using symbolic constraints.
+
+2. For each instruction format instance $instr_i$, we partition the complete set of potential account format sequences that it can accept $\alpha_{(i,j)}=\left\{acct_{(i,j,0)},\cdots,acct_{(i,j,arity(i,j))}\right\}_{(i,j)}$ --- also using symbolic constraints where $arity(i,j)$ denotes the arity of the account format sequenced indexed by $(i,j)$.
+
+3. For each combination of an instruction format $instr_i$ and corresponding account sequence $\alpha_{(i,j)}$, we symbolically execute the SPL Token program and record its return code $ret_{(i,j)}$ and updated account set $\alpha'_{(i,j)}$.
 
 ## Introduction 
 
