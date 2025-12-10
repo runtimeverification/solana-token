@@ -240,7 +240,7 @@ Let us now break down the formal equivalence check methodology step-by-step:
 [^limitations]: Note that there is no free lunch and symbolic execution is not a panacea that can be trivially used to solve all verification problems. In certain cases, we must provide the execution engine
 with lemmas (in other words, hints) that help the execution engine make progress when it gets stuck.
 
-**TODO:** CLeanup detail section.
+**TODO:** Cleanup details below.
 
 Now that we have surveyed the entire equivalence check process, there are a few details that we need to fill in.
 We needed to prove the following lemmas by hand in order for the verification to work:
@@ -279,33 +279,63 @@ The Solana Programming Library (SPL) is a set of Solana-specific programs and li
 As the name indicates, the SPL Token Program contains the source code for a deployable program on Solana.
 Like other kinds of Solana programs, the SPL Token program has:
 
-1. a handful of potential data formats that can be stored in any account owned by the Token program;
-2. a handful of potential instruction formats.
+1. a handful of data format variant that can be stored in any account owned by the Token program;
+2. a handful of instruction format variants that instruct the program to perform various operations.
 
 We will describe these formats more fully below.
 
-As usage of the SPL Token Program increased, eventually, a compute-optimized version of the SPL Token Program was proposed in Solana Improvement Document (SIMD-0266) by febo and Jon Cinque. The idea: a program with byte-for-byte equivalent account and instruction formats that operates more efficiently, using less validator time, and thus permitting more instructions to be validated in a single slot.
+As usage of the SPL Token Program increased, eventually, a compute-optimized version of the SPL Token Program was proposed in Solana Improvement Document (SIMD-0266) by febo and Jon Cinque.
+The idea: a program with byte-for-byte equivalent account and instruction formats that operates more efficiently, using less validator time, and thus permitting more instructions to be validated in a single Solana slot.
 
-### SPL Token Account Format
+### SPL Token Account Format Variants
 
-1. Mint
-2. Account
-3. Multisig
+As discussed in the [Solana Programming Model](#solana-programming-model) section, the accounts that are owned by a particular program are used to store that program's state.
+However, recall that Solana does not have runtime-enforced type checking of values stored in an account's `data` field.
+Thus, determining what kinds of values a program permits saving as its owned account's `data` requires a careful reading of the program source code.
+To aid with this task, the SPL provides a few packages to aid in account manipulation:
 
-In the two versions of the program, we have different ways of parsing these forms of account data.
-In the original spl token implementation, there are explicit parsing functions.
-In the p-token implementation, byte strings are transmuted into Rust structs.
-In order to make this work, the transmutable p-token Rust structs:
+- solana-account-info - a data structure `AccountInfo` that represents the Solana account structure
+- solana-program-entrypoint - an entrypoint wrapper macro that parses all encoded Solana accounts and deserializes them into a slice of `AccountInfo`s and also extracts the instruction format
+- solana-program-pack - provides a `Pack` helper trait that can be used to de/serialize encoded values in the `data` field of `AccountInfo` that always checks length of the slice used as the de/serialization source/target.
 
-1. use values that always have 1 byte alignment;
-2. must ensure that borrows against the transmuted Rust structs are unique.
+By a quick scan of the source code, we see that:
+
+- a slice containing all `AccountInfo`s passed to the entrypoint are created by the solana-program-entrypoint package;
+- all `AccountInfo`s are accessed via the `next_account_info` iterator helper function;
+- all writes to `AccountInfo.data` occurs via a call to the `Pack` trait's `pack` function.
+
+Essentially, this means that, assuming that the solana-program-entrypoint package correctly initializes `AccountInfo` and the called `pack` implementations are consistent, then we know that only `pack`able data will be stored in accounts owned by the SPL Token program.
+
+From the above argumentation, we can determine that the account data format has the following variants (note that the data is densely packed, i.e., stored without any padding):
+
+1. Account (165 bytes)
+   - key of mint account (32 bytes)
+   - key of owner account (32 bytes)
+   - `u64` account balance (8 bytes) 
+   - optional key of delegate account (36 bytes - 4 bytes for option tag + 32 bytes for key)
+   - fieldless account state enumeration (1 byte)
+   - optional native rent exempt reserve amount (12 bytes - 4 bytes for option tag + 8 bytes for `u64` amount)
+   - `u64` amount authorized for delegate to spend (8 bytes)
+
+2. Mint (82 bytes)
+   - optional key of mint authority (36 bytes - 4 bytes for option tag + 32 bytes for key)
+   - `u64` total supply of all non-native minted tokens - (8 bytes)
+   - `u8` number of decimals for minted token units - (1 byte)
+   - `bool` initialized indicator - (1 byte)
+   - optional key for freeze authority (36 bytes - 4 bytes for option tag + 32 bytes for key)
+
+3. Multisig (355 bytes)
+   - `u8` number of signers required - (1 byte)
+   - `u8` number of valid signers - (1 byte)
+   - `bool` initialized indicator - (1 byte)
+   - `[Pubkey; 11]` fixed size valid signers array - (11 * 32 = 352 bytes)
 
 ### SPL Token Instruction Formats
 
-| Universal Failure Cases |
-| ---                     |
-| Input Too Short         |
-| Not Enough Accounts     |
+In a similar fashion to our previous analysis, we can the byte layout of instruction format variants.
+To do this, we examine the SPL Token program entrypoint and check how the instruction format is parsed.
+There is a single parser function that is called `TokenInstruction::unpack`.
+This parser function determines that the various instruction format variants have the following layouts:
 
 | Enum Tag | Enum Variant             | Associated Data                                           | Comment                                                   | Success Case |
 | ---      | ---                      | ---                                                       | ---                                                       | ---          |
@@ -334,6 +364,12 @@ In order to make this work, the transmutable p-token Rust structs:
 |  22      | InitializeImmutableOwner |                                                           |                                                           | 1            |
 |  23      | AmountToUiAmount         | u64                                                       |                                                           | 1            |
 |  24      | UiAmountToAmount         | &str                                                      |                                                           | 1            |
+
+Note that the P-Token program has two additional instruction format variants that SPL Token does not have.
+However, we will examine these further since they are not relevant for the equivalence proof.
+
+| Enum Tag | Enum Variant             | Associated Data                                           | Comment                                                   | Success Case |
+| ---      | ---                      | ---                                                       | ---                                                       | ---          |
 |  38      | WithdrawExcessLamports   |                                                           |                                                           | 1            |
 | 255      | Batch                    | (accts:u8,len:u8,len)*                                    |                                                           | N            |
 
@@ -343,6 +379,11 @@ In order to make this work, the transmutable p-token Rust structs:
 | 1        | FreezeAccount         |
 | 2        | AccountOwner          |
 | 3        | CloseAccount          |
+
+| Universal Failure Cases |
+| ---                     |
+| Input Too Short         |
+| Not Enough Accounts     |
 
 ## Proof Body
 
