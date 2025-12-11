@@ -366,7 +366,7 @@ This parser function determines that the various instruction format variants hav
 |  24      | UiAmountToAmount         | &str                                                      |                                                           | 1            |
 
 Note that the P-Token program has two additional instruction format variants that SPL Token does not have.
-However, we will examine these further since they are not relevant for the equivalence proof.
+However, we will not examine these further since they are not relevant for the equivalence proof.
 
 | Enum Tag | Enum Variant             | Associated Data                                           | Comment                                                   | Success Case |
 | ---      | ---                      | ---                                                       | ---                                                       | ---          |
@@ -385,22 +385,71 @@ However, we will examine these further since they are not relevant for the equiv
 | Input Too Short         |
 | Not Enough Accounts     |
 
-## Proof Body
+## Proof Body Overview
 
-Here, we provide an overview of the proof process in English by enumerating all of the instruction and account format sequences and their associated return codes and updated account sequences.
+Here, we provide an overview of the proof process in plain English; the actual automated proofs are contained in our proof script files which are further described in section **TODO:** Add section number.
+Instead, in this section, for each instruction format variant, for both the SPL Token and P-Token programs, we list:
 
-- Transfer
-  - Account1, Account2, Account3, ...
+1. the handler function for that instruction format variant;
+2. the the various checks and effects performed by that instruction variant handler function for both the SPL Token and P-Token programs.
 
-    Result is X.
+We can then compare the executed checks and effects and show that they agree.
 
-    Updated accounts are ...
+First, let's review the handler functions for each variant.
+In both the SPL Token and P-Token programs, these handler functions have a similar structure.
+They assume that the `AccountInfo` structs and instruction format variant have already been parsed from the `entrypoint()` `input` string.
+Then these handlers receive as input the entire slice of accounts parsed by the `entrypoint` function as well as any instruction format embedded data.
+This means, before one of these handlers is called, assuming the Solana runtime properly invokes the program entrypoint, then the only way that execution can fail is if an invalid instruction format variant is passed as input to the `entrypoint` function.
 
-  - Account1, Account2, Account3, ...
+| Instruction Variant      | SPL Token Handler                                             | P-Token Handler                                                                          |
+| ---                      | ---                                                           | ---                                                                                      |
+| InitializeMint           | program/src/processor.rs / process_initialize_mint            | program/src/processor/initialize_mint.rs / process_initialize_mint                       |
+| InitializeAccount        | program/src/processor.rs / process_initialize_account         | program/src/processor/initialize_account.rs / process_initialize_account                 |
+| InitializeMultisig       | program/src/processor.rs / process_initialize_multisig        | program/src/processor/initialize_multisig.rs / process_initialize_multisig               |
+| Transfer                 | program/src/processor.rs / process_transfer                   | program/src/processor/transfer.rs / process_transfer                                     |
+| Approve                  | program/src/processor.rs / process_approve                    | program/src/processor/approve.rs / process_approve                                       |
+| Revoke                   | program/src/processor.rs / process_revoke                     | program/src/processor/revoke.rs / process_revoke                                         |
+| SetAuthority             | program/src/processor.rs / process_set_authority              | program/src/processor/set_authority.rs / process_set_authority                           |
+| MintTo                   | program/src/processor.rs / process_mint_to                    | program/src/processor/mint_to.rs / process_mint_to                                       |
+| Burn                     | program/src/processor.rs / process_burn                       | program/src/processor/burn.rs / process_burn                                             |
+| CloseAccount             | program/src/processor.rs / process_close_account              | program/src/processor/close_account.rs / process_close_account                           |
+| FreezeAccount            | program/src/processor.rs / process_toggle_freeze_account      | program/src/processor/freeze_account.rs / process_toggle_freeze_account                  |
+| ThawAccount              | program/src/processor.rs / process_toggle_freeze_account      | program/src/processor/thaw_account.rs / process_toggle_freeze_account                    |
+| TransferChecked          | program/src/processor.rs / process_transfer                   | program/src/processor/transfer_checked.rs / process_transfer_checked                     |
+| ApproveChecked           | program/src/processor.rs / process_approve                    | program/src/processor/approve_checked.rs / process_approve_checked                       |
+| MintToChecked            | program/src/processor.rs / process_mint_to                    | program/src/processor/mint_to_checked.rs / process_mint_to_checked                       |
+| BurnChecked              | program/src/processor.rs / process_burn                       | program/src/processor/burn_checked.rs / process_burn_checked                             |
+| InitializeAccount2       | program/src/processor.rs / process_initialize_account2        | program/src/processor/initalize_account2.rs / process_initialize_account2                |
+| SyncNative               | program/src/processor.rs / process_sync_native                | program/src/processor/sync_native.rs / process_sync_native                               |
+| InitializeAccount3       | program/src/processor.rs / process_initialize_account3        | program/src/processor/initialize_account3.rs / process_initialize_account3               |
+| InitializeMultisig2      | program/src/processor.rs / process_initialize_multisig2       | program/src/processor/initialize_multisig2.rs / process_initialize_multisig2             |
+| InitializeMint2          | program/src/processor.rs / process_initialize_mint2           | program/src/processor/initialize_mint2.rs / process_initialize_mint2                     |
+| GetAccountDataSize       | program/src/processor.rs / process_get_account_data_size      | program/src/processor/get_account_data_size.rs / process_get_account_data_size           |
+| InitializeImmutableOwner | program/src/processor.rs / process_initialize_immutable_owner | program/src/processor/initialize_immutable_owner.rs / process_initialize_immutable_owner |
+| AmountToUiAmount         | program/src/processor.rs / process_amount_to_ui_amount        | program/src/processor/amount_to_ui_amount.rs / process_amount_to_ui_amount               |
+| UiAmountToAmount         | program/src/processor.rs / process_ui_amount_to_amount        | program/src/processor/ui_amount_to_amount.rs / process_ui_amount_to_amount               |
 
-    Result is Y.
+For each of these variants above, we list, in plain English, the checks and effects performed by each handler.
+If, for both SPL Token and P-Token, the checks and effects are identical and performed in an identical manner, we will only list them once.
+Otherwise, if there are any differences in the checks and effects that are performed or in how they are performed, we will make note of those discrepancies.
 
-    Updated accounts are ...
+| Instruction Variant | Check/Effect                                                   | Comment                                    |
+| ---                 | ---                                                            | ---                                        |
+| Transfer            | C: ACCOUNT ARITY                                               |                                            |
+|                     | C: SOURCE TOKEN ACCOUNT STRUCTURE                              |                                            |
+|                     | C: DESTINATION TOKEN ACCOUNT STRUCTURE                         | P-ONLY: Skip if self-transfer              |
+|                     | C: SOURCE ACCOUNT FROZENNESS                                   |                                            |
+|                     | C: DESTINATION ACCOUNT FROZENNESS                              | P-ONLY: Skip if self-transfer              |
+|                     | C: FUND SUFFICIENCY                                            |                                            |
+|                     | C: SOURCE/DESTINATION TOKEN ACCOUNT TYPE MATCH                 | P-ONLY: Skip if self-transfer              |
+|                     | C: MINT KEY (IF EXPECTED DECIMALS PRESENT)                     |                                            |
+|                     | C: MINT ACCOUNT STRUCTURE (IF EXPECTED DECIMALS PRESENT)       |                                            |
+|                     | C: EXPECTED DECIMALS (IF EXPECTED DECIMALS PRESENT)            |                                            |
+|                     | C: TRANSFER AUTHORITY                                          |                                            |
+|                     | C: TOKEN ACCOUNT OWNERSHIP (IF SELF-TRANSFER OR ZERO TRANSFER) |                                            |
+|                     | E: EARLY RETURN (IF SELF-TRANSFER)                             | P-ONLY: Also early return if zero transfer |
+|                     | E: NON-NATIVE TRANSFER                                         |                                            |
+|                     | E: NATIVE TRANSFER (IF MINT IS NATIVE)                         |                                            |
 
 (**TODO:** List all proof cases.)
 
