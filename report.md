@@ -435,9 +435,25 @@ Otherwise, if there are any differences in the checks and effects that are perfo
 
 | Instruction Variant | Check/Effect                                                   | Comment                                    |
 | ---                 | ---                                                            | ---                                        |
+| InitializeMint      | C: INSTRUCTION LENGTH                                          |                                            |
+|                     | E: PARSE INSTRUCTION ARGS                                      |                                            |
+|                     | C: ACCOUNT ARITY                                               |                                            |
+|                     | E: LOAD RENT ACCOUNT                                           |                                            |
+|                     | C: TARGET ACCOUNT IS READY FOR MINT DEPLOY                     |                                            |
+|                     | C: TARGET ACCOUNT IS RENT EXEMPT                               |                                            |
+|                     | E: WRITE MINT ACCOUNT DATA                                     |                                            |
+| InitializeMint2     | C: INSTRUCTION LENGTH                                          |                                            |
+|                     | E: PARSE INSTRUCTION ARGS                                      |                                            |
+|                     | C: ACCOUNT ARITY                                               |                                            |
+|                     | E: INVOKE RENT SYSCALL                                         |                                            |
+|                     | C: TARGET ACCOUNT IS READY FOR MINT DEPLOY                     |                                            |
+|                     | C: TARGET ACCOUNT IS RENT EXEMPT                               |                                            |
+|                     | E: WRITE MINT ACCOUNT DATA                                     |                                            |
+
+
 | Transfer            | C: ACCOUNT ARITY                                               |                                            |
-|                     | C: SOURCE TOKEN ACCOUNT STRUCTURE                              |                                            |
-|                     | C: DESTINATION TOKEN ACCOUNT STRUCTURE                         | P-ONLY: Skip if self-transfer              |
+|                     | C: SOURCE TOKEN ACCOUNT IS WELL-FORMED                         |                                            |
+|                     | C: DESTINATION TOKEN ACCOUNT IS WELL-FORMED                    | P-ONLY: Skip if self-transfer              |
 |                     | C: SOURCE ACCOUNT FROZENNESS                                   |                                            |
 |                     | C: DESTINATION ACCOUNT FROZENNESS                              | P-ONLY: Skip if self-transfer              |
 |                     | C: FUND SUFFICIENCY                                            |                                            |
