@@ -3,7 +3,7 @@
 In this project, our goal is to demonstrate that the SPL Token and P-Token programs are _equivalent_.
 More formally, we will verify that the P-Token program can _simulate_ the SPL-Token program, which, roughly speaking, states that for each SPL Token program state and instruction, there is an equivalent P-Token program state and instruction that does the exact same thing.
 
-In the next section, we cover some technical prelminaries on the Solana blockchain itself and our proof methodology for the interested reader; everyone else should skip to the section (**TODO:** fill section name).
+In the next section, we cover some technical prelminaries on the Solana blockchain itself and our proof methodology for the interested reader; everyone else should skip to the [Introduction section](#introduction).
 
 ## Technical Preliminaries
 
@@ -135,7 +135,7 @@ We survey our overall methodology in Figure 1 below:
 ┏━━━━━━━━━━━━━━━━━━━━━━┓              ┏━━━━━━━━━━━━━━━━━━━━━┓
 ┃  SPL Token Symbolic  ┃              ┃  P-Token Symbolic   ┃   
 ┃    MIR Semantics     ┃              ┃    MIR Semantics    ┃  Instruction Variant Specific         
-┗━━━━━━━━━━━━━━━━━━━━━━┛              ┗━━━━━━━━━━━━━━━━━━━━━┛            State Partitioning
+┗━━━━━━━━━━━━━━━━━━━━━━┛              ┗━━━━━━━━━━━━━━━━━━━━━┛            Input Partitioning
 -----------🡻-------------------------------------🡻---------------------------------------
 ┏━━━━━━━━━━━━━━━━━━━━━━┓              ┏━━━━━━━━━━━━━━━━━━━━━┓
 ┃      SPL Token       ┃              ┃      P-Token        ┃
@@ -205,11 +205,11 @@ Let us now break down the formal equivalence check methodology step-by-step:
    The goal of making this move is to ensure _completeness_, i.e., if the source programs can perform some behavior, than when we execute our symbolic semantics, we will be able to reproduce.
    Note that, as part of this shift, we also rely on $\mathbb{K}$'s built-in theorem proving capabilities that let us use matching logic, co-induction, and SMT solvers to reason about (a potentially infinite number of) program states and transitions in a finite amount of time[^limitations].
 
-4. Generate Program+Instruction-Variant-Specific Symbolic Semantics via State Partitioning
+4. Generate Program+Instruction-Variant-Specific Symbolic Semantics via Input Partitioning
 
    While state abstraction alone ensures completeness of reasoning, it makes for very large and complex proofs.
-   To counteract this tendency, we perform a per-instruction-variant partitioning of the abstract state space.
-   In essense, after performing this partitioning, we obtain a per-instruction-variant-specific symbolic semantics for the SPL Token and P-Token programs that can only accept a that instruction variant (e.g., one variant only accepts `Transfer`s, one variant only accepts `InitializeAccount`, etc...).
+   To counteract this tendency, we perform a per-instruction-variant partitioning of the abstract input space.
+   In essense, after performing this partitioning, we obtain a per-instruction-variant-specific symbolic semantics for the SPL Token and P-Token programs that can only accept a particular instruction variant (e.g., one variant only accepts `Transfer`s, one variant only accepts `InitializeAccount`, etc...).
    As mentioned above, we don't gain any additional reasoning capabilities by making this move; this is purely _proof engineering_.
    In essence, this is a form of _modularization_, and the payoffs exactly mirror those that we in broader software development world.
 
@@ -240,8 +240,6 @@ Let us now break down the formal equivalence check methodology step-by-step:
 [^limitations]: Note that there is no free lunch and symbolic execution is not a panacea that can be trivially used to solve all verification problems. In certain cases, we must provide the execution engine
 with lemmas (in other words, hints) that help the execution engine make progress when it gets stuck.
 
-**TODO:** Cleanup details below.
-
 Now that we have surveyed the entire equivalence check process, there are a few details that we need to fill in.
 We needed to prove the following lemmas by hand in order for the verification to work:
 
@@ -264,15 +262,7 @@ We needed to prove the following lemmas by hand in order for the verification to
 
    4. The `lamports` field for a native Token Account is greater than or equal to the Token Account's balance plus its rent exemption price.
 
-Additionally, we now describe our state paritioning process in more detail:
-
-1. We partition the complete set of possible instruction formats into a finite (and small!) set $\{instr_i\}_i$ using symbolic constraints.
-
-2. For each instruction format instance $instr_i$, we partition the complete set of potential account format sequences that it can accept $\alpha_{(i,j)}=\left\{acct_{(i,j,0)},\cdots,acct_{(i,j,arity(i,j))}\right\}_{(i,j)}$ --- also using symbolic constraints where $arity(i,j)$ denotes the arity of the account format sequenced indexed by $(i,j)$.
-
-3. For each combination of an instruction format $instr_i$ and corresponding account sequence $\alpha_{(i,j)}$, we symbolically execute the SPL Token program and record its return code $ret_{(i,j)}$ and updated account set $\alpha'_{(i,j)}$.
-
-## Introduction 
+## Introduction
 
 The Solana Programming Library (SPL) is a set of Solana-specific programs and libraries, written in the Rust programming language, that can be used to create custom dApps for Solana. An important component of the SPL toolkit is the SPL Token Program, a program that enables the creation and usage of custom fungible and non-fungible tokens on the Solana blockchain. 
 
@@ -387,7 +377,11 @@ However, we will not examine these further since they are not relevant for the e
 
 ## Proof Body Overview
 
-Here, we provide an overview of the proof process in plain English; the actual automated proofs are contained in our proof script files which are further described in section **TODO:** Add section number.
+Here, we provide an overview of the proof process in plain English; the actual automated proofs are contained in our proof script files which are located in our [solana-token repository fork](https://github.com/runtimeverification/solana-token) at the following paths:
+
+- p-token/src/entrypoint-runtime-verification.rs
+- program/src/entrypoint-runtime-verification.rs
+
 Instead, in this section, for each instruction format variant, for both the SPL Token and P-Token programs, we list:
 
 1. the handler function for that instruction format variant;
@@ -432,84 +426,67 @@ This means, before one of these handlers is called, assuming the Solana runtime 
 For each of these variants above, we list, in plain English, the checks and effects performed by each handler.
 If, for both SPL Token and P-Token, the checks and effects are identical and performed in an identical manner, we will only list them once.
 Otherwise, if there are any differences in the checks and effects that are performed or in how they are performed, we will make note of those discrepancies.
+Additionally, for certain related instruction variants, we may list them together if they share an implementation.
 
-| Instruction Variant | Check/Effect                                                        | Comment                                    |
-| ---                 | ---                                                                 | ---                                        |
-| InitializeMint      | C: INSTRUCTION LENGTH                                               |                                            |
-|                     | E: PARSE INSTRUCTION ARGS                                           |                                            |
-|                     | C: ACCOUNT ARITY                                                    |                                            |
-|                     | E: LOAD RENT ACCOUNT                                                |                                            |
-|                     | C: TARGET ACCOUNT IS READY FOR MINT DEPLOY                          |                                            |
-|                     | C: TARGET ACCOUNT IS RENT EXEMPT                                    |                                            |
-|                     | E: WRITE MINT ACCOUNT DATA                                          | P-ONLY: Writes are implicit                |
-| InitializeMint2     | C: INSTRUCTION LENGTH                                               |                                            |
-|                     | E: PARSE INSTRUCTION ARGS                                           |                                            |
-|                     | C: ACCOUNT ARITY                                                    |                                            |
-|                     | E: INVOKE RENT SYSCALL                                              |                                            |
-|                     | C: TARGET ACCOUNT IS READY FOR MINT DEPLOY                          |                                            |
-|                     | C: TARGET ACCOUNT IS RENT EXEMPT                                    |                                            |
-|                     | E: WRITE MINT ACCOUNT DATA                                          | P-ONLY: Writes are implicit                |
-| Transfer            | C: ACCOUNT ARITY                                                    |                                            |
-|                     | C: SOURCE TOKEN ACCOUNT IS WELL-FORMED                              |                                            |
-|                     | C: DESTINATION TOKEN ACCOUNT IS WELL-FORMED                         | P-ONLY: Skip if self-transfer              |
-|                     | C: SOURCE ACCOUNT FROZENNESS                                        |                                            |
-|                     | C: DESTINATION ACCOUNT FROZENNESS                                   | P-ONLY: Skip if self-transfer              |
-|                     | C: FUND SUFFICIENCY                                                 |                                            |
-|                     | C: SOURCE/DESTINATION TOKEN ACCOUNT TYPE MATCH                      | P-ONLY: Skip if self-transfer              |
-|                     | C: MINT KEY (IF EXPECTED DECIMALS PRESENT)                          |                                            |
-|                     | C: MINT ACCOUNT STRUCTURE (IF EXPECTED DECIMALS PRESENT)            |                                            |
-|                     | C: EXPECTED DECIMALS (IF EXPECTED DECIMALS PRESENT)                 |                                            |
-|                     | C: TRANSFER AUTHORITY                                               |                                            |
-|                     | C: TOKEN ACCOUNT OWNERSHIP (IF SELF-TRANSFER OR ZERO TRANSFER)      |                                            |
-|                     | E: EARLY RETURN (IF SELF-TRANSFER)                                  | P-ONLY: Also early return if zero transfer |
-|                     | E: NON-NATIVE TRANSFER                                              |                                            |
-|                     | E: NATIVE TRANSFER (IF MINT IS NATIVE)                              |                                            |
-| InitializeAccount   | C: ACCOUNT ARITY                                                    |                                            |
-|                     | E: LOAD RENT ACCOUNT                                                |                                            |
-|                     | C: TARGET ACCOUNT IS READY FOR TOKEN ACCOUNT DEPLOY                 |                                            |
-|                     | C: TARGET ACCOUNT IS RENT EXEMPT                                    |                                            |
-|                     | C: MINT ACCOUNT IS OWNED BY PROGRAM (IF MINT ACCOUNT IS NON-NATIVE) |                                            |
-|                     | C: MINT ACCOUNT IS WELL-FORMED (IF MINT ACCOUNT IS NON-NATIVE )     |                                            |
-|                     | E: COMPUTE TARGET ACCOUNT BALANCE                                   |                                            |
-|                     | E: WRITE ACCOUNT DATA                                               | P-ONLY: Writes are implicit                |
-| InitializeAccount2  | C: ACCOUNT ARITY                                                    |                                            |
-|                     | E: LOAD RENT ACCOUNT                                                |                                            |
-|                     | C: TARGET ACCOUNT IS READY FOR TOKEN ACCOUNT DEPLOY                 |                                            |
-|                     | C: TARGET ACCOUNT IS RENT EXEMPT                                    |                                            |
-|                     | C: MINT ACCOUNT IS OWNED BY PROGRAM (IF MINT ACCOUNT IS NON-NATIVE) |                                            |
-|                     | C: MINT ACCOUNT IS WELL-FORMED (IF MINT ACCOUNT IS NON-NATIVE )     |                                            |
-|                     | E: COMPUTE TARGET ACCOUNT BALANCE                                   |                                            |
-|                     | E: WRITE ACCOUNT DATA                                               | P-ONLY: Writes are implicit                |
-| InitializeAccount3  | C: ACCOUNT ARITY                                                    |                                            |
-|                     | E: INVOKE RENT SYSCALL                                              |                                            |
-|                     | C: TARGET ACCOUNT IS READY FOR TOKEN ACCOUNT DEPLOY                 |                                            |
-|                     | C: TARGET ACCOUNT IS RENT EXEMPT                                    |                                            |
-|                     | C: MINT ACCOUNT IS OWNED BY PROGRAM (IF MINT ACCOUNT IS NON-NATIVE) |                                            |
-|                     | C: MINT ACCOUNT IS WELL-FORMED (IF MINT ACCOUNT IS NON-NATIVE )     |                                            |
-|                     | E: COMPUTE TARGET ACCOUNT BALANCE                                   |                                            |
-|                     | E: WRITE ACCOUNT DATA                                               | P-ONLY: Writes are implicit                |
-
-(**TODO:** List all proof cases.)
-
-(**TODO:** Improve presentation of instruction and account format data.
-           A current proposal is each kind of symbolic input constraint and assign it a short English name.
-           Then input cases can be classed by the set of constraints that hold.
-           This will basically re-iterate what the proof specs say but in English.
-)
-
-<!--
-
-The cases below are important cases to focus on:
-
-- Transfer
-- TransferChecked
-- Burn
-- BurnChecked
-- MintTo
-- MintToChecked
-
--->
-
-## Conclusion
-
-**TODO:** Write conclusion.
+| Instruction Variant | Check/Effect                                                                            | Comment                                    |
+| ---                 | ---                                                                                     | ---                                        |
+| InitializeMint      | C: INSTRUCTION LENGTH                                                                   |                                            |
+|                     | E: PARSE INSTRUCTION ARGS                                                               |                                            |
+|                     | C: ACCOUNT ARITY                                                                        |                                            |
+|                     | E: LOAD RENT ACCOUNT                                                                    |                                            |
+|                     | C: TARGET ACCOUNT IS READY FOR MINT DEPLOY                                              |                                            |
+|                     | C: TARGET ACCOUNT IS RENT EXEMPT                                                        |                                            |
+|                     | E: WRITE MINT ACCOUNT DATA                                                              | P-ONLY: Writes are implicit                |
+| InitializeMint2     | C: INSTRUCTION LENGTH                                                                   |                                            |
+|                     | E: PARSE INSTRUCTION ARGS                                                               |                                            |
+|                     | C: ACCOUNT ARITY                                                                        |                                            |
+|                     | E: INVOKE RENT SYSCALL                                                                  |                                            |
+|                     | C: TARGET ACCOUNT IS READY FOR MINT DEPLOY                                              |                                            |
+|                     | C: TARGET ACCOUNT IS RENT EXEMPT                                                        |                                            |
+|                     | E: WRITE MINT ACCOUNT DATA                                                              | P-ONLY: Writes are implicit                |
+| Transfer/           | C: ACCOUNT ARITY                                                                        |                                            |
+| TransferChecked     | C: SOURCE TOKEN ACCOUNT IS WELL-FORMED                                                  |                                            |
+|                     | C: DESTINATION TOKEN ACCOUNT IS WELL-FORMED                                             | P-ONLY: Skip if self-transfer              |
+|                     | C: SOURCE ACCOUNT FROZENNESS                                                            |                                            |
+|                     | C: DESTINATION ACCOUNT FROZENNESS                                                       | P-ONLY: Skip if self-transfer              |
+|                     | C: FUND SUFFICIENCY                                                                     |                                            |
+|                     | C: SOURCE/DESTINATION TOKEN ACCOUNT TYPE MATCH                                          | P-ONLY: Skip if self-transfer              |
+|                     | C: MINT KEY (IF EXPECTED DECIMALS PRESENT)                                              |                                            |
+|                     | C: MINT ACCOUNT STRUCTURE (IF EXPECTED DECIMALS PRESENT)                                |                                            |
+|                     | C: EXPECTED DECIMALS (IF EXPECTED DECIMALS PRESENT)                                     |                                            |
+|                     | C: TRANSFER AUTHORITY                                                                   |                                            |
+|                     | C: TOKEN ACCOUNT OWNERSHIP (IF SELF-TRANSFER OR ZERO TRANSFER)                          |                                            |
+|                     | E: EARLY RETURN (IF SELF-TRANSFER)                                                      | P-ONLY: Also early return if zero transfer |
+|                     | E: NON-NATIVE TRANSFER                                                                  |                                            |
+|                     | E: NATIVE TRANSFER (IF MINT IS NATIVE)                                                  |                                            |
+| InitializeAccount   | C: ACCOUNT ARITY                                                                        |                                            |
+|                     | E: LOAD RENT ACCOUNT                                                                    |                                            |
+|                     | C: TARGET ACCOUNT IS READY FOR TOKEN ACCOUNT DEPLOY                                     |                                            |
+|                     | C: TARGET ACCOUNT IS RENT EXEMPT                                                        |                                            |
+|                     | C: MINT ACCOUNT IS OWNED BY PROGRAM (IF MINT ACCOUNT IS NON-NATIVE)                     |                                            |
+|                     | C: MINT ACCOUNT IS WELL-FORMED (IF MINT ACCOUNT IS NON-NATIVE )                         |                                            |
+|                     | E: COMPUTE TARGET ACCOUNT BALANCE                                                       |                                            |
+|                     | E: WRITE ACCOUNT DATA                                                                   | P-ONLY: Writes are implicit                |
+| InitializeAccount2  | C: ACCOUNT ARITY                                                                        |                                            |
+|                     | E: LOAD RENT ACCOUNT                                                                    |                                            |
+|                     | C: TARGET ACCOUNT IS READY FOR TOKEN ACCOUNT DEPLOY                                     |                                            |
+|                     | C: TARGET ACCOUNT IS RENT EXEMPT                                                        |                                            |
+|                     | C: MINT ACCOUNT IS OWNED BY PROGRAM (IF MINT ACCOUNT IS NON-NATIVE)                     |                                            |
+|                     | C: MINT ACCOUNT IS WELL-FORMED (IF MINT ACCOUNT IS NON-NATIVE )                         |                                            |
+|                     | E: COMPUTE TARGET ACCOUNT BALANCE                                                       |                                            |
+|                     | E: WRITE ACCOUNT DATA                                                                   | P-ONLY: Writes are implicit                |
+| InitializeAccount3  | C: ACCOUNT ARITY                                                                        |                                            |
+|                     | E: INVOKE RENT SYSCALL                                                                  |                                            |
+|                     | C: TARGET ACCOUNT IS READY FOR TOKEN ACCOUNT DEPLOY                                     |                                            |
+|                     | C: TARGET ACCOUNT IS RENT EXEMPT                                                        |                                            |
+|                     | C: MINT ACCOUNT IS OWNED BY PROGRAM (IF MINT ACCOUNT IS NON-NATIVE)                     |                                            |
+|                     | C: MINT ACCOUNT IS WELL-FORMED (IF MINT ACCOUNT IS NON-NATIVE )                         |                                            |
+|                     | E: COMPUTE TARGET ACCOUNT BALANCE                                                       |                                            |
+|                     | E: WRITE ACCOUNT DATA                                                                   | P-ONLY: Writes are implicit                |
+| CloseAccount        | C: SOURCE AND DESTINATION ACCOUNTS ARE DISTINCT                                         |                                            |
+|                     | C: SOURCE TOKEN ACCOUNT IS WELL-FORMED                                                  |                                            |
+|                     | C: SOURCE ACCOUNT IS NATIVE OR AMOUNT IS ZERO                                           |                                            |
+|                     | C: VALIDATE AUTHORIZATION TO CLOSE ACCOUNT (IF ACCOUNT NOT OWNED BY SYSTEM/INCINERATOR) |                                            |
+|                     | C: VALIDATE DESTINATION IS INCINERATOR (IF ACCOUNT IS OWNED BY SYSTEM/INCINERATOR)      |                                            |
+|                     | E: TRANSFER ALL LAMPORTS FROM SOURCE TO DESTINATION                                     |                                            |
+|                     | E: ZERO OUT SOURCE ACCOUNT INFO DATA                                                    |                                            |
