@@ -428,65 +428,116 @@ If, for both SPL Token and P-Token, the checks and effects are identical and per
 Otherwise, if there are any differences in the checks and effects that are performed or in how they are performed, we will make note of those discrepancies.
 Additionally, for certain related instruction variants, we may list them together if they share an implementation.
 
-| Instruction Variant | Check/Effect                                                                            | Comment                                    |
-| ---                 | ---                                                                                     | ---                                        |
-| InitializeMint      | C: INSTRUCTION LENGTH                                                                   |                                            |
-|                     | E: PARSE INSTRUCTION ARGS                                                               |                                            |
-|                     | C: ACCOUNT ARITY                                                                        |                                            |
-|                     | E: LOAD RENT ACCOUNT                                                                    |                                            |
-|                     | C: TARGET ACCOUNT IS READY FOR MINT DEPLOY                                              |                                            |
-|                     | C: TARGET ACCOUNT IS RENT EXEMPT                                                        |                                            |
-|                     | E: WRITE MINT ACCOUNT DATA                                                              | P-ONLY: Writes are implicit                |
-| InitializeMint2     | C: INSTRUCTION LENGTH                                                                   |                                            |
-|                     | E: PARSE INSTRUCTION ARGS                                                               |                                            |
-|                     | C: ACCOUNT ARITY                                                                        |                                            |
-|                     | E: INVOKE RENT SYSCALL                                                                  |                                            |
-|                     | C: TARGET ACCOUNT IS READY FOR MINT DEPLOY                                              |                                            |
-|                     | C: TARGET ACCOUNT IS RENT EXEMPT                                                        |                                            |
-|                     | E: WRITE MINT ACCOUNT DATA                                                              | P-ONLY: Writes are implicit                |
-| Transfer/           | C: ACCOUNT ARITY                                                                        |                                            |
-| TransferChecked     | C: SOURCE TOKEN ACCOUNT IS WELL-FORMED                                                  |                                            |
-|                     | C: DESTINATION TOKEN ACCOUNT IS WELL-FORMED                                             | P-ONLY: Skip if self-transfer              |
-|                     | C: SOURCE ACCOUNT FROZENNESS                                                            |                                            |
-|                     | C: DESTINATION ACCOUNT FROZENNESS                                                       | P-ONLY: Skip if self-transfer              |
-|                     | C: FUND SUFFICIENCY                                                                     |                                            |
-|                     | C: SOURCE/DESTINATION TOKEN ACCOUNT TYPE MATCH                                          | P-ONLY: Skip if self-transfer              |
-|                     | C: MINT KEY (IF EXPECTED DECIMALS PRESENT)                                              |                                            |
-|                     | C: MINT ACCOUNT STRUCTURE (IF EXPECTED DECIMALS PRESENT)                                |                                            |
-|                     | C: EXPECTED DECIMALS (IF EXPECTED DECIMALS PRESENT)                                     |                                            |
-|                     | C: TRANSFER AUTHORITY                                                                   |                                            |
-|                     | C: TOKEN ACCOUNT OWNERSHIP (IF SELF-TRANSFER OR ZERO TRANSFER)                          |                                            |
-|                     | E: EARLY RETURN (IF SELF-TRANSFER)                                                      | P-ONLY: Also early return if zero transfer |
-|                     | E: NON-NATIVE TRANSFER                                                                  |                                            |
-|                     | E: NATIVE TRANSFER (IF MINT IS NATIVE)                                                  |                                            |
-| InitializeAccount   | C: ACCOUNT ARITY                                                                        |                                            |
-|                     | E: LOAD RENT ACCOUNT                                                                    |                                            |
-|                     | C: TARGET ACCOUNT IS READY FOR TOKEN ACCOUNT DEPLOY                                     |                                            |
-|                     | C: TARGET ACCOUNT IS RENT EXEMPT                                                        |                                            |
-|                     | C: MINT ACCOUNT IS OWNED BY PROGRAM (IF MINT ACCOUNT IS NON-NATIVE)                     |                                            |
-|                     | C: MINT ACCOUNT IS WELL-FORMED (IF MINT ACCOUNT IS NON-NATIVE )                         |                                            |
-|                     | E: COMPUTE TARGET ACCOUNT BALANCE                                                       |                                            |
-|                     | E: WRITE ACCOUNT DATA                                                                   | P-ONLY: Writes are implicit                |
-| InitializeAccount2  | C: ACCOUNT ARITY                                                                        |                                            |
-|                     | E: LOAD RENT ACCOUNT                                                                    |                                            |
-|                     | C: TARGET ACCOUNT IS READY FOR TOKEN ACCOUNT DEPLOY                                     |                                            |
-|                     | C: TARGET ACCOUNT IS RENT EXEMPT                                                        |                                            |
-|                     | C: MINT ACCOUNT IS OWNED BY PROGRAM (IF MINT ACCOUNT IS NON-NATIVE)                     |                                            |
-|                     | C: MINT ACCOUNT IS WELL-FORMED (IF MINT ACCOUNT IS NON-NATIVE )                         |                                            |
-|                     | E: COMPUTE TARGET ACCOUNT BALANCE                                                       |                                            |
-|                     | E: WRITE ACCOUNT DATA                                                                   | P-ONLY: Writes are implicit                |
-| InitializeAccount3  | C: ACCOUNT ARITY                                                                        |                                            |
-|                     | E: INVOKE RENT SYSCALL                                                                  |                                            |
-|                     | C: TARGET ACCOUNT IS READY FOR TOKEN ACCOUNT DEPLOY                                     |                                            |
-|                     | C: TARGET ACCOUNT IS RENT EXEMPT                                                        |                                            |
-|                     | C: MINT ACCOUNT IS OWNED BY PROGRAM (IF MINT ACCOUNT IS NON-NATIVE)                     |                                            |
-|                     | C: MINT ACCOUNT IS WELL-FORMED (IF MINT ACCOUNT IS NON-NATIVE )                         |                                            |
-|                     | E: COMPUTE TARGET ACCOUNT BALANCE                                                       |                                            |
-|                     | E: WRITE ACCOUNT DATA                                                                   | P-ONLY: Writes are implicit                |
-| CloseAccount        | C: SOURCE AND DESTINATION ACCOUNTS ARE DISTINCT                                         |                                            |
-|                     | C: SOURCE TOKEN ACCOUNT IS WELL-FORMED                                                  |                                            |
-|                     | C: SOURCE ACCOUNT IS NATIVE OR AMOUNT IS ZERO                                           |                                            |
-|                     | C: VALIDATE AUTHORIZATION TO CLOSE ACCOUNT (IF ACCOUNT NOT OWNED BY SYSTEM/INCINERATOR) |                                            |
-|                     | C: VALIDATE DESTINATION IS INCINERATOR (IF ACCOUNT IS OWNED BY SYSTEM/INCINERATOR)      |                                            |
-|                     | E: TRANSFER ALL LAMPORTS FROM SOURCE TO DESTINATION                                     |                                            |
-|                     | E: ZERO OUT SOURCE ACCOUNT INFO DATA                                                    |                                            |
+| Instruction Variant | Check/Effect                                                                                            | Comment                                    |
+| ---                 | ---                                                                                                     | ---                                        |
+| InitializeMint      | C: INSTRUCTION LENGTH                                                                                   |                                            |
+|                     | E: PARSE INSTRUCTION ARGS                                                                               |                                            |
+|                     | C: ACCOUNT ARITY                                                                                        |                                            |
+|                     | E: LOAD RENT ACCOUNT                                                                                    |                                            |
+|                     | C: TARGET ACCOUNT IS READY FOR MINT DEPLOY                                                              |                                            |
+|                     | C: TARGET ACCOUNT IS RENT EXEMPT                                                                        |                                            |
+|                     | E: WRITE MINT ACCOUNT DATA                                                                              | P-ONLY: Writes are implicit                |
+| InitializeMint2     | C: INSTRUCTION LENGTH                                                                                   |                                            |
+|                     | E: PARSE INSTRUCTION ARGS                                                                               |                                            |
+|                     | C: ACCOUNT ARITY                                                                                        |                                            |
+|                     | E: INVOKE RENT SYSCALL                                                                                  |                                            |
+|                     | C: TARGET ACCOUNT IS READY FOR MINT DEPLOY                                                              |                                            |
+|                     | C: TARGET ACCOUNT IS RENT EXEMPT                                                                        |                                            |
+|                     | E: WRITE MINT ACCOUNT DATA                                                                              | P-ONLY: Writes are implicit                |
+| Transfer/           | C: ACCOUNT ARITY                                                                                        |                                            |
+| TransferChecked     | C: SOURCE TOKEN ACCOUNT IS WELL-FORMED                                                                  |                                            |
+|                     | C: DESTINATION TOKEN ACCOUNT IS WELL-FORMED                                                             | P-ONLY: Skip if self-transfer              |
+|                     | C: SOURCE ACCOUNT FROZENNESS                                                                            |                                            |
+|                     | C: DESTINATION ACCOUNT FROZENNESS                                                                       | P-ONLY: Skip if self-transfer              |
+|                     | C: FUND SUFFICIENCY                                                                                     |                                            |
+|                     | C: SOURCE/DESTINATION TOKEN ACCOUNT TYPE MATCH                                                          | P-ONLY: Skip if self-transfer              |
+|                     | C: MINT KEY (IF EXPECTED DECIMALS PRESENT)                                                              |                                            |
+|                     | C: MINT ACCOUNT IS WELL-FORMED (IF EXPECTED DECIMALS PRESENT)                                           |                                            |
+|                     | C: EXPECTED DECIMALS (IF EXPECTED DECIMALS PRESENT)                                                     |                                            |
+|                     | C: TRANSFER AUTHORITY                                                                                   |                                            |
+|                     | C: TOKEN ACCOUNT OWNERSHIP (IF SELF-TRANSFER OR ZERO TRANSFER)                                          |                                            |
+|                     | E: EARLY RETURN (IF SELF-TRANSFER)                                                                      | P-ONLY: Also early return if zero transfer |
+|                     | E: NON-NATIVE TRANSFER                                                                                  |                                            |
+|                     | E: NATIVE TRANSFER (IF MINT IS NATIVE)                                                                  |                                            |
+| InitializeAccount   | C: ACCOUNT ARITY                                                                                        |                                            |
+|                     | E: LOAD RENT ACCOUNT                                                                                    |                                            |
+|                     | C: TARGET ACCOUNT IS READY FOR TOKEN ACCOUNT DEPLOY                                                     |                                            |
+|                     | C: TARGET ACCOUNT IS RENT EXEMPT                                                                        |                                            |
+|                     | C: MINT ACCOUNT IS OWNED BY PROGRAM (IF MINT ACCOUNT IS NON-NATIVE)                                     |                                            |
+|                     | C: MINT ACCOUNT IS WELL-FORMED (IF MINT ACCOUNT IS NON-NATIVE )                                         |                                            |
+|                     | E: COMPUTE TARGET ACCOUNT BALANCE                                                                       |                                            |
+|                     | E: WRITE ACCOUNT DATA                                                                                   | P-ONLY: Writes are implicit                |
+| InitializeAccount2  | C: ACCOUNT ARITY                                                                                        |                                            |
+|                     | E: LOAD RENT ACCOUNT                                                                                    |                                            |
+|                     | C: TARGET ACCOUNT IS READY FOR TOKEN ACCOUNT DEPLOY                                                     |                                            |
+|                     | C: TARGET ACCOUNT IS RENT EXEMPT                                                                        |                                            |
+|                     | C: MINT ACCOUNT IS OWNED BY PROGRAM (IF MINT ACCOUNT IS NON-NATIVE)                                     |                                            |
+|                     | C: MINT ACCOUNT IS WELL-FORMED (IF MINT ACCOUNT IS NON-NATIVE )                                         |                                            |
+|                     | E: COMPUTE TARGET ACCOUNT BALANCE                                                                       |                                            |
+|                     | E: WRITE ACCOUNT DATA                                                                                   | P-ONLY: Writes are implicit                |
+| InitializeAccount3  | C: ACCOUNT ARITY                                                                                        |                                            |
+|                     | E: INVOKE RENT SYSCALL                                                                                  |                                            |
+|                     | C: TARGET ACCOUNT IS READY FOR TOKEN ACCOUNT DEPLOY                                                     |                                            |
+|                     | C: TARGET ACCOUNT IS RENT EXEMPT                                                                        |                                            |
+|                     | C: MINT ACCOUNT IS OWNED BY PROGRAM (IF MINT ACCOUNT IS NON-NATIVE)                                     |                                            |
+|                     | C: MINT ACCOUNT IS WELL-FORMED (IF MINT ACCOUNT IS NON-NATIVE )                                         |                                            |
+|                     | E: COMPUTE TARGET ACCOUNT BALANCE                                                                       |                                            |
+|                     | E: WRITE ACCOUNT DATA                                                                                   | P-ONLY: Writes are implicit                |
+| CloseAccount        | C: SOURCE AND DESTINATION ACCOUNTS ARE DISTINCT                                                         |                                            |
+|                     | C: SOURCE TOKEN ACCOUNT IS WELL-FORMED                                                                  |                                            |
+|                     | C: SOURCE ACCOUNT IS NATIVE OR AMOUNT IS ZERO                                                           |                                            |
+|                     | C: VALIDATE AUTHORIZATION TO CLOSE ACCOUNT (IF ACCOUNT NOT OWNED BY SYSTEM/INCINERATOR)                 |                                            |
+|                     | C: VALIDATE DESTINATION IS INCINERATOR (IF ACCOUNT IS OWNED BY SYSTEM/INCINERATOR)                      |                                            |
+|                     | E: TRANSFER ALL LAMPORTS FROM SOURCE TO DESTINATION                                                     |                                            |
+|                     | E: ZERO OUT SOURCE ACCOUNT INFO DATA                                                                    |                                            |
+| Approve/            | C: ACCOUNT ARITY                                                                                        |                                            |
+| ApproveChecked      | C: SOURCE TOKEN ACCOUNT IS WELL-FORMED                                                                  |                                            |
+|                     | C: SOURCE ACCOUNT IS NOT FROZEN                                                                         |                                            |
+|                     | C: MINT KEY (IF EXPECTED DECIMALS PRESENT)                                                              |                                            |
+|                     | C: MINT ACCOUNT IS WELL-FORMED (IF EXPECTED DECIMALS PRESENT)                                           |                                            |
+|                     | C: EXPECTED DECIMALS (IF EXPECTED DECIMALS PRESENT)                                                     |                                            |
+|                     | C: SOURCE TOKEN ACCOUNT OWNER IS A SIGNER                                                               |                                            |
+|                     | E: SET DELEGATE AND AMOUNT                                                                              |                                            |
+| Revoke              | C: ACCOUNT ARITY                                                                                        |                                            |
+|                     | C: SOURCE TOKEN ACCOUNT IS WELL-FORMED                                                                  |                                            |
+|                     | C: SOURCE TOKEN ACCOUNT IS NOT FROZEN                                                                   |                                            |
+|                     | C: SOURCE TOKEN ACCOUNT OWNER IS SIGNER                                                                 |                                            |
+|                     | E: CLEAR DELEGATE                                                                                       |                                            |
+| Burn/               | C: ACCOUNT ARITY
+| BurnChecked         | C: SOURCE TOKEN ACCOUNT IS WELL-FORMED
+|                     | C: MINT ACCOUNT iS WELL-FORMED                                                                          |                                            |
+|                     | C: SOURCE ACCOUNT IS NOT FROZEN                                                                         |                                            |
+|                     | C: MINT IS NOT NATIVE                                                                                   |                                            |
+|                     | C: SOURCE ACCOUNT HAS SUFFICIENT FUNDS                                                                  |                                            |
+|                     | C: SOURCE ACCOUNT HAS CORRECT MINT                                                                      |                                            |
+|                     | C: EXPECTED DECIMALS (IF EXPECTED DECIMALS PASSED)                                                      |                                            |
+|                     | C: SOURCE ACCOUNT OWNER OR DELEGATE IS SIGNER (IF NOT OWNED BY SYSTEM PROGRAM OR INCINERATOR)           |                                            |
+|                     | C: DELEGATE HAS SUFFICIENT FUNDS (IF NOT OWNED BY SYSTEM PROGRAM OR INCINERATOR AND DELEGATE IS SIGNER) |                                            |
+|                     | C: SOURCE ACCOUNT OWNER (IF ZERO TRANSFER)                                                              |                                            |
+|                     | C: MINT ACCOUNT OWNER (IF ZERO TRANSFER)                                                                |                                            |
+|                     | E: EARLY TERMINATE (IF ZERO TRANSFER)                                                                   | P-ONLY                                     |
+|                     | E: UPDATE SOURCE ACCOUNT SUPPLY                                                                         |                                            |
+|                     | E: UPDATE MINT TOTAL SUPPLY                                                                             |                                            |
+| MintTo/             | C: ACCOUNT ARITY                                                                                        |                                            |
+| MintToChecked       | C: DESTINATION TOKEN ACCOUNT IS WELL-FORMED                                                             |                                            |
+|                     | C: DESTINATION TOKEN ACCOUNT IS NOT FROZEN                                                              |                                            |
+|                     | C: DESTINATION TOKEN ACCOUNT IS NOT NATIVE                                                              |                                            |
+|                     | C: DESTINATION AND MINT ACCOUNT MATCHES                                                                 |                                            |
+|                     | C: MINT ACCOUNT IS WELL-FORMED                                                                          |                                            |
+|                     | C: EXPECTED DECIMALS MATCH (IF EXPECTED DECIMALS PRESENT)                                               |                                            |
+|                     | C: MINT AUTHORITY EXISTS                                                                                |                                            |
+|                     | C: CHECK THAT MINT AUTHORITY IS SIGNER                                                                  |                                            |
+|                     | C: MINT ACCOUNT OWNER (IF ZERO TRANSFER)                                                                |                                            |
+|                     | C: DESTINATION ACCOUNT OWNER (IF ZERO TRANSFER)                                                         |                                            |
+|                     | E: EARLY RETURN (IF ZERO TRANSFER)                                                                      | P-ONLY                                     |
+|                     | E: UPDATE MINT SUPPLY                                                                                   | P-ONLY: SWAPPED WITH SUCCESSOR             |
+|                     | E: UPDATE DESTINATION TOKEN ACCOUNT BALANCE                                                             |                                            |
+| FreezeAccount/      | C: ACCOUNT ARITY                                                                                        |                                            |
+| ThawAccount         | C: SOURCE TOKEN ACCOUNT IS WELL-FORMED                                                                  |                                            |
+|                     | C: SOURCE TOKEN ACCOUNT DOES NOT MATCH NEW FROZEN STATE                                                 |                                            |
+|                     | C: SOURCE TOKEN ACCOUNT IS NOT NATIVE                                                                   |                                            |
+|                     | C: MINT ACCOUNT MATCHES                                                                                 |                                            |
+|                     | C: MINT ACCOUNT IS WELL-FORMED                                                                          |                                            |
+|                     | C: MINT FREEZE AUTHORITY EXISTS                                                                         |                                            |
+|                     | C: MINT FREEZE AUTHORITY IS SIGNER                                                                      |                                            |
+|                     | E: UPDATE SOURCE TOKEN ACCOUNT FROZENNESS                                                               |                                            |
