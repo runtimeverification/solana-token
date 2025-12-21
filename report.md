@@ -3,7 +3,7 @@
 In this project, our goal is to demonstrate that the SPL Token and P-Token programs are _equivalent_.
 More formally, we will verify that the P-Token program can _simulate_ the SPL-Token program, which, roughly speaking, states that for each SPL Token program state and instruction, there is an equivalent P-Token program state and instruction that does the exact same thing.
 
-In the next section, we cover some technical prelminaries on the Solana blockchain itself and our proof methodology for the interested reader; everyone else should skip to the [Introduction section](#introduction).
+In the next section, we cover some technical preliminaries on the Solana blockchain itself and our proof methodology for the interested reader; everyone else should skip to the [Introduction section](#introduction).
 
 ## Technical Preliminaries
 
@@ -19,7 +19,7 @@ Roughly speaking:
     | owner      | ID of program that owns this account                           |
     | lamports   | monetary balance of the account denominated in lamports        |
     | data       | bytes stored in account                                        |
-    | exectuable | boolean flag that indicates whether this account is executable |
+    | executable | boolean flag that indicates whether this account is executable |
     | rent_epoch | the epoch when this account will next owe rent (deprecated)    |
 
     whose address is called its _key_.
@@ -29,9 +29,9 @@ Roughly speaking:
 3. A Solana _message_ is a list of accounts (which are marked as either mutable, a signer, both, or neither) and a list of instructions;
 4. A Solana _instruction_ is a program ID, a list of indices of message accounts, and an arbitrary, length-prefixed data payload that we refer to as the instruction's _format_.
 
-Note that there are some special Solana programs called _native programs_ which have extra priviliges above and beyond those of standard (non-native) programs; we will have more remarks to make about that later.
+Note that there are some special Solana programs called _native programs_ which have extra privileges above and beyond those of standard (non-native) programs; we will have more remarks to make about that later.
 
-[^program]: Technically, in order to support upgradability, the associated data of user-defined program accounts is actually just the address of some account that contains its executable data
+[^program]: Technically, in order to support upgradeability, the associated data of user-defined program accounts is actually just the address of some account that contains its executable data
 
 The executable code of a Solana program must satisfy a few requirements:
 
@@ -75,7 +75,7 @@ Abstractly, a program _P_ can be defined as by a set of _P-states_, an _initial 
 
 1.  An individual _P-state_ is a snapshot of the program's world in a particular moment in time; it fully describes what the program is currently doing as well as what it will do next;
 2.  The _initial P-state_, denoted $initial(P)$, is the designated state from which program execution begins;
-3.  Given two P-states _a_ and _b_ and a label $\sigma$, we define a _P-transition_ (denoted $a \overset{\sigma}{\rightarrow} b$) as a rule which permits program _P_, upon receiving an input or performing an operation $\sigma\in\Sigma$, to transition from _P_-state _a_ to _b_. In case such a transition exists, we say that _a_ is a predcessor of _b_ or _b_ is a successor of _a_.
+3.  Given two P-states _a_ and _b_ and a label $\sigma$, we define a _P-transition_ (denoted $a \overset{\sigma}{\rightarrow} b$) as a rule which permits program _P_, upon receiving an input or performing an operation $\sigma\in\Sigma$, to transition from _P_-state _a_ to _b_. In case such a transition exists, we say that _a_ is a predecessor of _b_ or _b_ is a successor of _a_.
 
 It is sometimes useful to talk about properties that describe a particular set of _P_-states; formally, we call such a property a _predicate_.
 Graphically, we denote membership of a state _a_ in a predicate $\Phi$ by writing $a\in\Phi$.
@@ -89,7 +89,7 @@ One important predicate is $reach(P)$, the set of _reachable_ _P_-states, define
 Given some predicate $\Iota$, whenever $reach(P) \subseteq \Iota$, we say that $\Iota$ is an _invariant_.
 Furthermore, if we have a predicate $\Iota$ that:
 
-1. holds for the intial P-state;
+1. holds for the initial P-state;
 2. for each pair of reachable P-states _a_ and _b_ and transition $a \overset{\sigma}{\rightarrow} b$, assuming $a\in\Iota$, we can prove that $b\in\Iota$;
 
 then we say that $\Iota$ is an _inductive invariant_.
@@ -174,7 +174,7 @@ Let us now break down the formal equivalence check methodology step-by-step:
    - etc...
 
    The reason why we use MIR instead of Rust source code is its _simplicity_ mentioned above;
-   using MIR lets us fully capture the behavior of Rust programs without worrying about compleixities like:
+   using MIR lets us fully capture the behavior of Rust programs without worrying about complexities like:
 
    - trait instance validation
    - borrow checking
@@ -209,7 +209,7 @@ Let us now break down the formal equivalence check methodology step-by-step:
 
    While state abstraction alone ensures completeness of reasoning, it makes for very large and complex proofs.
    To counteract this tendency, we perform a per-instruction-variant partitioning of the abstract input space.
-   In essense, after performing this partitioning, we obtain a per-instruction-variant-specific symbolic semantics for the SPL Token and P-Token programs that can only accept a particular instruction variant (e.g., one variant only accepts `Transfer`s, one variant only accepts `InitializeAccount`, etc...).
+   In essence, after performing this partitioning, we obtain a per-instruction-variant-specific symbolic semantics for the SPL Token and P-Token programs that can only accept a particular instruction variant (e.g., one variant only accepts `Transfer`s, one variant only accepts `InitializeAccount`, etc...).
    As mentioned above, we don't gain any additional reasoning capabilities by making this move; this is purely _proof engineering_.
    In essence, this is a form of _modularization_, and the payoffs exactly mirror those that we in broader software development world.
 
@@ -233,7 +233,7 @@ Let us now break down the formal equivalence check methodology step-by-step:
 6. Check Simulation; Show When Provided Identical Pre-states/Inputs, Identical Post-States Reached
    
    Finally, to check that the P-Token program actually simulates the SPL Token program, we execute each instruction-specific semantics for SPL Token and P-Token from the same starting symbolic state with the same symbolic input.
-   We then verify that each exeuction reaches an identical set of symbolic output states.
+   We then verify that each execution reaches an identical set of symbolic output states.
    This is equivalent to _batching_ the required P-Token-can-copy-SPL-Token-moves checks instead of checking that for each individual SPL-Token transition, we can find a corresponding individual P-Token transition.
    In fact, without this batching, performing an exhaustive simulation check would be extremely difficult (if not impossible) on modern hardware.
 
@@ -385,7 +385,7 @@ Here, we provide an overview of the proof process in plain English; the actual a
 Instead, in this section, for each instruction format variant, for both the SPL Token and P-Token programs, we list:
 
 1. the handler function for that instruction format variant;
-2. the the various checks and effects performed by that instruction variant handler function for both the SPL Token and P-Token programs.
+2. the various checks and effects performed by that instruction variant handler function for both the SPL Token and P-Token programs.
 
 We can then compare the executed checks and effects and show that they agree.
 
@@ -423,7 +423,7 @@ This means, before one of these handlers is called, assuming the Solana runtime 
 | AmountToUiAmount         | program/src/processor.rs / process_amount_to_ui_amount        | program/src/processor/amount_to_ui_amount.rs / process_amount_to_ui_amount               |
 | UiAmountToAmount         | program/src/processor.rs / process_ui_amount_to_amount        | program/src/processor/ui_amount_to_amount.rs / process_ui_amount_to_amount               |
 
-For each of these variants above, we list, in plain English, the checks and effects performed by each handler.
+For each of these variants above, we list, in plain English, the checks and effects performed by each handler (labeled by `C` and `E` respectively).
 If, for both SPL Token and P-Token, the checks and effects are identical and performed in an identical manner, we will only list them once.
 Otherwise, if there are any differences in the checks and effects that are performed or in how they are performed, we will make note of those discrepancies.
 Additionally, for certain related instruction variants, we may list them together if they share an implementation.
