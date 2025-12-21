@@ -387,7 +387,10 @@ Instead, in this section, for each instruction format variant, for both the SPL 
 1. the handler function for that instruction format variant;
 2. the various checks and effects performed by that instruction variant handler function for both the SPL Token and P-Token programs.
 
-We can then compare the executed checks and effects and show that they agree.
+We can then compare the executed checks and effects at a high level and show that they agree by:
+
+1. showing that each check and effect is performed by each in the same order or;
+2. if any check/effect is added/removed/swapped, showing that the addition/removal/swap cannot cause the programs' outcomes to diverge.
 
 First, let's review the handler functions for each variant.
 In both the SPL Token and P-Token programs, these handler functions have a similar structure.
