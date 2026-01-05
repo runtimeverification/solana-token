@@ -969,7 +969,12 @@ fn test_process_initialize_mint_no_freeze(
         assert!(result.is_ok());
 
         assert!(get_mint(&accounts[0]).is_initialized().unwrap());
-        assert_eq!(get_mint(&accounts[0]).mint_authority().unwrap().as_ref(), &instruction_data[1..33]);
+        let expected_mint_authority =
+            Pubkey::new_from_array(instruction_data[1..33].try_into().unwrap());
+        assert_eq!(
+            *get_mint(&accounts[0]).mint_authority().unwrap(),
+            expected_mint_authority
+        );
         assert_eq!(get_mint(&accounts[0]).decimals(), instruction_data[0]);
 
         if instruction_data[33] == 1 {
