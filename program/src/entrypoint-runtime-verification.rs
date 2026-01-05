@@ -232,8 +232,9 @@ fn get_multisig(account_info: &AccountInfo) -> MultisigWrapper {
     MultisigWrapper(Multisig::unpack_unchecked(&account_info.data.borrow()))
 }
 
-fn get_rent(_account_info: &AccountInfo) -> solana_rent::Rent {
-    solana_rent::Rent::get().unwrap()
+fn get_rent(account_info: &AccountInfo) -> solana_rent::Rent {
+    // Directly deserialize from account data without key check
+    bincode::deserialize(&account_info.data.borrow()).unwrap()
 }
 
 #[inline(never)]
