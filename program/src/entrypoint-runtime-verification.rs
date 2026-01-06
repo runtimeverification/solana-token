@@ -900,12 +900,17 @@ fn test_process_initialize_mint_freeze(
     } else {
         assert!(result.is_ok());
 
-        assert!(get_mint(&accounts[0]).is_initialized().unwrap());
-        assert_eq!(get_mint(&accounts[0]).mint_authority().unwrap().as_ref(), &instruction_data[1..33]);
-        assert_eq!(get_mint(&accounts[0]).decimals(), instruction_data[0]);
+        let mint_new = get_mint(&accounts[0]);
+        assert!(mint_new.is_initialized().unwrap());
+        let expected_mint_authority =
+            Pubkey::new_from_array(instruction_data[1..33].try_into().unwrap());
+        assert_eq!(*mint_new.mint_authority().unwrap(), expected_mint_authority);
+        assert_eq!(mint_new.decimals(), instruction_data[0]);
 
         if instruction_data[33] == 1 {
-            assert_eq!(get_mint(&accounts[0]).freeze_authority().unwrap().as_ref(), &instruction_data[34..66]);
+            let expected_freeze_authority =
+                Pubkey::new_from_array(instruction_data[34..66].try_into().unwrap());
+            assert_eq!(*mint_new.freeze_authority().unwrap(), expected_freeze_authority);
         }
     }
 
@@ -4620,12 +4625,17 @@ fn test_process_initialize_mint2_freeze(
     } else {
         assert!(result.is_ok());
 
-        assert!(get_mint(&accounts[0]).is_initialized().unwrap());
-        assert_eq!(get_mint(&accounts[0]).mint_authority().unwrap().as_ref(), &instruction_data[1..33]);
-        assert_eq!(get_mint(&accounts[0]).decimals(), instruction_data[0]);
+        let mint_new = get_mint(&accounts[0]);
+        assert!(mint_new.is_initialized().unwrap());
+        let expected_mint_authority =
+            Pubkey::new_from_array(instruction_data[1..33].try_into().unwrap());
+        assert_eq!(*mint_new.mint_authority().unwrap(), expected_mint_authority);
+        assert_eq!(mint_new.decimals(), instruction_data[0]);
 
         if instruction_data[33] == 1 {
-            assert_eq!(get_mint(&accounts[0]).freeze_authority().unwrap().as_ref(), &instruction_data[34..66]);
+            let expected_freeze_authority =
+                Pubkey::new_from_array(instruction_data[34..66].try_into().unwrap());
+            assert_eq!(*mint_new.freeze_authority().unwrap(), expected_freeze_authority);
         }
     }
 
@@ -4686,12 +4696,17 @@ fn test_process_initialize_mint2_no_freeze(
     } else {
         assert!(result.is_ok());
 
-        assert!(get_mint(&accounts[0]).is_initialized().unwrap());
-        assert_eq!(get_mint(&accounts[0]).mint_authority().unwrap().as_ref(), &instruction_data[1..33]);
-        assert_eq!(get_mint(&accounts[0]).decimals(), instruction_data[0]);
+        let mint_new = get_mint(&accounts[0]);
+        assert!(mint_new.is_initialized().unwrap());
+        let expected_mint_authority =
+            Pubkey::new_from_array(instruction_data[1..33].try_into().unwrap());
+        assert_eq!(*mint_new.mint_authority().unwrap(), expected_mint_authority);
+        assert_eq!(mint_new.decimals(), instruction_data[0]);
 
         if instruction_data[33] == 1 {
-            assert_eq!(get_mint(&accounts[0]).freeze_authority().unwrap().as_ref(), &instruction_data[34..66]);
+            let expected_freeze_authority =
+                Pubkey::new_from_array(instruction_data[34..66].try_into().unwrap());
+            assert_eq!(*mint_new.freeze_authority().unwrap(), expected_freeze_authority);
         }
     }
 
