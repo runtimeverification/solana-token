@@ -983,7 +983,12 @@ fn test_process_initialize_mint_no_freeze(
         assert_eq!(get_mint(&accounts[0]).decimals(), instruction_data[0]);
 
         if instruction_data[33] == 1 {
-            assert_eq!(get_mint(&accounts[0]).freeze_authority().unwrap().as_ref(), &instruction_data[34..66]);
+            let expected_freeze_authority =
+                Pubkey::new_from_array(instruction_data[34..66].try_into().unwrap());
+            assert_eq!(
+                *get_mint(&accounts[0]).freeze_authority().unwrap(),
+                expected_freeze_authority
+            );
         }
     }
 
@@ -2344,7 +2349,9 @@ fn test_process_set_authority_account(
                         return result;
                     }
 
-                    assert_eq!(get_account(&accounts[0]).owner().as_ref(), &instruction_data[2..34]);
+                    let expected_owner =
+                        Pubkey::new_from_array(instruction_data[2..34].try_into().unwrap());
+                    assert_eq!(get_account(&accounts[0]).owner(), expected_owner);
                     assert_eq!(get_account(&accounts[0]).delegate(), None);
                     assert_eq!(get_account(&accounts[0]).delegated_amount(), 0);
                     if get_account(&accounts[0]).is_native() {
@@ -2363,7 +2370,12 @@ fn test_process_set_authority_account(
                     )?;
 
                     if instruction_data[1] == 1 { // 1 ==> 34 <= instruction_data.len()
-                        assert_eq!(get_account(&accounts[0]).close_authority().unwrap().as_ref(), &instruction_data[2..34]);
+                        let expected_close_authority =
+                            Pubkey::new_from_array(instruction_data[2..34].try_into().unwrap());
+                        assert_eq!(
+                            *get_account(&accounts[0]).close_authority().unwrap(),
+                            expected_close_authority
+                        );
                     } else {
                         assert_eq!(get_account(&accounts[0]).close_authority(), None);
                     }
@@ -2469,7 +2481,9 @@ fn test_process_set_authority_account_multisig(
                         return result;
                     }
 
-                    assert_eq!(get_account(&accounts[0]).owner().as_ref(), &instruction_data[2..34]);
+                    let expected_owner =
+                        Pubkey::new_from_array(instruction_data[2..34].try_into().unwrap());
+                    assert_eq!(get_account(&accounts[0]).owner(), expected_owner);
                     assert_eq!(get_account(&accounts[0]).delegate(), None);
                     assert_eq!(get_account(&accounts[0]).delegated_amount(), 0);
                     if get_account(&accounts[0]).is_native() {
@@ -2488,7 +2502,12 @@ fn test_process_set_authority_account_multisig(
                     )?;
 
                     if instruction_data[1] == 1 { // 1 ==> 34 <= instruction_data.len()
-                        assert_eq!(get_account(&accounts[0]).close_authority().unwrap().as_ref(), &instruction_data[2..34]);
+                        let expected_close_authority =
+                            Pubkey::new_from_array(instruction_data[2..34].try_into().unwrap());
+                        assert_eq!(
+                            *get_account(&accounts[0]).close_authority().unwrap(),
+                            expected_close_authority
+                        );
                     } else {
                         assert_eq!(get_account(&accounts[0]).close_authority(), None);
                     }
@@ -2584,7 +2603,12 @@ fn test_process_set_authority_mint(
                     )?;
 
                     if instruction_data[1] == 1 { // 1 ==> 34 <= instruction_data.len()
-                        assert_eq!(get_mint(&accounts[0]).mint_authority().unwrap().as_ref(), &instruction_data[2..34]);
+                        let expected_mint_authority =
+                            Pubkey::new_from_array(instruction_data[2..34].try_into().unwrap());
+                        assert_eq!(
+                            *get_mint(&accounts[0]).mint_authority().unwrap(),
+                            expected_mint_authority
+                        );
                     } else {
                         assert_eq!(get_mint(&accounts[0]).mint_authority(), None);
                     }
@@ -2604,7 +2628,12 @@ fn test_process_set_authority_mint(
                     )?;
 
                     if instruction_data[1] == 1 { // 1 ==> 34 <= instruction_data.len()
-                        assert_eq!(get_mint(&accounts[0]).freeze_authority().unwrap().as_ref(), &instruction_data[2..34]);
+                        let expected_freeze_authority =
+                            Pubkey::new_from_array(instruction_data[2..34].try_into().unwrap());
+                        assert_eq!(
+                            *get_mint(&accounts[0]).freeze_authority().unwrap(),
+                            expected_freeze_authority
+                        );
                     } else {
                         assert_eq!(get_mint(&accounts[0]).freeze_authority(), None);
                     }
@@ -2700,7 +2729,12 @@ fn test_process_set_authority_mint_multisig(
                     )?;
 
                     if instruction_data[1] == 1 { // 1 ==> 34 <= instruction_data.len()
-                        assert_eq!(get_mint(&accounts[0]).mint_authority().unwrap().as_ref(), &instruction_data[2..34]);
+                        let expected_mint_authority =
+                            Pubkey::new_from_array(instruction_data[2..34].try_into().unwrap());
+                        assert_eq!(
+                            *get_mint(&accounts[0]).mint_authority().unwrap(),
+                            expected_mint_authority
+                        );
                     } else {
                         assert_eq!(get_mint(&accounts[0]).mint_authority(), None);
                     }
@@ -2720,7 +2754,12 @@ fn test_process_set_authority_mint_multisig(
                     )?;
 
                     if instruction_data[1] == 1 { // 1 ==> 34 <= instruction_data.len()
-                        assert_eq!(get_mint(&accounts[0]).freeze_authority().unwrap().as_ref(), &instruction_data[2..34]);
+                        let expected_freeze_authority =
+                            Pubkey::new_from_array(instruction_data[2..34].try_into().unwrap());
+                        assert_eq!(
+                            *get_mint(&accounts[0]).freeze_authority().unwrap(),
+                            expected_freeze_authority
+                        );
                     } else {
                         assert_eq!(get_mint(&accounts[0]).freeze_authority(), None);
                     }
