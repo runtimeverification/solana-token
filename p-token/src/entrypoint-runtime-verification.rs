@@ -1639,7 +1639,10 @@ pub fn test_process_burn(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]
             // Delegate updates
             let new_src_delegate = src_new.delegate().cloned();
             let new_src_delegated_amount = src_new.delegated_amount();
-            if !src_owned_sys_inc && old_src_delgate.is_some() && *accounts[2].key() == old_src_delgate.unwrap() {
+            if !src_owned_sys_inc
+                && old_src_delgate.is_some()
+                && *accounts[2].key() == old_src_delgate.unwrap()
+            {
                 assert_eq!(new_src_delegated_amount, old_src_delgated_amount - amount);
                 if old_src_delgated_amount - amount == 0 {
                     assert_eq!(new_src_delegate, None);
