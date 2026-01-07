@@ -2342,9 +2342,7 @@ fn test_process_set_authority_account(
                         return result;
                     }
 
-                    let expected_owner =
-                        Pubkey::new_from_array(instruction_data[2..34].try_into().unwrap());
-                    assert_eq!(get_account(&accounts[0]).owner(), expected_owner);
+                    assert_pubkey_from_slice!(get_account(&accounts[0]).owner(), instruction_data[2..34]);
                     assert_eq!(get_account(&accounts[0]).delegate(), None);
                     assert_eq!(get_account(&accounts[0]).delegated_amount(), 0);
                     if get_account(&accounts[0]).is_native() {
@@ -2363,12 +2361,7 @@ fn test_process_set_authority_account(
                     )?;
 
                     if instruction_data[1] == 1 { // 1 ==> 34 <= instruction_data.len()
-                        let expected_close_authority =
-                            Pubkey::new_from_array(instruction_data[2..34].try_into().unwrap());
-                        assert_eq!(
-                            *get_account(&accounts[0]).close_authority().unwrap(),
-                            expected_close_authority
-                        );
+                        assert_pubkey_from_slice!(*get_account(&accounts[0]).close_authority().unwrap(), instruction_data[2..34]);
                     } else {
                         assert_eq!(get_account(&accounts[0]).close_authority(), None);
                     }
@@ -2474,9 +2467,7 @@ fn test_process_set_authority_account_multisig(
                         return result;
                     }
 
-                    let expected_owner =
-                        Pubkey::new_from_array(instruction_data[2..34].try_into().unwrap());
-                    assert_eq!(get_account(&accounts[0]).owner(), expected_owner);
+                    assert_pubkey_from_slice!(get_account(&accounts[0]).owner(), instruction_data[2..34]);
                     assert_eq!(get_account(&accounts[0]).delegate(), None);
                     assert_eq!(get_account(&accounts[0]).delegated_amount(), 0);
                     if get_account(&accounts[0]).is_native() {
@@ -2495,12 +2486,7 @@ fn test_process_set_authority_account_multisig(
                     )?;
 
                     if instruction_data[1] == 1 { // 1 ==> 34 <= instruction_data.len()
-                        let expected_close_authority =
-                            Pubkey::new_from_array(instruction_data[2..34].try_into().unwrap());
-                        assert_eq!(
-                            *get_account(&accounts[0]).close_authority().unwrap(),
-                            expected_close_authority
-                        );
+                        assert_pubkey_from_slice!(*get_account(&accounts[0]).close_authority().unwrap(), instruction_data[2..34]);
                     } else {
                         assert_eq!(get_account(&accounts[0]).close_authority(), None);
                     }
