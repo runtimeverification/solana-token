@@ -173,12 +173,14 @@ Let us now break down the formal equivalence check methodology step-by-step:
    - implicit closure structures are generated
    - etc...
 
-   The reason why we use MIR instead of Rust source code is its _simplicity_ mentioned above;
+   The reason why we use MIR [^mir] instead of Rust source code is its _simplicity_ mentioned above;
    using MIR lets us fully capture the behavior of Rust programs without worrying about complexities like:
 
    - trait instance validation
    - borrow checking
    - type layout and alignment
+
+[^mir]: In particular we extract Stable / Public MIR, which is a version of MIR intended for analysis tools to access
 
 2. Generate Program-Specific Concrete Semantics via $\mathbb{K}$ Formal Verification Framework + MIR Semantics
 
@@ -189,7 +191,7 @@ Let us now break down the formal equivalence check methodology step-by-step:
    - a concrete interpreter
    - a symbolic execution engine and theorem prover
 
-   In this step, we use our MIR semantics as an input to the $\mathbb{K}$ framework in order to a MIR interpreter.
+   In this step, we use our MIR semantics as an input to the $\mathbb{K}$ framework in order to create a MIR interpreter.
    For those unfamiliar with the idea, a program language semantics is a complete set of rules that defines precisely how well-formed MIR programs behave.
    We then pass our MIR source programs as an input to the MIR interpreter and obtain a semantics for SPL Token and P-Token programs, i.e., program-specific interpreters which consume SPL Token/P-Token formatted byte strings as inputs and return a status code as an output.
 
@@ -211,7 +213,7 @@ Let us now break down the formal equivalence check methodology step-by-step:
    To counteract this tendency, we perform a per-instruction-variant partitioning of the abstract input space.
    In essence, after performing this partitioning, we obtain a per-instruction-variant-specific symbolic semantics for the SPL Token and P-Token programs that can only accept a particular instruction variant (e.g., one variant only accepts `Transfer`s, one variant only accepts `InitializeAccount`, etc...).
    As mentioned above, we don't gain any additional reasoning capabilities by making this move; this is purely _proof engineering_.
-   In essence, this is a form of _modularization_, and the payoffs exactly mirror those that we in broader software development world.
+   In essence, this is a form of _modularization_, and the payoffs exactly mirror those that we experience in broader software development world.
 
 5. Perform a Big-Step Semantics Style Abstraction
 
@@ -322,7 +324,7 @@ From the above argumentation, we can determine that the account data format has 
 
 ### SPL Token Instruction Formats
 
-In a similar fashion to our previous analysis, we can the byte layout of instruction format variants.
+We analyze the byte layout of instruction format variants.
 To do this, we examine the SPL Token program entrypoint and check how the instruction format is parsed.
 There is a single parser function that is called `TokenInstruction::unpack`.
 This parser function determines that the various instruction format variants have the following layouts:
