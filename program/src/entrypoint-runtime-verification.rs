@@ -3933,24 +3933,42 @@ fn test_process_mint_to_checked(
     cheatcode_is_spl_account(&accounts[2]);
 
     //-Initial State-----------------------------------------------------------
-    let initial_supply = get_mint(&accounts[0]).supply();
-    let initial_amount = get_account(&accounts[1]).amount();
-    let mint_initialised = get_mint(&accounts[0]).is_initialized();
-    let dst_initialised = get_account(&accounts[1]).is_initialized();
-    let dst_init_state = get_account(&accounts[1]).account_state();
+    let mint_old = get_mint(&accounts[0]);
+    let dst_old = get_account(&accounts[1]);
+    let initial_supply = mint_old.supply();
+    let initial_amount = dst_old.amount();
+    let mint_initialised = mint_old.is_initialized();
+    let dst_initialised = dst_old.is_initialized();
+    let dst_init_state = dst_old.account_state();
     let maybe_multisig_is_initialised = None;
+
+    #[cfg(feature = "assumptions")]
+    {
+        // Do not execute if adding to the account balance would overflow.
+        // shared::mint_to.rs,L68 is based on the assumption that initial_amount <=
+        // mint.supply and therefore cannot overflow because the minting itself
+        // would already error out.
+        let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
+        if initial_amount.checked_add(amount).is_none() {
+            return Err(ProgramError::Custom(99));
+        }
+    }
 
     //-Process Instruction-----------------------------------------------------
     let result = Processor::process(program_id, accounts, instruction_data_with_discriminator);
 
     //-Assert Postconditions---------------------------------------------------
+    let mint_new = get_mint(&accounts[0]);
+    let dst_new = get_account(&accounts[1]);
+
     if instruction_data.len() < 9 {
         assert_eq!(result, Err(ProgramError::Custom(12)));
         return result;
     } else if accounts.len() < 3 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
         return result;
-    } else if accounts[1].data_len() != Account::LEN { // TODO Daniel: is it possible for something to be provided that has the same len but is not an account?
+    } else if accounts[1].data_len() != Account::LEN {
+        // TODO Daniel: is it possible for something to be provided that has the same len but is not an account?
         assert_eq!(result, Err(ProgramError::InvalidAccountData));
         return result;
     } else if dst_initialised.is_err() {
@@ -3959,13 +3977,14 @@ fn test_process_mint_to_checked(
     } else if !dst_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount));
         return result;
-    } else if dst_init_state.unwrap() == AccountState::Frozen  { // unwrap must succeed due to dst_initialised not being err
+    } else if dst_init_state.unwrap() == AccountState::Frozen {
+        // unwrap must succeed due to dst_initialised not being err
         assert_eq!(result, Err(ProgramError::Custom(17)));
         return result;
-    } else if get_account(&accounts[1]).is_native() {
+    } else if dst_new.is_native() {
         assert_eq!(result, Err(ProgramError::Custom(10)));
         return result;
-    } else if accounts[0].key != &get_account(&accounts[1]).mint() {
+    } else if accounts[0].key != &dst_new.mint() {
         assert_eq!(result, Err(ProgramError::Custom(3)));
         return result;
     } else if accounts[0].data_len() != Mint::LEN {
@@ -3978,13 +3997,13 @@ fn test_process_mint_to_checked(
     } else if !mint_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount));
         return result;
-    } else if instruction_data[8] != get_mint(&accounts[0]).decimals() {
+    } else if instruction_data[8] != mint_new.decimals() {
         assert_eq!(result, Err(ProgramError::Custom(18)));
         return result;
     } else {
-        if get_mint(&accounts[0]).mint_authority().is_some() {
+        if mint_new.mint_authority().is_some() {
             inner_test_validate_owner(
-                get_mint(&accounts[0]).mint_authority().unwrap(),
+                mint_new.mint_authority().unwrap(),
                 &accounts[2],
                 &accounts[3..],
                 maybe_multisig_is_initialised.clone(),
@@ -4008,8 +4027,8 @@ fn test_process_mint_to_checked(
             return result;
         }
 
-        assert_eq!(get_mint(&accounts[0]).supply(), initial_supply + amount);
-        assert_eq!(get_account(&accounts[1]).amount(), initial_amount + amount);
+        assert_eq!(mint_new.supply(), initial_supply + amount);
+        assert_eq!(dst_new.amount(), initial_amount + amount);
         assert!(result.is_ok());
     }
 
