@@ -21,9 +21,21 @@ use {
     },
     pinocchio_token_interface::{
         error::TokenError,
-        state::{Initializable, Transmutable},
+        program::ID as PROGRAM_ID,
+        state::{account_state::{self, AccountState}, Initializable, Transmutable},
     },
 };
+
+/// Macros to abstract API differences between spl-token and p-token.
+/// spl-token AccountInfo has fields (.key, .owner), p-token has methods (.key(), .owner()).
+/// spl-token wrappers have methods (.mint(), .decimals()), p-token has fields (.mint, .decimals).
+macro_rules! key { ($acc:expr) => { $acc.key() }; }
+macro_rules! owner { ($acc:expr) => { $acc.owner() }; }
+macro_rules! mint { ($acc:expr) => { $acc.mint }; }
+macro_rules! decimals { ($m:expr) => { $m.decimals }; }
+/// Cheatcode macros to abstract naming differences.
+macro_rules! cheatcode_mint { ($acc:expr) => { cheatcode_is_mint($acc) }; }
+macro_rules! cheatcode_account { ($acc:expr) => { cheatcode_is_account($acc) }; }
 
 program_entrypoint!(process_instruction);
 // Do not allocate memory.
@@ -3960,11 +3972,9 @@ fn test_process_mint_to_checked(
     accounts: &[AccountInfo; 3],
     instruction_data: &[u8; 9],
 ) -> ProgramResult {
-    use pinocchio_token_interface::state::account_state;
-
-    cheatcode_is_mint(&accounts[0]);
-    cheatcode_is_account(&accounts[1]);
-    cheatcode_is_account(&accounts[2]); // Excluding the multisig case
+    cheatcode_mint!(&accounts[0]);
+    cheatcode_account!(&accounts[1]);
+    cheatcode_account!(&accounts[2]); // Excluding the multisig case
 
     //-Initial State-----------------------------------------------------------
     let mint_old = get_mint(&accounts[0]);
@@ -3992,6 +4002,9 @@ fn test_process_mint_to_checked(
     let result = process_mint_to_checked(accounts, instruction_data);
 
     //-Assert Postconditions---------------------------------------------------
+    let mint_new = get_mint(&accounts[0]);
+    let dst_new = get_account(&accounts[1]);
+
     if instruction_data.len() < 9 {
         assert_eq!(result, Err(ProgramError::Custom(12)));
         return result;
@@ -4009,14 +4022,14 @@ fn test_process_mint_to_checked(
     } else if !dst_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount));
         return result;
-    } else if dst_init_state.unwrap() == account_state::AccountState::Frozen {
+    } else if dst_init_state.unwrap() == AccountState::Frozen {
         // unwrap must succeed due to dst_initialised not being err
         assert_eq!(result, Err(ProgramError::Custom(17)));
         return result;
-    } else if get_account(&accounts[1]).is_native() {
+    } else if dst_new.is_native() {
         assert_eq!(result, Err(ProgramError::Custom(10)));
         return result;
-    } else if accounts[0].key() != &get_account(&accounts[1]).mint {
+    } else if key!(accounts[0]) != &mint!(dst_new) {
         assert_eq!(result, Err(ProgramError::Custom(3)));
         return result;
     } else if accounts[0].data_len() != Mint::LEN {
@@ -4029,11 +4042,10 @@ fn test_process_mint_to_checked(
     } else if !mint_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount));
         return result;
-    } else if instruction_data[8] != get_mint(&accounts[0]).decimals {
+    } else if instruction_data[8] != decimals!(mint_new) {
         assert_eq!(result, Err(ProgramError::Custom(18)));
         return result;
     } else {
-        let mint_new = get_mint(&accounts[0]);
         if mint_new.mint_authority().is_some() {
             // Validate Owner
             inner_test_validate_owner(
@@ -4050,10 +4062,10 @@ fn test_process_mint_to_checked(
 
         let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
 
-        if amount == 0 && accounts[0].owner() != &pinocchio_token_interface::program::ID {
+        if amount == 0 && owner!(accounts[0]) != &PROGRAM_ID {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId));
             return result;
-        } else if amount == 0 && accounts[1].owner() != &pinocchio_token_interface::program::ID {
+        } else if amount == 0 && owner!(accounts[1]) != &PROGRAM_ID {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId));
             return result;
         } else if amount != 0 && initial_supply.checked_add(amount).is_none() {
@@ -4062,7 +4074,7 @@ fn test_process_mint_to_checked(
         }
 
         assert_eq!(mint_new.supply(), initial_supply + amount);
-        assert_eq!(get_account(&accounts[1]).amount(), initial_amount + amount);
+        assert_eq!(dst_new.amount(), initial_amount + amount);
         assert!(result.is_ok());
     }
 

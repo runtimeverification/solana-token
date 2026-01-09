@@ -1,7 +1,7 @@
 //! Program entrypoint for runtime verification proofs of original spl token implmentation
 
 use {
-    crate::{processor::Processor, state::{Account, AccountState, Mint, Multisig}},
+    crate::{processor::Processor, state::{Account, AccountState, Mint, Multisig}, ID as PROGRAM_ID},
     solana_account_info::AccountInfo,
     solana_program_error::{ProgramError, ProgramResult},
     solana_program_pack::Pack,
@@ -84,6 +84,30 @@ macro_rules! assert_pubkey_from_slice {
         assert_eq!($actual, expected_pubkey);
     }};
 }
+
+/// Macro to constrain discriminator and program_id, then strip the discriminator byte.
+/// Returns (instr_with_disc, instruction_data) where instr_with_disc includes discriminator.
+/// This is spl-token specific - p-token harnesses receive instruction data without discriminator.
+macro_rules! constrain_and_strip {
+    ($disc:expr, $program_id:expr, $instruction_data:expr, $size:ty) => {{
+        unsafe { assume($disc == $instruction_data[0]); }
+        unsafe { assume($program_id == &crate::id()); }
+        let instr_with_disc = &$instruction_data.clone();
+        let stripped: &$size = $instruction_data.last_chunk().unwrap();
+        (instr_with_disc, stripped)
+    }};
+}
+
+/// Macros to abstract API differences between spl-token and p-token.
+/// spl-token AccountInfo has fields (.key, .owner), p-token has methods (.key(), .owner()).
+/// spl-token wrappers have methods (.mint(), .decimals()), p-token has fields (.mint, .decimals).
+macro_rules! key { ($acc:expr) => { $acc.key }; }
+macro_rules! owner { ($acc:expr) => { $acc.owner }; }
+macro_rules! mint { ($acc:expr) => { $acc.mint() }; }
+macro_rules! decimals { ($m:expr) => { $m.decimals() }; }
+/// Cheatcode macros to abstract naming differences.
+macro_rules! cheatcode_mint { ($acc:expr) => { cheatcode_is_spl_mint($acc) }; }
+macro_rules! cheatcode_account { ($acc:expr) => { cheatcode_is_spl_account($acc) }; }
 
 /// A wrapper struct as middleware so that the same functions called
 /// on the p-token Account are called on the spl Account. However,
@@ -3922,19 +3946,11 @@ fn test_process_mint_to_checked(
     accounts: &[AccountInfo; 3],
     instruction_data: &[u8; 10],
 ) -> ProgramResult {
-    use spl_token_interface::state::AccountState;
+    let (instr_with_disc, instruction_data) = constrain_and_strip!(14, program_id, instruction_data, [u8; 9]);
 
-    // Constrain discriminator and program id
-    unsafe { assume(14 == instruction_data[0]); }
-    unsafe { assume(program_id == &crate::id()); }
-
-    // Strip discriminator so instruction data is equivalent p-token harness
-    let instruction_data_with_discriminator = &instruction_data.clone();
-    let instruction_data: &[u8; 9] = instruction_data.last_chunk().unwrap();
-
-    cheatcode_is_spl_mint(&accounts[0]);
-    cheatcode_is_spl_account(&accounts[1]);
-    cheatcode_is_spl_account(&accounts[2]);
+    cheatcode_mint!(&accounts[0]);
+    cheatcode_account!(&accounts[1]);
+    cheatcode_account!(&accounts[2]); // Excluding the multisig case
 
     //-Initial State-----------------------------------------------------------
     let mint_old = get_mint(&accounts[0]);
@@ -3944,7 +3960,7 @@ fn test_process_mint_to_checked(
     let mint_initialised = mint_old.is_initialized();
     let dst_initialised = dst_old.is_initialized();
     let dst_init_state = dst_old.account_state();
-    let maybe_multisig_is_initialised = None;
+    let maybe_multisig_is_initialised = None; // Value set to `None` since authority is an account
 
     #[cfg(feature = "assumptions")]
     {
@@ -3959,7 +3975,7 @@ fn test_process_mint_to_checked(
     }
 
     //-Process Instruction-----------------------------------------------------
-    let result = Processor::process(program_id, accounts, instruction_data_with_discriminator);
+    let result = Processor::process(program_id, accounts, instr_with_disc);
 
     //-Assert Postconditions---------------------------------------------------
     let mint_new = get_mint(&accounts[0]);
@@ -3972,7 +3988,8 @@ fn test_process_mint_to_checked(
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
         return result;
     } else if accounts[1].data_len() != Account::LEN {
-        // TODO Daniel: is it possible for something to be provided that has the same len but is not an account?
+        // TODO Daniel: is it possible for something to be provided that has the same
+        // len but is not an account?
         assert_eq!(result, Err(ProgramError::InvalidAccountData));
         return result;
     } else if dst_initialised.is_err() {
@@ -3988,7 +4005,7 @@ fn test_process_mint_to_checked(
     } else if dst_new.is_native() {
         assert_eq!(result, Err(ProgramError::Custom(10)));
         return result;
-    } else if accounts[0].key != &dst_new.mint() {
+    } else if key!(accounts[0]) != &mint!(dst_new) {
         assert_eq!(result, Err(ProgramError::Custom(3)));
         return result;
     } else if accounts[0].data_len() != Mint::LEN {
@@ -4001,16 +4018,17 @@ fn test_process_mint_to_checked(
     } else if !mint_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount));
         return result;
-    } else if instruction_data[8] != mint_new.decimals() {
+    } else if instruction_data[8] != decimals!(mint_new) {
         assert_eq!(result, Err(ProgramError::Custom(18)));
         return result;
     } else {
         if mint_new.mint_authority().is_some() {
+            // Validate Owner
             inner_test_validate_owner(
-                mint_new.mint_authority().unwrap(),
-                &accounts[2],
-                &accounts[3..],
-                maybe_multisig_is_initialised.clone(),
+                mint_new.mint_authority().unwrap(), // expected_owner
+                &accounts[2],                       // owner_account_info
+                &accounts[3..],                     // tx_signers
+                maybe_multisig_is_initialised,
                 result.clone(),
             )?;
         } else {
@@ -4018,15 +4036,15 @@ fn test_process_mint_to_checked(
             return result;
         }
 
-        let amount = u64::from_le_bytes([instruction_data[0], instruction_data[1], instruction_data[2], instruction_data[3], instruction_data[4], instruction_data[5], instruction_data[6], instruction_data[7]]);
+        let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
 
-        if amount == 0 && accounts[0].owner != &crate::id() {
+        if amount == 0 && owner!(accounts[0]) != &PROGRAM_ID {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId));
             return result;
-        } else if amount == 0 && accounts[1].owner != &crate::id() {
+        } else if amount == 0 && owner!(accounts[1]) != &PROGRAM_ID {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId));
             return result;
-        } else if amount != 0 && amount.checked_add(initial_supply).is_none() {
+        } else if amount != 0 && initial_supply.checked_add(amount).is_none() {
             assert_eq!(result, Err(ProgramError::Custom(14)));
             return result;
         }
@@ -4037,7 +4055,7 @@ fn test_process_mint_to_checked(
     }
 
     // Ensure instruction_data was not mutated
-    assert_eq!(*instruction_data, instruction_data_with_discriminator[1..]);
+    assert_eq!(*instruction_data, instr_with_disc[1..]);
 
     result
 }
