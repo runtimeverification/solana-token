@@ -96,7 +96,7 @@ macro_rules! constrain_and_strip {
     ($disc:expr, $program_id:expr, $instruction_data:expr, $size:ty) => {{
         unsafe { assume($disc == $instruction_data[0]); }
         unsafe { assume($program_id == &crate::id()); }
-        let instr_with_disc = &$instruction_data.clone();
+        let instr_with_disc = $instruction_data;
         let stripped: &$size = $instruction_data.last_chunk().unwrap();
         (instr_with_disc, stripped)
     }};
