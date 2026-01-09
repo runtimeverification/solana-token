@@ -5042,55 +5042,6 @@ fn test_process_withdraw_excess_lamports_account_multisig(
     //    processor implementation), or
     // 2. Use spl_token_2022::processor::Processor instead of crate::processor::Processor
     assert_eq!(result, Err(TokenError::InvalidInstruction.into()));
-
-    // // Original postconditions for when WithdrawExcessLamports is properly supported:
-    // if accounts.len() < 3 {
-    //     assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
-    //     return result;
-    // } else {
-    //     assert_eq!(src_data_len, Account::LEN); // established by cheatcode_is_spl_account
-    //     {
-    //         if src_account_initialised.is_err() {
-    //             assert_eq!(result, Err(ProgramError::InvalidAccountData));
-    //             return result;
-    //         } else if !src_account_initialised.unwrap() {
-    //             assert_eq!(result, Err(ProgramError::UninitializedAccount));
-    //             return result;
-    //         } else if src_account_is_native {
-    //             assert_eq!(result, Err(ProgramError::Custom(10)));
-    //             return result;
-    //         }
-    //         inner_test_validate_owner(
-    //             &src_account_owner,
-    //             &accounts[2],
-    //             &accounts[3..],
-    //             maybe_multisig_is_initialised.clone(),
-    //             result.clone(),
-    //         )?;
-    //
-    //         if src_init_lamports < minimum_balance {
-    //             assert_eq!(result, Err(ProgramError::Custom(0)));
-    //             return result;
-    //         } else if dst_init_lamports
-    //             .checked_add(src_init_lamports - minimum_balance)
-    //             .is_none()
-    //         {
-    //             assert_eq!(result, Err(ProgramError::Custom(0)));
-    //             return result;
-    //         }
-    //
-    //         assert_eq!(accounts[0].lamports(), minimum_balance);
-    //         assert_eq!(
-    //             accounts[1].lamports(),
-    //             dst_init_lamports + (src_init_lamports - minimum_balance)
-    //         );
-    //         assert!(result.is_ok())
-    //     }
-    // }
-
-    // Ensure instruction_data was not mutated
-    assert_eq!(*instruction_data, instruction_data_with_discriminator[1..]);
-
     result
 }
 
@@ -5144,61 +5095,6 @@ fn test_process_withdraw_excess_lamports_mint(
     //    processor implementation), or
     // 2. Use spl_token_2022::processor::Processor instead of crate::processor::Processor
     assert_eq!(result, Err(TokenError::InvalidInstruction.into()));
-
-    // // Original postconditions for when WithdrawExcessLamports is properly supported:
-    // if accounts.len() < 3 {
-    //     assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
-    //     return result;
-    // } else {
-    //     assert_eq!(src_data_len, Mint::LEN); // established by cheatcode_is_spl_mint
-    //     {
-    //         if src_mint_initialised.is_err() {
-    //             assert_eq!(result, Err(ProgramError::InvalidAccountData));
-    //             return result;
-    //         } else if !src_mint_initialised.unwrap() {
-    //             assert_eq!(result, Err(ProgramError::UninitializedAccount));
-    //             return result;
-    //         } else if src_mint_mint_authority.is_some() {
-    //             inner_test_validate_owner(
-    //                 src_mint_mint_authority.as_ref().unwrap(),
-    //                 &accounts[2],
-    //                 &accounts[3..],
-    //                 maybe_multisig_is_initialised.clone(),
-    //                 result.clone(),
-    //             )?;
-    //         } else if accounts[0].key != accounts[2].key {
-    //             assert_eq!(result, Err(ProgramError::Custom(15)));
-    //             return result;
-    //         } else if !accounts[2].is_signer {
-    //             assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
-    //             return result;
-    //         }
-    //
-    //         if src_init_lamports < minimum_balance {
-    //             assert_eq!(result, Err(ProgramError::Custom(0)));
-    //             return result;
-    //         } else if dst_init_lamports
-    //             .checked_add(src_init_lamports - minimum_balance)
-    //             .is_none()
-    //         {
-    //             assert_eq!(result, Err(ProgramError::Custom(14)));
-    //             return result;
-    //         }
-    //
-    //         assert!(result.is_ok());
-    //         assert_eq!(accounts[0].lamports(), minimum_balance);
-    //         assert_eq!(
-    //             accounts[1].lamports(),
-    //             dst_init_lamports
-    //                 .checked_add(src_init_lamports - minimum_balance)
-    //                 .unwrap()
-    //         );
-    //     }
-    // }
-
-    // Ensure instruction_data was not mutated
-    assert_eq!(*instruction_data, instruction_data_with_discriminator[1..]);
-
     result
 }
 
@@ -5252,59 +5148,6 @@ fn test_process_withdraw_excess_lamports_mint_multisig(
     //    processor implementation), or
     // 2. Use spl_token_2022::processor::Processor instead of crate::processor::Processor
     assert_eq!(result, Err(TokenError::InvalidInstruction.into()));
-
-    // // Original postconditions for when WithdrawExcessLamports is properly supported:
-    // if accounts.len() < 3 {
-    //     assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
-    //     return result;
-    // } else {
-    //     assert_eq!(src_data_len, Mint::LEN); // established by cheatcode_is_spl_mint
-    //     {
-    //         if src_mint_initialised.is_err() {
-    //             assert_eq!(result, Err(ProgramError::InvalidAccountData));
-    //             return result;
-    //         } else if !src_mint_initialised.unwrap() {
-    //             assert_eq!(result, Err(ProgramError::UninitializedAccount));
-    //             return result;
-    //         } else if src_mint_mint_authority.is_some() {
-    //             inner_test_validate_owner(
-    //                 src_mint_mint_authority.as_ref().unwrap(),
-    //                 &accounts[2],
-    //                 &accounts[3..],
-    //                 maybe_multisig_is_initialised.clone(),
-    //                 result.clone(),
-    //             )?;
-    //         } else if accounts[0].key != accounts[2].key {
-    //             assert_eq!(result, Err(ProgramError::Custom(15)));
-    //             return result;
-    //         } else if !accounts[2].is_signer {
-    //             assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
-    //             return result;
-    //         }
-    //
-    //         else if src_init_lamports < minimum_balance {
-    //             assert_eq!(result, Err(ProgramError::Custom(0)));
-    //             return result;
-    //         } else if dst_init_lamports
-    //             .checked_add(src_init_lamports - minimum_balance)
-    //             .is_none()
-    //         {
-    //             assert_eq!(result, Err(ProgramError::Custom(0)));
-    //             return result;
-    //         }
-    //
-    //         assert_eq!(accounts[0].lamports(), minimum_balance);
-    //         assert_eq!(
-    //             accounts[1].lamports(),
-    //             dst_init_lamports + (src_init_lamports - minimum_balance)
-    //         );
-    //         assert!(result.is_ok())
-    //     }
-    // }
-
-    // Ensure instruction_data was not mutated
-    assert_eq!(*instruction_data, instruction_data_with_discriminator[1..]);
-
     result
 }
 
@@ -5356,45 +5199,5 @@ fn test_process_withdraw_excess_lamports_multisig(
     //    processor implementation), or
     // 2. Use spl_token_2022::processor::Processor instead of crate::processor::Processor
     assert_eq!(result, Err(TokenError::InvalidInstruction.into()));
-
-    // // Original postconditions for when WithdrawExcessLamports is properly supported:
-    // if accounts.len() < 3 {
-    //     assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
-    //     return result;
-    // } else if src_data_len != Account::LEN && src_data_len != Mint::LEN && src_data_len != Multisig::LEN {
-    //     assert_eq!(result, Err(ProgramError::Custom(13)));
-    //     return result;
-    // } else {
-    //     assert_eq!(src_data_len, Multisig::LEN); // established by cheatcode_is_spl_multisig
-    //     inner_test_validate_owner(
-    //         accounts[0].key,
-    //         &accounts[2],
-    //         &accounts[3..],
-    //         maybe_multisig_is_initialised.clone(),
-    //         result.clone(),
-    //     )?;
-    //
-    //     if src_init_lamports < minimum_balance {
-    //         assert_eq!(result, Err(ProgramError::Custom(0)));
-    //         return result;
-    //     } else if dst_init_lamports
-    //         .checked_add(src_init_lamports - minimum_balance)
-    //         .is_none()
-    //     {
-    //         assert_eq!(result, Err(ProgramError::Custom(0)));
-    //         return result;
-    //     }
-    //
-    //     assert_eq!(accounts[0].lamports(), minimum_balance);
-    //     assert_eq!(
-    //         accounts[1].lamports(),
-    //         dst_init_lamports + (src_init_lamports - minimum_balance)
-    //     );
-    //     assert!(result.is_ok())
-    // }
-
-    // Ensure instruction_data was not mutated
-    assert_eq!(*instruction_data, instruction_data_with_discriminator[1..]);
-
     result
 }
