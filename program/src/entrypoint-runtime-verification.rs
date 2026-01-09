@@ -4174,7 +4174,7 @@ fn test_process_burn_checked(
 #[inline(never)]
 fn test_process_withdraw_excess_lamports(
     program_id: &Pubkey,
-    accounts: &[AccountInfo],
+    accounts: &[AccountInfo; 4],
     instruction_data: &[u8; 1],
 ) -> ProgramResult {
     // Constrain discriminator and program id
