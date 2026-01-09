@@ -23,7 +23,7 @@ use {
         error::TokenError,
         program::ID as PROGRAM_ID,
         state::{
-            account_state::{self, AccountState},
+            account_state::AccountState,
             Initializable, Transmutable,
         },
     },
