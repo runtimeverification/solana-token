@@ -2,6 +2,7 @@
 
 use {
     crate::{
+        instruction::TokenInstruction,
         processor::Processor,
         state::{Account, AccountState, Mint, Multisig},
         ID as PROGRAM_ID,
@@ -89,19 +90,6 @@ macro_rules! assert_pubkey_from_slice {
     }};
 }
 
-/// Macro to constrain discriminator and program_id, then strip the discriminator byte.
-/// Returns (instr_with_disc, instruction_data) where instr_with_disc includes discriminator.
-/// This is spl-token specific - p-token harnesses receive instruction data without discriminator.
-macro_rules! constrain_and_strip {
-    ($disc:expr, $program_id:expr, $instruction_data:expr, $size:ty) => {{
-        unsafe { assume($disc == $instruction_data[0]); }
-        unsafe { assume($program_id == &crate::id()); }
-        let instr_with_disc = $instruction_data;
-        let stripped: &$size = $instruction_data.last_chunk().unwrap();
-        (instr_with_disc, stripped)
-    }};
-}
-
 /// Macros to abstract API differences between spl-token and p-token.
 /// spl-token AccountInfo has fields (.key, .owner), p-token has methods
 /// (.key(), .owner()). spl-token wrappers have methods (.mint(), .decimals()),
@@ -136,6 +124,21 @@ macro_rules! cheatcode_account {
     ($acc:expr) => {
         cheatcode_is_spl_account($acc)
     };
+}
+/// Process call macro to abstract the processor call difference.
+/// spl-token prepends discriminator and uses TokenInstruction::unpack.
+macro_rules! call_process_mint_to_checked {
+    ($accounts:expr, $instruction_data:expr) => {{
+        let mut data_with_disc = [0u8; 10];
+        data_with_disc[0] = 14; // MintToChecked discriminator
+        data_with_disc[1..].copy_from_slice($instruction_data);
+        let TokenInstruction::MintToChecked { amount, decimals } =
+            TokenInstruction::unpack(&data_with_disc)?
+        else {
+            unreachable!()
+        };
+        Processor::process_mint_to(&PROGRAM_ID, $accounts, amount, Some(decimals))
+    }};
 }
 
 /// A wrapper struct as middleware so that the same functions called
@@ -719,9 +722,8 @@ fn inner_process_instruction(
                 )
             } else {
                 test_process_mint_to_checked(
-                    program_id,
                     accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?, // CHANGE P-Token: accounts: &[AccountInfo; 3]
-                    instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
+                    instruction_data.last_chunk().ok_or(TokenError::InvalidInstruction)?,
                 )
             }
         }
@@ -839,7 +841,7 @@ fn inner_process_instruction(
             // msg!("Testing Instruction: Withdraw Excess Lamports");
             test_process_withdraw_excess_lamports(
                 program_id,
-                accounts,
+                accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?,
                 instruction_data.first_chunk().ok_or(TokenError::InvalidInstruction)?,
             )
         }
@@ -3962,132 +3964,7 @@ fn test_process_approve_checked(
     result
 }
 
-/// program_id // Token Program ID
-/// accounts[0] // Mint Info
-/// accounts[1] // Destination Info
-/// accounts[2] // Owner Info
-/// accounts[3..14] // Signers
-/// instruction_data[0] // Discriminator 14 (Mint To Checked)
-/// instruction_data[1..10] // Little Endian Bytes of u64 amount, and decimals
-#[inline(never)]
-fn test_process_mint_to_checked(
-    program_id: &Pubkey,
-    accounts: &[AccountInfo; 3],
-    instruction_data: &[u8; 10],
-) -> ProgramResult {
-    let (instr_with_disc, instruction_data) = constrain_and_strip!(14, program_id, instruction_data, [u8; 9]);
-
-    cheatcode_mint!(&accounts[0]);
-    cheatcode_account!(&accounts[1]);
-    cheatcode_account!(&accounts[2]); // Excluding the multisig case
-
-    //-Initial State-----------------------------------------------------------
-    let mint_old = get_mint(&accounts[0]);
-    let dst_old = get_account(&accounts[1]);
-    let initial_supply = mint_old.supply();
-    let initial_amount = dst_old.amount();
-    let mint_initialised = mint_old.is_initialized();
-    let dst_initialised = dst_old.is_initialized();
-    let dst_init_state = dst_old.account_state();
-    let maybe_multisig_is_initialised = None; // Value set to `None` since authority is an account
-
-    #[cfg(feature = "assumptions")]
-    {
-        // Do not execute if adding to the account balance would overflow.
-        // shared::mint_to.rs,L68 is based on the assumption that initial_amount <=
-        // mint.supply and therefore cannot overflow because the minting itself
-        // would already error out.
-        let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
-        if initial_amount.checked_add(amount).is_none() {
-            return Err(ProgramError::Custom(99));
-        }
-    }
-
-    //-Process Instruction-----------------------------------------------------
-    let result = Processor::process(program_id, accounts, instr_with_disc);
-
-    //-Assert Postconditions---------------------------------------------------
-    let mint_new = get_mint(&accounts[0]);
-    let dst_new = get_account(&accounts[1]);
-
-    if instruction_data.len() < 9 {
-        assert_eq!(result, Err(ProgramError::Custom(12)));
-        return result;
-    } else if accounts.len() < 3 {
-        assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
-        return result;
-    } else if accounts[1].data_len() != Account::LEN {
-        // TODO Daniel: is it possible for something to be provided that has the same
-        // len but is not an account?
-        assert_eq!(result, Err(ProgramError::InvalidAccountData));
-        return result;
-    } else if dst_initialised.is_err() {
-        assert_eq!(result, Err(ProgramError::InvalidAccountData));
-        return result;
-    } else if !dst_initialised.unwrap() {
-        assert_eq!(result, Err(ProgramError::UninitializedAccount));
-        return result;
-    } else if dst_init_state.unwrap() == AccountState::Frozen {
-        // unwrap must succeed due to dst_initialised not being err
-        assert_eq!(result, Err(ProgramError::Custom(17)));
-        return result;
-    } else if dst_new.is_native() {
-        assert_eq!(result, Err(ProgramError::Custom(10)));
-        return result;
-    } else if key!(accounts[0]) != &mint!(dst_new) {
-        assert_eq!(result, Err(ProgramError::Custom(3)));
-        return result;
-    } else if accounts[0].data_len() != Mint::LEN {
-        // Not sure if this is even possible if we get past the case above
-        assert_eq!(result, Err(ProgramError::InvalidAccountData));
-        return result;
-    } else if mint_initialised.is_err() {
-        assert_eq!(result, Err(ProgramError::InvalidAccountData));
-        return result;
-    } else if !mint_initialised.unwrap() {
-        assert_eq!(result, Err(ProgramError::UninitializedAccount));
-        return result;
-    } else if instruction_data[8] != decimals!(mint_new) {
-        assert_eq!(result, Err(ProgramError::Custom(18)));
-        return result;
-    } else {
-        if mint_new.mint_authority().is_some() {
-            // Validate Owner
-            inner_test_validate_owner(
-                mint_new.mint_authority().unwrap(), // expected_owner
-                &accounts[2],                       // owner_account_info
-                &accounts[3..],                     // tx_signers
-                maybe_multisig_is_initialised,
-                result.clone(),
-            )?;
-        } else {
-            assert_eq!(result, Err(ProgramError::Custom(5)));
-            return result;
-        }
-
-        let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
-
-        if amount == 0 && owner!(accounts[0]) != &PROGRAM_ID {
-            assert_eq!(result, Err(ProgramError::IncorrectProgramId));
-            return result;
-        } else if amount == 0 && owner!(accounts[1]) != &PROGRAM_ID {
-            assert_eq!(result, Err(ProgramError::IncorrectProgramId));
-            return result;
-        } else if amount != 0 && initial_supply.checked_add(amount).is_none() {
-            assert_eq!(result, Err(ProgramError::Custom(14)));
-            return result;
-        }
-
-        assert_eq!(mint_new.supply(), initial_supply + amount);
-        assert_eq!(dst_new.amount(), initial_amount + amount);
-        assert!(result.is_ok());
-    }
-
-    // Ensure instruction_data was not mutated
-    assert_eq!(*instruction_data, instr_with_disc[1..]);
-
-    result
-}
+include!("../../shared/test_process_mint_to_checked.rs");
 
 /// program_id // Token Program ID
 /// accounts[0] // Source Info
