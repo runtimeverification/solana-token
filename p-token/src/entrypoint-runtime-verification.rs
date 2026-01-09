@@ -22,20 +22,48 @@ use {
     pinocchio_token_interface::{
         error::TokenError,
         program::ID as PROGRAM_ID,
-        state::{account_state::{self, AccountState}, Initializable, Transmutable},
+        state::{
+            account_state::{self, AccountState},
+            Initializable, Transmutable,
+        },
     },
 };
 
 /// Macros to abstract API differences between spl-token and p-token.
-/// spl-token AccountInfo has fields (.key, .owner), p-token has methods (.key(), .owner()).
-/// spl-token wrappers have methods (.mint(), .decimals()), p-token has fields (.mint, .decimals).
-macro_rules! key { ($acc:expr) => { $acc.key() }; }
-macro_rules! owner { ($acc:expr) => { $acc.owner() }; }
-macro_rules! mint { ($acc:expr) => { $acc.mint }; }
-macro_rules! decimals { ($m:expr) => { $m.decimals }; }
+/// spl-token AccountInfo has fields (.key, .owner), p-token has methods
+/// (.key(), .owner()). spl-token wrappers have methods (.mint(), .decimals()),
+/// p-token has fields (.mint, .decimals).
+macro_rules! key {
+    ($acc:expr) => {
+        $acc.key()
+    };
+}
+macro_rules! owner {
+    ($acc:expr) => {
+        $acc.owner()
+    };
+}
+macro_rules! mint {
+    ($acc:expr) => {
+        $acc.mint
+    };
+}
+macro_rules! decimals {
+    ($m:expr) => {
+        $m.decimals
+    };
+}
 /// Cheatcode macros to abstract naming differences.
-macro_rules! cheatcode_mint { ($acc:expr) => { cheatcode_is_mint($acc) }; }
-macro_rules! cheatcode_account { ($acc:expr) => { cheatcode_is_account($acc) }; }
+macro_rules! cheatcode_mint {
+    ($acc:expr) => {
+        cheatcode_is_mint($acc)
+    };
+}
+macro_rules! cheatcode_account {
+    ($acc:expr) => {
+        cheatcode_is_account($acc)
+    };
+}
 
 program_entrypoint!(process_instruction);
 // Do not allocate memory.

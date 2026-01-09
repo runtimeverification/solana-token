@@ -1,7 +1,11 @@
 //! Program entrypoint for runtime verification proofs of original spl token implmentation
 
 use {
-    crate::{processor::Processor, state::{Account, AccountState, Mint, Multisig}, ID as PROGRAM_ID},
+    crate::{
+        processor::Processor,
+        state::{Account, AccountState, Mint, Multisig},
+        ID as PROGRAM_ID,
+    },
     solana_account_info::AccountInfo,
     solana_program_error::{ProgramError, ProgramResult},
     solana_program_pack::Pack,
@@ -99,15 +103,40 @@ macro_rules! constrain_and_strip {
 }
 
 /// Macros to abstract API differences between spl-token and p-token.
-/// spl-token AccountInfo has fields (.key, .owner), p-token has methods (.key(), .owner()).
-/// spl-token wrappers have methods (.mint(), .decimals()), p-token has fields (.mint, .decimals).
-macro_rules! key { ($acc:expr) => { $acc.key }; }
-macro_rules! owner { ($acc:expr) => { $acc.owner }; }
-macro_rules! mint { ($acc:expr) => { $acc.mint() }; }
-macro_rules! decimals { ($m:expr) => { $m.decimals() }; }
+/// spl-token AccountInfo has fields (.key, .owner), p-token has methods
+/// (.key(), .owner()). spl-token wrappers have methods (.mint(), .decimals()),
+/// p-token has fields (.mint, .decimals).
+macro_rules! key {
+    ($acc:expr) => {
+        $acc.key
+    };
+}
+macro_rules! owner {
+    ($acc:expr) => {
+        $acc.owner
+    };
+}
+macro_rules! mint {
+    ($acc:expr) => {
+        $acc.mint()
+    };
+}
+macro_rules! decimals {
+    ($m:expr) => {
+        $m.decimals()
+    };
+}
 /// Cheatcode macros to abstract naming differences.
-macro_rules! cheatcode_mint { ($acc:expr) => { cheatcode_is_spl_mint($acc) }; }
-macro_rules! cheatcode_account { ($acc:expr) => { cheatcode_is_spl_account($acc) }; }
+macro_rules! cheatcode_mint {
+    ($acc:expr) => {
+        cheatcode_is_spl_mint($acc)
+    };
+}
+macro_rules! cheatcode_account {
+    ($acc:expr) => {
+        cheatcode_is_spl_account($acc)
+    };
+}
 
 /// A wrapper struct as middleware so that the same functions called
 /// on the p-token Account are called on the spl Account. However,
