@@ -22,10 +22,7 @@ use {
     pinocchio_token_interface::{
         error::TokenError,
         program::ID as PROGRAM_ID,
-        state::{
-            account_state::AccountState,
-            Initializable, Transmutable,
-        },
+        state::{account_state::AccountState, Initializable, Transmutable},
     },
 };
 
