@@ -1843,8 +1843,9 @@ pub fn test_process_close_account(accounts: &[AccountInfo; 3]) -> ProgramResult 
         #[cfg(any(target_os = "solana", target_arch = "bpf"))]
         {
             // Solana-RT only syscall
-            assert_eq!(accounts[0].data_len(), 0);
+            assert_eq!(*accounts[0].owner(), [0; 32]);
             assert_eq!(accounts[0].lamports(), 0);
+            assert_eq!(accounts[0].data_len(), 0);
         }
     }
     result
