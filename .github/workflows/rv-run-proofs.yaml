@@ -86,10 +86,11 @@ jobs:
       - name: "Build with stable_mir_json from Docker"
         run: |
           docker run --rm \
-            -u root \
+            --entrypoint bash \
             -v $PWD:/workdir --workdir /workdir \
+            -e CARGO_HOME=/tmp/cargo \
             runtimeverificationinc/kmir:${{ steps.kmir.outputs.kmir }} \
-            bash -c "cd '${{ steps.vars.outputs.crate_dir }}' && RUSTC=/home/kmir/.stable-mir-json/release.sh cargo build --features runtime-verification,assumptions"
+            -c "cd '${{ steps.vars.outputs.crate_dir }}' && RUSTC=/home/kmir/.stable-mir-json/release.sh cargo build --features runtime-verification,assumptions"
 
       - name: "Store SMIR JSON files"
         uses: actions/upload-artifact@v4
