@@ -87,8 +87,10 @@ jobs:
         run: |
           docker run --rm \
             --entrypoint bash \
+            -u 0:0 \
             -v $PWD:/workdir --workdir /workdir \
             -e CARGO_HOME=/tmp/cargo \
+            -e RUSTUP_HOME=/rustup \
             runtimeverificationinc/kmir:${{ steps.kmir.outputs.kmir }} \
             -c "cd '${{ steps.vars.outputs.crate_dir }}' && RUSTC=/home/kmir/.stable-mir-json/release.sh cargo build --features runtime-verification,assumptions"
 
