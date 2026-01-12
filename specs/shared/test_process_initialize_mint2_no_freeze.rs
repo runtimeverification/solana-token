@@ -8,7 +8,7 @@ pub fn test_process_initialize_mint2_no_freeze(
     //-Initial State-----------------------------------------------------------
     // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be
     // impossible
-    let rent = get_rent_sysvar!();
+    let rent = Rent::get().unwrap();
     let minimum_balance = rent.minimum_balance(accounts[0].data_len());
     let mint_is_initialised_prior = get_mint(&accounts[0]).is_initialized();
 
@@ -37,13 +37,13 @@ pub fn test_process_initialize_mint2_no_freeze(
 
         let mint_new = get_mint(&accounts[0]);
         assert!(mint_new.is_initialized().unwrap());
-        assert_mint_authority!(mint_new, &instruction_data[1..33]);
-        assert_eq!(mint_decimals!(mint_new), instruction_data[0]);
+        assert_pubkey_from_slice!(*mint_new.mint_authority().unwrap(), &instruction_data[1..33]);
+        assert_eq!(mint_new.decimals, instruction_data[0]);
 
         #[allow(clippy::out_of_bounds_indexing)]
         // Guard above prevents this branch TODO: Perhaps remove?
         if instruction_data[33] == 1 {
-            assert_freeze_authority!(mint_new, &instruction_data[34..66]);
+            assert_pubkey_from_slice!(*mint_new.freeze_authority().unwrap(), &instruction_data[34..66]);
         }
     }
 

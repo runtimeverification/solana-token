@@ -16,8 +16,8 @@ fn test_process_set_authority_account_multisig(
     let src_old = get_account(&accounts[0]);
     let src_initialised = src_old.is_initialized();
     let src_init_state = src_old.account_state();
-    let src_owner = account_owner!(src_old);
-    let authority = src_old.close_authority().cloned().unwrap_or(account_owner!(src_old));
+    let src_owner = src_old.owner;
+    let authority = src_old.close_authority().cloned().unwrap_or(src_old.owner);
     let account_data_len = accounts[0].data_len();
     let maybe_multisig_is_initialised = Some(get_multisig(&accounts[1]).is_initialized());
 
@@ -54,7 +54,7 @@ fn test_process_set_authority_account_multisig(
         } else if !src_initialised.unwrap() {
             assert_eq!(result, Err(ProgramError::UninitializedAccount));
             return result;
-        } else if src_init_state.unwrap() == account_state_frozen!() {
+        } else if src_init_state.unwrap() == AccountState::Frozen {
             assert_eq!(result, Err(ProgramError::Custom(17)));
             return result;
         } else if instruction_data[0] != 2 && instruction_data[0] != 3 {
@@ -77,7 +77,7 @@ fn test_process_set_authority_account_multisig(
                 return result;
             }
 
-            assert_pubkey_from_slice!(account_owner!(src_new), instruction_data[2..34]);
+            assert_pubkey_from_slice!(src_new.owner, instruction_data[2..34]);
             assert_eq!(src_new.delegate(), None);
             assert_eq!(src_new.delegated_amount(), 0);
             if src_new.is_native() {

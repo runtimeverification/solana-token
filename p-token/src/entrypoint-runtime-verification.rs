@@ -21,7 +21,7 @@ use {
     },
     pinocchio_token_interface::{
         error::TokenError,
-        program::ID as PROGRAM_ID,
+        program::ID,
         state::{
             account::Account, account_state::AccountState, load_mut_unchecked, load_unchecked,
             mint::Mint, multisig::Multisig, Initializable, Transmutable,

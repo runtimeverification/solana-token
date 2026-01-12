@@ -27,7 +27,7 @@ fn test_process_initialize_multisig(
         assert_eq!(result, Err(ProgramError::Custom(12)))
     } else if accounts.len() < 2 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys))
-    } else if key!(&accounts[1]) != rent_id!() {
+    } else if key!(&accounts[1]) != &RENT_ID {
         assert_eq!(result, Err(ProgramError::InvalidArgument))
     } else if accounts[0].data_len() != Multisig::LEN {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
@@ -37,21 +37,21 @@ fn test_process_initialize_multisig(
         assert_eq!(result, Err(ProgramError::Custom(6)))
     } else if multisig_init_lamports < minimum_balance {
         assert_eq!(result, Err(ProgramError::Custom(0)))
-    } else if !is_valid_signer_index!((accounts.len() - 2) as u8) {
+    } else if !((1..=11).contains(&(accounts.len() - 2))) {
         assert_eq!(result, Err(ProgramError::Custom(7)))
-    } else if !is_valid_signer_index!(instruction_data[0]) {
+    } else if !(1..=11).contains(&instruction_data[0]) {
         assert_eq!(result, Err(ProgramError::Custom(8)))
     } else {
         let multisig_new = get_multisig(&accounts[0]);
         assert!(accounts[2..]
             .iter()
             .map(|signer| *key!(signer))
-            .eq(multisig_signers!(multisig_new)
+            .eq(multisig_new.signers
                 .iter()
                 .take(accounts[2..].len())
                 .copied()));
-        assert_eq!(multisig_m!(multisig_new), instruction_data[0]);
-        assert_eq!(multisig_n!(multisig_new) as usize, accounts.len() - 2);
+        assert_eq!(multisig_new.m, instruction_data[0]);
+        assert_eq!(multisig_new.n as usize, accounts.len() - 2);
         assert!(multisig_new.is_initialized().is_ok());
         assert!(multisig_new.is_initialized().unwrap());
         assert!(result.is_ok())

@@ -20,7 +20,7 @@ fn test_process_approve_checked_multisig(
         instruction_data[0], instruction_data[1], instruction_data[2], instruction_data[3],
         instruction_data[4], instruction_data[5], instruction_data[6], instruction_data[7],
     ]);
-    let src_owner = account_owner!(src_old);
+    let src_owner = src_old.owner;
     let src_initialised = src_old.is_initialized();
     let src_init_state = src_old.account_state();
     let mint_initialised = get_mint(&accounts[1]).is_initialized();
@@ -40,10 +40,10 @@ fn test_process_approve_checked_multisig(
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if !src_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount))
-    } else if src_init_state.unwrap() == account_state_frozen!() {
+    } else if src_init_state.unwrap() == AccountState::Frozen {
         // This should be safe to unwrap due to above check passing
         assert_eq!(result, Err(ProgramError::Custom(17)))
-    } else if key!(&accounts[1]) != &account_mint!(get_account(&accounts[0])) {
+    } else if key!(&accounts[1]) != &get_account(&accounts[0]).mint {
         assert_eq!(result, Err(ProgramError::Custom(3)))
     } else if accounts[1].data_len() != Mint::LEN {
         // Not sure if this is even possible if we get past the case above
@@ -52,7 +52,7 @@ fn test_process_approve_checked_multisig(
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if !mint_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount))
-    } else if instruction_data[8] != mint_decimals!(get_mint(&accounts[1])) {
+    } else if instruction_data[8] != get_mint(&accounts[1]).decimals {
         assert_eq!(result, Err(ProgramError::Custom(18)))
     } else {
         // Validate Owner

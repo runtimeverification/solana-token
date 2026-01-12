@@ -10,7 +10,7 @@ fn test_process_revoke_multisig(accounts: &[AccountInfo; 3]) -> ProgramResult {
     let src_old = get_account(&accounts[0]);
     let src_initialised = src_old.is_initialized();
     let src_init_state = src_old.account_state();
-    let src_owner = account_owner!(src_old);
+    let src_owner = src_old.owner;
     let maybe_multisig_is_initialised = Some(get_multisig(&accounts[1]).is_initialized());
 
     //-Process Instruction-----------------------------------------------------

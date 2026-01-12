@@ -16,7 +16,7 @@ fn test_process_amount_to_ui_amount(
         assert_eq!(result, Err(ProgramError::Custom(12)))
     } else if accounts.is_empty() {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys))
-    } else if account_info_owner!(&accounts[0]) != program_id!() {
+    } else if owner!(&accounts[0]) != &PROGRAM_ID {
         assert_eq!(result, Err(ProgramError::IncorrectProgramId))
     } else if accounts[0].data_len() != Mint::LEN {
         assert_eq!(result, Err(ProgramError::Custom(2)))

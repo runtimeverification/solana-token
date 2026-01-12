@@ -51,13 +51,13 @@ fn test_process_mint_to(
     } else if !dst_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount));
         return result;
-    } else if dst_init_state.unwrap() == account_state_frozen!() {
+    } else if dst_init_state.unwrap() == AccountState::Frozen {
         assert_eq!(result, Err(ProgramError::Custom(17)));
         return result;
     } else if get_account(&accounts[1]).is_native() {
         assert_eq!(result, Err(ProgramError::Custom(10)));
         return result;
-    } else if key!(&accounts[0]) != &account_mint!(get_account(&accounts[1])) {
+    } else if key!(&accounts[0]) != &get_account(&accounts[1]).mint {
         assert_eq!(result, Err(ProgramError::Custom(3)));
         return result;
     } else if accounts[0].data_len() != Mint::LEN {
@@ -90,10 +90,10 @@ fn test_process_mint_to(
             instruction_data[4], instruction_data[5], instruction_data[6], instruction_data[7],
         ]);
 
-        if amount == 0 && !owner_is_program!(&accounts[0]) {
+        if amount == 0 && !(owner!(&accounts[0]) == &PROGRAM_ID) {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId));
             return result;
-        } else if amount == 0 && !owner_is_program!(&accounts[1]) {
+        } else if amount == 0 && !(owner!(&accounts[1]) == &PROGRAM_ID) {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId));
             return result;
         } else if amount != 0 && amount.checked_add(initial_supply).is_none() {

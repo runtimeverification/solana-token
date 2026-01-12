@@ -16,7 +16,7 @@ fn inner_test_validate_owner(
     // non-multisig cases
     else if maybe_multisig_is_initialised.is_some()
         && owner_account_info.data_len() == Multisig::LEN
-        && is_owned_by_program!(owner_account_info)
+        && (owner!(owner_account_info) == &PROGRAM_ID)
     {
         let multisig_is_initialised = maybe_multisig_is_initialised.unwrap();
         if multisig_is_initialised.is_err() {
@@ -28,7 +28,7 @@ fn inner_test_validate_owner(
         } else {
             let multisig = get_multisig(owner_account_info);
             let unsigned_exists = tx_signers.iter().any(|potential_signer| {
-                multisig_signers!(multisig).iter().any(|registered_key| {
+                multisig.signers.iter().any(|registered_key| {
                     registered_key == key!(potential_signer) && !is_signer!(potential_signer)
                 })
             });
@@ -37,7 +37,7 @@ fn inner_test_validate_owner(
                 return result;
             }
 
-            let signers_count = multisig_signers!(multisig)
+            let signers_count = multisig.signers
                 .iter()
                 .filter_map(|registered_key| {
                     tx_signers.iter().find(|potential_signer| {
@@ -45,7 +45,7 @@ fn inner_test_validate_owner(
                     })
                 })
                 .count();
-            if signers_count < multisig_m!(multisig) as usize {
+            if signers_count < multisig.m as usize {
                 assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                 return result;
             }

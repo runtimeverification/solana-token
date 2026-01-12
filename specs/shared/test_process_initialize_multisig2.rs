@@ -17,7 +17,7 @@ fn test_process_initialize_multisig2(
     let multisig_init_lamports = accounts[0].lamports();
     // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be
     // impossible
-    let rent = get_rent_sysvar!();
+    let rent = Rent::get().unwrap();
     let minimum_balance = rent.minimum_balance(accounts[0].data_len());
 
     //-Process Instruction-----------------------------------------------------
@@ -36,21 +36,21 @@ fn test_process_initialize_multisig2(
         assert_eq!(result, Err(ProgramError::Custom(6)))
     } else if multisig_init_lamports < minimum_balance {
         assert_eq!(result, Err(ProgramError::Custom(0)))
-    } else if !is_valid_signer_index!((accounts.len() - 1) as u8) {
+    } else if !((1..=11).contains(&(accounts.len() - 1))) {
         assert_eq!(result, Err(ProgramError::Custom(7)))
-    } else if !is_valid_signer_index!(instruction_data[0]) {
+    } else if !(1..=11).contains(&instruction_data[0]) {
         assert_eq!(result, Err(ProgramError::Custom(8)))
     } else {
         let multisig_new = get_multisig(&accounts[0]);
         assert!(accounts[1..]
             .iter()
             .map(|signer| *key!(signer))
-            .eq(multisig_signers!(multisig_new)
+            .eq(multisig_new.signers
                 .iter()
                 .take(accounts[1..].len())
                 .copied()));
-        assert_eq!(multisig_m!(multisig_new), instruction_data[0]);
-        assert_eq!(multisig_n!(multisig_new) as usize, accounts.len() - 1);
+        assert_eq!(multisig_new.m, instruction_data[0]);
+        assert_eq!(multisig_new.n as usize, accounts.len() - 1);
         assert!(multisig_new.is_initialized().is_ok());
         assert!(multisig_new.is_initialized().unwrap());
         assert!(result.is_ok())

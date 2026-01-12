@@ -2,10 +2,9 @@
 
 use {
     crate::{
-        instruction::TokenInstruction,
         processor::Processor,
         state::{Account, AccountState, Mint, Multisig},
-        ID as PROGRAM_ID,
+        ID,
     },
     solana_account_info::AccountInfo,
     solana_program_error::{ProgramError, ProgramResult},

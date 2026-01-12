@@ -22,16 +22,16 @@ fn test_process_burn_checked(
     let src_init_amount = src_old.amount();
     let src_init_state = src_old.account_state();
     let src_is_native = src_old.is_native();
-    let src_mint = account_mint!(src_old);
+    let src_mint = src_old.mint;
     let src_owned_sys_inc = src_old.is_owned_by_system_program_or_incinerator();
-    let src_owner = account_owner!(src_old);
-    let src_info_owner = *account_info_owner!(&accounts[0]);
+    let src_owner = src_old.owner;
+    let src_info_owner = *owner!(&accounts[0]);
     let old_src_delgate = src_old.delegate().cloned();
     let old_src_delgated_amount = src_old.delegated_amount();
     let mint_initialised = mint_old.is_initialized();
     let mint_init_supply = mint_old.supply();
-    let mint_decimals = mint_decimals!(mint_old);
-    let mint_info_owner = *account_info_owner!(&accounts[1]);
+    let mint_decimals = mint_old.decimals;
+    let mint_info_owner = *owner!(&accounts[1]);
     let maybe_multisig_is_initialised = None; // Value set to `None` since authority is an account
 
     #[cfg(feature = "assumptions")]
@@ -61,7 +61,7 @@ fn test_process_burn_checked(
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if !mint_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount))
-    } else if src_init_state.unwrap() == account_state_frozen!() {
+    } else if src_init_state.unwrap() == AccountState::Frozen {
         assert_eq!(result, Err(ProgramError::Custom(17)))
     } else if src_is_native {
         assert_eq!(result, Err(ProgramError::Custom(10)))
@@ -99,9 +99,9 @@ fn test_process_burn_checked(
             }
         }
 
-        if amount == 0 && src_info_owner != *program_id!() {
+        if amount == 0 && src_info_owner != PROGRAM_ID {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId))
-        } else if amount == 0 && mint_info_owner != *program_id!() {
+        } else if amount == 0 && mint_info_owner != PROGRAM_ID {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId))
         } else {
             let src_new = get_account(&accounts[0]);

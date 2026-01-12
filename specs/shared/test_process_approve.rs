@@ -6,7 +6,7 @@ fn test_process_approve(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8])
     //-Initial State-----------------------------------------------------------
     let src_old = get_account(&accounts[0]);
     let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
-    let src_owner = account_owner!(src_old);
+    let src_owner = src_old.owner;
     let src_initialised = src_old.is_initialized();
     let src_init_state = src_old.account_state();
     let maybe_multisig_is_initialised = None; // Value set to `None` since authority is an account

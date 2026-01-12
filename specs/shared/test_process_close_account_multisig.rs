@@ -17,7 +17,7 @@ fn test_process_close_account_multisig(accounts: &[AccountInfo; 4]) -> ProgramRe
     let dst_init_lamports = accounts[1].lamports();
     let src_is_native = src_old.is_native();
     let src_owned_sys_inc = src_old.is_owned_by_system_program_or_incinerator();
-    let authority = src_old.close_authority().cloned().unwrap_or(account_owner!(src_old));
+    let authority = src_old.close_authority().cloned().unwrap_or(src_old.owner);
     let maybe_multisig_is_initialised = Some(get_multisig(&accounts[2]).is_initialized());
 
     //-Process Instruction-----------------------------------------------------
@@ -27,7 +27,7 @@ fn test_process_close_account_multisig(accounts: &[AccountInfo; 4]) -> ProgramRe
     if accounts.len() < 3 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
         return result;
-    } else if accounts_eq!(accounts[0], accounts[1]) {
+    } else if (key!(accounts[0]) == key!(accounts[1])) {
         assert_eq!(result, Err(ProgramError::InvalidAccountData));
         return result;
     } else if src_data_len != Account::LEN {
@@ -52,7 +52,7 @@ fn test_process_close_account_multisig(accounts: &[AccountInfo; 4]) -> ProgramRe
                 maybe_multisig_is_initialised,
                 result.clone(),
             )?;
-        } else if key!(&accounts[1]) != &incinerator_id!() {
+        } else if key!(&accounts[1]) != &INCINERATOR_ID {
             assert_eq!(result, Err(ProgramError::InvalidAccountData));
             return result;
         } else if dst_init_lamports.checked_add(src_init_lamports).is_none() {

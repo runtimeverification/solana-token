@@ -10,7 +10,7 @@ fn test_process_revoke(accounts: &[AccountInfo; 2]) -> ProgramResult {
     let src_old = get_account(&accounts[0]);
     let src_initialised = src_old.is_initialized();
     let src_init_state = src_old.account_state();
-    let src_owner = account_owner!(src_old);
+    let src_owner = src_old.owner;
     let maybe_multisig_is_initialised = None; // Value set to `None` since authority is an account
 
     //-Process Instruction-----------------------------------------------------

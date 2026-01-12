@@ -16,7 +16,7 @@ fn test_process_sync_native(accounts: &[AccountInfo; 1]) -> ProgramResult {
     //-Assert Postconditions---------------------------------------------------
     if accounts.len() != 1 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys))
-    } else if src_owner != &program_id!() {
+    } else if src_owner != &PROGRAM_ID {
         assert_eq!(result, Err(ProgramError::IncorrectProgramId))
     } else if accounts[0].data_len() != Account::LEN {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))

@@ -12,7 +12,7 @@ fn test_process_get_account_data_size(accounts: &[AccountInfo; 1]) -> ProgramRes
     //-Assert Postconditions---------------------------------------------------
     if accounts.is_empty() {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys))
-    } else if owner!(&accounts[0]) != &program_id!() {
+    } else if owner!(&accounts[0]) != &PROGRAM_ID {
         assert_eq!(result, Err(ProgramError::IncorrectProgramId))
     } else if accounts[0].data_len() != Mint::LEN {
         assert_eq!(result, Err(ProgramError::Custom(2)))

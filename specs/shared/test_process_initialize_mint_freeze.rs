@@ -31,7 +31,7 @@ fn test_process_initialize_mint_freeze(
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys))
     } else if accounts[0].data_len() != Mint::LEN {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
-    } else if key!(accounts[1]) != rent_id!() {
+    } else if key!(accounts[1]) != &RENT_ID {
         assert_eq!(result, Err(ProgramError::InvalidArgument))
     } else if mint_is_initialised_prior.is_err() {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
@@ -44,11 +44,11 @@ fn test_process_initialize_mint_freeze(
 
         let mint_new = get_mint(&accounts[0]);
         assert!(mint_new.is_initialized().unwrap());
-        assert_mint_authority!(mint_new, &instruction_data[1..33]);
-        assert_eq!(mint_decimals!(mint_new), instruction_data[0]);
+        assert_pubkey_from_slice!(*mint_new.mint_authority().unwrap(), &instruction_data[1..33]);
+        assert_eq!(mint_new.decimals, instruction_data[0]);
 
         if instruction_data[33] == 1 {
-            assert_freeze_authority!(mint_new, &instruction_data[34..66]);
+            assert_pubkey_from_slice!(*mint_new.freeze_authority().unwrap(), &instruction_data[34..66]);
         }
     }
 

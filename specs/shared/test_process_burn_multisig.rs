@@ -23,9 +23,9 @@ fn test_process_burn_multisig(
     let src_init_amount = src_old.amount();
     let src_init_state = src_old.account_state();
     let src_is_native = src_old.is_native();
-    let src_mint = account_mint!(src_old);
+    let src_mint = src_old.mint;
     let src_owned_sys_inc = src_old.is_owned_by_system_program_or_incinerator();
-    let src_owner = account_owner!(src_old);
+    let src_owner = src_old.owner;
     let old_src_delgate = src_old.delegate().cloned();
     let old_src_delgated_amount = src_old.delegated_amount();
     let mint_initialised = mint_old.is_initialized();
@@ -52,7 +52,7 @@ fn test_process_burn_multisig(
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if !mint_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount))
-    } else if src_init_state.unwrap() == account_state_frozen!() {
+    } else if src_init_state.unwrap() == AccountState::Frozen {
         assert_eq!(result, Err(ProgramError::Custom(17)))
     } else if src_is_native {
         assert_eq!(result, Err(ProgramError::Custom(10)))
@@ -86,9 +86,9 @@ fn test_process_burn_multisig(
             }
         }
 
-        if amount == 0 && !owner_is_program!(&accounts[0]) {
+        if amount == 0 && !(owner!(&accounts[0]) == &PROGRAM_ID) {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId))
-        } else if amount == 0 && !owner_is_program!(&accounts[1]) {
+        } else if amount == 0 && !(owner!(&accounts[1]) == &PROGRAM_ID) {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId))
         } else {
             let src_new = get_account(&accounts[0]);

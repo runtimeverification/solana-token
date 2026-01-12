@@ -18,7 +18,7 @@ fn test_process_ui_amount_to_amount(
         assert_eq!(result, Err(ProgramError::Custom(12)))
     } else if accounts.is_empty() {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys))
-    } else if account_info_owner!(&accounts[0]) != program_id!() {
+    } else if owner!(&accounts[0]) != &PROGRAM_ID {
         assert_eq!(result, Err(ProgramError::IncorrectProgramId))
     } else if accounts[0].data_len() != Mint::LEN {
         assert_eq!(result, Err(ProgramError::Custom(2)))
@@ -37,12 +37,12 @@ fn test_process_ui_amount_to_amount(
     {
         assert_eq!(result, Err(ProgramError::InvalidArgument))
     } else if ui_amount.unwrap().split_once('.').map_or(false, |(_, frac)| {
-        (mint_decimals!(get_mint(&accounts[0])) as usize) < frac.trim_end_matches('0').len()
+        (get_mint(&accounts[0]).decimals as usize) < frac.trim_end_matches('0').len()
     }) {
         assert_eq!(result, Err(ProgramError::InvalidArgument))
     } else if ui_amount.unwrap().split_once('.').map_or(
-        257_usize < ui_amount.unwrap().len() + (mint_decimals!(get_mint(&accounts[0])) as usize),
-        |(ints, _)| 257_usize < ints.len() + (mint_decimals!(get_mint(&accounts[0])) as usize),
+        257_usize < ui_amount.unwrap().len() + (get_mint(&accounts[0]).decimals as usize),
+        |(ints, _)| 257_usize < ints.len() + (get_mint(&accounts[0]).decimals as usize),
     ) {
         assert_eq!(result, Err(ProgramError::InvalidArgument))
     }

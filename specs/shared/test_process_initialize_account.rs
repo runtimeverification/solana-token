@@ -13,7 +13,7 @@ fn test_process_initialize_account(accounts: &[AccountInfo; 4]) -> ProgramResult
     let initial_state_new_account = get_account(&accounts[0]).account_state();
 
     let minimum_balance = get_rent(&accounts[3]).minimum_balance(accounts[0].data_len()); // TODO float problem
-    let is_native_mint = key!(accounts[1]) == native_mint_id!();
+    let is_native_mint = key!(accounts[1]) == &NATIVE_MINT_ID;
     let mint_is_initialised = get_mint(&accounts[1]).is_initialized();
 
     //-Process Instruction-----------------------------------------------------
@@ -22,25 +22,25 @@ fn test_process_initialize_account(accounts: &[AccountInfo; 4]) -> ProgramResult
     //-Assert Postconditions---------------------------------------------------
     if accounts.len() < 4 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
-    } else if key!(accounts[3]) != rent_id!() {
+    } else if key!(accounts[3]) != &RENT_ID {
         assert_eq!(result, Err(ProgramError::InvalidArgument))
     } else if accounts[0].data_len() != Account::LEN {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if initial_state_new_account.is_err() {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
-    } else if initial_state_new_account.unwrap() != account_state_uninitialized!() {
+    } else if initial_state_new_account.unwrap() != AccountState::Uninitialized {
         assert_eq!(result, Err(ProgramError::Custom(6)))
     } else if accounts[0].lamports() < minimum_balance {
         assert_eq!(result, Err(ProgramError::Custom(0)))
-    } else if !is_native_mint && owner!(accounts[1]) != program_id!() {
+    } else if !is_native_mint && owner!(accounts[1]) != &PROGRAM_ID {
         assert_eq!(result, Err(ProgramError::IncorrectProgramId))
     } else if !is_native_mint
-        && owner!(accounts[1]) == program_id!()
+        && (owner!(accounts[1]) == &PROGRAM_ID)
         && mint_is_initialised.is_err()
     {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
     } else if !is_native_mint
-        && owner!(accounts[1]) == program_id!()
+        && (owner!(accounts[1]) == &PROGRAM_ID)
         && !mint_is_initialised.unwrap()
     {
         assert_eq!(result, Err(ProgramError::Custom(2)))
@@ -50,10 +50,10 @@ fn test_process_initialize_account(accounts: &[AccountInfo; 4]) -> ProgramResult
         assert!(result.is_ok());
         assert_eq!(
             new_account_new.account_state().unwrap(),
-            account_state_initialized!()
+            AccountState::Initialized
         );
-        assert_eq!(mint!(new_account_new), *key!(accounts[1]));
-        assert_eq!(account_owner!(new_account_new), *key!(accounts[2]));
+        assert_eq!(new_account_new.mint, *key!(accounts[1]));
+        assert_eq!(new_account_new.owner, *key!(accounts[2]));
 
         if is_native_mint {
             assert!(new_account_new.is_native());

@@ -64,7 +64,7 @@ fn test_process_mint_to_checked(
     } else if dst_new.is_native() {
         assert_eq!(result, Err(ProgramError::Custom(10)));
         return result;
-    } else if key!(accounts[0]) != &mint!(dst_new) {
+    } else if key!(accounts[0]) != &dst_new.mint {
         assert_eq!(result, Err(ProgramError::Custom(3)));
         return result;
     } else if accounts[0].data_len() != Mint::LEN {
@@ -77,7 +77,7 @@ fn test_process_mint_to_checked(
     } else if !mint_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount));
         return result;
-    } else if instruction_data[8] != decimals!(mint_new) {
+    } else if instruction_data[8] != mint_new.decimals {
         assert_eq!(result, Err(ProgramError::Custom(18)));
         return result;
     } else {

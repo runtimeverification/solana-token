@@ -14,7 +14,7 @@ fn test_process_thaw_account_multisig(accounts: &[AccountInfo; 4]) -> ProgramRes
     let src_initialised = src_old.is_initialized();
     let src_init_state = src_old.account_state();
     let src_is_native = src_old.is_native();
-    let src_mint = account_mint!(src_old);
+    let src_mint = src_old.mint;
     let mint_initialised = mint_old.is_initialized();
     let mint_freeze_auth = mint_old.freeze_authority().cloned();
     let maybe_multisig_is_initialised = Some(get_multisig(&accounts[2]).is_initialized());
@@ -33,7 +33,7 @@ fn test_process_thaw_account_multisig(accounts: &[AccountInfo; 4]) -> ProgramRes
         assert_eq!(result, Err(ProgramError::UninitializedAccount))
     } else if src_init_state.is_err() {
         assert_eq!(result, Err(ProgramError::InvalidAccountData))
-    } else if src_init_state.unwrap() != account_state_frozen!() {
+    } else if src_init_state.unwrap() != AccountState::Frozen {
         assert_eq!(result, Err(ProgramError::Custom(13)))
     } else if src_is_native {
         assert_eq!(result, Err(ProgramError::Custom(10)))
@@ -59,7 +59,7 @@ fn test_process_thaw_account_multisig(accounts: &[AccountInfo; 4]) -> ProgramRes
 
         assert_eq!(
             get_account(&accounts[0]).account_state().unwrap(),
-            account_state_initialized!()
+            AccountState::Initialized
         );
         assert!(result.is_ok())
     }
