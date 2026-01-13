@@ -36,7 +36,7 @@ fn test_process_ui_amount_to_amount(
         && ui_amount.unwrap().chars().skip(1).all(|c| c == '0')
     {
         assert_eq!(result, Err(ProgramError::InvalidArgument))
-    } else if ui_amount.unwrap().split_once('.').map_or(false, |(_, frac)| {
+    } else if ui_amount.unwrap().split_once('.').is_some_and(|(_, frac)| {
         (get_mint(&accounts[0]).decimals as usize) < frac.trim_end_matches('0').len()
     }) {
         assert_eq!(result, Err(ProgramError::InvalidArgument))

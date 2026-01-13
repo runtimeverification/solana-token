@@ -24,7 +24,7 @@ macro_rules! is_signer {
 
 macro_rules! assert_pubkey_from_slice {
     ($actual:expr, $slice:expr) => {{
-        assert_eq!(&$actual[..], &$slice[..]);
+        assert_eq!($actual, $slice);
     }};
 }
 

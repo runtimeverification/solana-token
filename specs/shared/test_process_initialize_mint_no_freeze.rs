@@ -42,13 +42,13 @@ fn test_process_initialize_mint_no_freeze(
 
         let mint_new = get_mint(&accounts[0]);
         assert!(mint_new.is_initialized().unwrap());
-        assert_pubkey_from_slice!(*mint_new.mint_authority().unwrap(), &instruction_data[1..33]);
+        assert_pubkey_from_slice!(mint_new.mint_authority().unwrap(), &instruction_data[1..33]);
         assert_eq!(mint_new.decimals, instruction_data[0]);
 
         #[allow(clippy::out_of_bounds_indexing)]
         // Guard above prevents this branch TODO: Perhaps remove?
         if instruction_data[33] == 1 {
-            assert_pubkey_from_slice!(*mint_new.freeze_authority().unwrap(), &instruction_data[34..66]);
+            assert_pubkey_from_slice!(mint_new.freeze_authority().unwrap(), &instruction_data[34..66]);
         }
     }
 

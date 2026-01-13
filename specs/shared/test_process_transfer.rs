@@ -3,7 +3,7 @@
 /// accounts[2] // Authority Info
 /// instruction_data[0..8] // Little Endian Bytes of u64 amount
 #[inline(never)]
-fn test_process_transfer(
+pub fn test_process_transfer(
     accounts: &[AccountInfo; 3],
     instruction_data: &[u8; 8],
 ) -> ProgramResult {
@@ -72,12 +72,12 @@ fn test_process_transfer(
         assert_eq!(result, Err(ProgramError::Custom(3)));
         return result;
     } else {
-        let tx_signers: &[AccountInfo] = &accounts[3..];
+        let src_new = get_account(&accounts[0]);
         if old_src_delgate == Some(*key!(&accounts[2])) {
             inner_test_validate_owner(
-                old_src_delgate.as_ref().unwrap(),
+                &old_src_delgate.unwrap(),
                 &accounts[2],
-                tx_signers,
+                &accounts[3..],
                 maybe_multisig_is_initialised,
                 result.clone(),
             )?;
@@ -89,13 +89,11 @@ fn test_process_transfer(
             inner_test_validate_owner(
                 &src_owner,
                 &accounts[2],
-                tx_signers,
+                &accounts[3..],
                 maybe_multisig_is_initialised,
                 result.clone(),
             )?;
         }
-
-        let src_new = get_account(&accounts[0]);
         if ((key!(&accounts[0]) == key!(&accounts[1])) || amount == 0)
             && !(owner!(&accounts[0]) == &PROGRAM_ID)
         {

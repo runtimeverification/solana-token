@@ -68,7 +68,7 @@ fn test_process_set_authority_mint_multisig(
 
             if instruction_data[1] == 1 {
                 // 1 ==> 34 <= instruction_data.len()
-                assert_pubkey_from_slice!(*mint_new.mint_authority().unwrap(), instruction_data[2..34]);
+                assert_pubkey_from_slice!(mint_new.mint_authority().unwrap(), &instruction_data[2..34]);
             } else {
                 assert_eq!(mint_new.mint_authority(), None);
             }
@@ -92,7 +92,7 @@ fn test_process_set_authority_mint_multisig(
 
             if instruction_data[1] == 1 {
                 // 1 ==> 34 <= instruction_data.len()
-                assert_pubkey_from_slice!(*mint_new.freeze_authority().unwrap(), instruction_data[2..34]);
+                assert_pubkey_from_slice!(mint_new.freeze_authority().unwrap(), &instruction_data[2..34]);
             } else {
                 assert_eq!(mint_new.freeze_authority(), None);
             }

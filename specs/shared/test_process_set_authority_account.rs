@@ -98,7 +98,7 @@ fn test_process_set_authority_account(
 
             if instruction_data[1] == 1 {
                 // 1 ==> 34 <= instruction_data.len()
-                assert_pubkey_from_slice!(*src_new.close_authority().unwrap(), instruction_data[2..34]);
+                assert_pubkey_from_slice!(src_new.close_authority().unwrap(), &instruction_data[2..34]);
             } else {
                 assert_eq!(src_new.close_authority(), None);
             }
