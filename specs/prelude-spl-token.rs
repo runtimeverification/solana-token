@@ -65,6 +65,14 @@ impl AccountWrapper {
             Err(_) => false,
         }
     }
+
+    fn amount(&self) -> u64 {
+        self.0.as_ref().expect("AccountWrapper: underlying account missing").amount
+    }
+
+    fn delegated_amount(&self) -> u64 {
+        self.0.as_ref().expect("AccountWrapper: underlying account missing").delegated_amount
+    }
 }
 
 impl core::ops::Deref for AccountWrapper {
@@ -103,6 +111,10 @@ impl MintWrapper {
             },
             Err(_) => None,
         }
+    }
+
+    fn supply(&self) -> u64 {
+        self.0.as_ref().expect("MintWrapper: underlying mint missing").supply
     }
 }
 
@@ -224,7 +236,7 @@ use solana_sysvar::rent::ID as RENT_ID;
 use spl_token_interface::native_mint::ID as NATIVE_MINT_ID;
 use solana_sdk_ids::incinerator::ID as INCINERATOR_ID;
 use solana_pubkey::PUBKEY_BYTES;
-use spl_token_interface::state::AccountState;
+// Note: AccountState is already imported in the main file
 
 // =============================================================================
 // Process call macros (ordered same as includes)
@@ -412,13 +424,6 @@ macro_rules! call_process_transfer_checked {
     }};
 }
 macro_rules! call_process_transfer {
-    ($accounts:expr, $instruction_data:expr) => {{
-        let data = $instruction_data;
-        let amount = u64::from_le_bytes(data[0..8].try_into().unwrap());
-        Processor::process_transfer(&PROGRAM_ID, $accounts, amount, None)
-    }};
-}
-macro_rules! call_process_transfer_inner {
     ($accounts:expr, $instruction_data:expr) => {{
         let data = $instruction_data;
         let amount = u64::from_le_bytes(data[0..8].try_into().unwrap());

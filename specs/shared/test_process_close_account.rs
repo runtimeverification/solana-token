@@ -26,7 +26,7 @@ fn test_process_close_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
     if accounts.len() < 3 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
         return result;
-    } else if (key!(accounts[0]) == key!(accounts[1])) {
+    } else if key!(accounts[0]) == key!(accounts[1]) {
         assert_eq!(result, Err(ProgramError::InvalidAccountData));
         return result;
     } else if src_data_len != Account::LEN {

@@ -24,7 +24,7 @@ macro_rules! is_signer {
 
 macro_rules! assert_pubkey_from_slice {
     ($actual:expr, $slice:expr) => {{
-        assert_eq!($actual, $slice);
+        assert_eq!(&$actual[..], &$slice[..]);
     }};
 }
 
@@ -232,11 +232,6 @@ macro_rules! call_process_transfer_checked {
     };
 }
 macro_rules! call_process_transfer {
-    ($accounts:expr, $instruction_data:expr) => {
-        process_transfer($accounts, $instruction_data)
-    };
-}
-macro_rules! call_process_transfer_inner {
     ($accounts:expr, $instruction_data:expr) => {
         process_transfer($accounts, $instruction_data)
     };

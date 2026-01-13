@@ -25,13 +25,13 @@ fn test_process_burn_checked(
     let src_mint = src_old.mint;
     let src_owned_sys_inc = src_old.is_owned_by_system_program_or_incinerator();
     let src_owner = src_old.owner;
-    let src_info_owner = *owner!(&accounts[0]);
+    let src_info_owner = owner!(&accounts[0]);
     let old_src_delgate = src_old.delegate().cloned();
     let old_src_delgated_amount = src_old.delegated_amount();
     let mint_initialised = mint_old.is_initialized();
     let mint_init_supply = mint_old.supply();
     let mint_decimals = mint_old.decimals;
-    let mint_info_owner = *owner!(&accounts[1]);
+    let mint_info_owner = owner!(&accounts[1]);
     let maybe_multisig_is_initialised = None; // Value set to `None` since authority is an account
 
     #[cfg(feature = "assumptions")]
@@ -99,9 +99,9 @@ fn test_process_burn_checked(
             }
         }
 
-        if amount == 0 && src_info_owner != PROGRAM_ID {
+        if amount == 0 && src_info_owner != &PROGRAM_ID {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId))
-        } else if amount == 0 && mint_info_owner != PROGRAM_ID {
+        } else if amount == 0 && mint_info_owner != &PROGRAM_ID {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId))
         } else {
             let src_new = get_account(&accounts[0]);

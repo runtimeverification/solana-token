@@ -31,7 +31,7 @@ fn test_process_burn_checked_multisig(
     let mint_initialised = mint_old.is_initialized();
     let mint_init_supply = mint_old.supply();
     let mint_decimals = mint_old.decimals;
-    let mint_owner = *owner!(&accounts[1]);
+    let mint_owner = owner!(&accounts[1]);
     let maybe_multisig_is_initialised = Some(get_multisig(&accounts[2]).is_initialized());
 
     //-Process Instruction-----------------------------------------------------
@@ -94,7 +94,7 @@ fn test_process_burn_checked_multisig(
 
         if amount == 0 && src_owner != PROGRAM_ID {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId))
-        } else if amount == 0 && mint_owner != PROGRAM_ID {
+        } else if amount == 0 && mint_owner != &PROGRAM_ID {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId))
         } else {
             let src_new = get_account(&accounts[0]);

@@ -16,14 +16,13 @@ use {
         no_allocator, nostd_panic_handler, program_entrypoint,
         program_error::{ProgramError, ToStr},
         pubkey::Pubkey,
-        sysvars::{rent::Rent, Sysvar},
+        sysvars::Sysvar,
         ProgramResult,
     },
     pinocchio_token_interface::{
         error::TokenError,
-        program::ID,
         state::{
-            account::Account, account_state::AccountState, load_mut_unchecked, load_unchecked,
+            account::Account, load_mut_unchecked, load_unchecked,
             mint::Mint, multisig::Multisig, Initializable, Transmutable,
         },
     },

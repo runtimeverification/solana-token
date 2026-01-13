@@ -4,14 +4,13 @@ use {
     crate::{
         processor::Processor,
         state::{Account, AccountState, Mint, Multisig},
-        ID,
     },
     solana_account_info::AccountInfo,
     solana_program_error::{ProgramError, ProgramResult},
     solana_program_pack::Pack,
-    solana_pubkey::{self as pubkey, Pubkey},
+    solana_pubkey::Pubkey,
     solana_sysvar::Sysvar,
-    spl_token_interface::{error::TokenError, native_mint},
+    spl_token_interface::error::TokenError,
     std::intrinsics::assume,
 };
 

@@ -30,7 +30,7 @@ fn test_process_transfer_multisig(
     let maybe_multisig_is_initialised = Some(get_multisig(&accounts[2]).is_initialized());
 
     //-Process Instruction-----------------------------------------------------
-    let result = call_process_transfer_inner!(accounts, instruction_data);
+    let result = call_process_transfer!(accounts, instruction_data);
 
     //-Assert Postconditions---------------------------------------------------
     if instruction_data.len() < 8 {
