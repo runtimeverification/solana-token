@@ -19,6 +19,9 @@ email = "contact@runtimeverification.com"
 [project.scripts]
 p-token-verification = "p-token-verification.__main__:main"
 
+[project.entry-points.kdist]
+p-token-verification = "p_token_verification.kdist.plugin"
+
 [dependency-groups]
 dev = [
     "autoflake",
