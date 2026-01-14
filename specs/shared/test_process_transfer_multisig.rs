@@ -45,16 +45,16 @@ fn test_process_transfer_multisig(
     } else if !src_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount));
         return result;
-    } else if !(key!(&accounts[0]) == key!(&accounts[1])) && dst_initialised.is_err() {
+    } else if key!(&accounts[0]) != key!(&accounts[1]) && dst_initialised.is_err() {
         assert_eq!(result, Err(ProgramError::InvalidAccountData));
         return result;
-    } else if !(key!(&accounts[0]) == key!(&accounts[1])) && !dst_initialised.unwrap() {
+    } else if key!(&accounts[0]) != key!(&accounts[1]) && !dst_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount));
         return result;
     } else if get_account(&accounts[0]).account_state().unwrap() == AccountState::Frozen {
         assert_eq!(result, Err(ProgramError::Custom(17)));
         return result;
-    } else if !(key!(&accounts[0]) == key!(&accounts[1]))
+    } else if key!(&accounts[0]) != key!(&accounts[1])
         && get_account(&accounts[1]).account_state().unwrap() == AccountState::Frozen
     {
         assert_eq!(result, Err(ProgramError::Custom(17)));
@@ -62,7 +62,7 @@ fn test_process_transfer_multisig(
     } else if src_initial_amount < amount {
         assert_eq!(result, Err(ProgramError::Custom(1)));
         return result;
-    } else if !(key!(&accounts[0]) == key!(&accounts[1]))
+    } else if key!(&accounts[0]) != key!(&accounts[1])
         && get_account(&accounts[0]).mint != get_account(&accounts[1]).mint
     {
         assert_eq!(result, Err(ProgramError::Custom(3)));
@@ -93,30 +93,30 @@ fn test_process_transfer_multisig(
 
         let src_new = get_account(&accounts[0]);
         if ((key!(&accounts[0]) == key!(&accounts[1])) || amount == 0)
-            && !(owner!(&accounts[0]) == &PROGRAM_ID)
+            && owner!(&accounts[0]) != &PROGRAM_ID
         {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId));
             return result;
         } else if ((key!(&accounts[0]) == key!(&accounts[1])) || amount == 0)
-            && !(owner!(&accounts[1]) == &PROGRAM_ID)
+            && owner!(&accounts[1]) != &PROGRAM_ID
         {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId));
             return result;
-        } else if !(key!(&accounts[0]) == key!(&accounts[1]))
+        } else if key!(&accounts[0]) != key!(&accounts[1])
             && amount != 0
             && src_new.is_native()
             && src_initial_lamports < amount
         {
             assert_eq!(result, Err(ProgramError::Custom(14)));
             return result;
-        } else if !(key!(&accounts[0]) == key!(&accounts[1]))
+        } else if key!(&accounts[0]) != key!(&accounts[1])
             && amount != 0
             && src_new.is_native()
             && dst_initial_lamports.checked_add(amount).is_none()
         {
             assert_eq!(result, Err(ProgramError::Custom(14)));
             return result;
-        } else if !(key!(&accounts[0]) == key!(&accounts[1])) && amount != 0 {
+        } else if key!(&accounts[0]) != key!(&accounts[1]) && amount != 0 {
             assert_eq!(src_new.amount(), src_initial_amount - amount);
             assert_eq!(
                 get_account(&accounts[1]).amount(),
@@ -132,7 +132,7 @@ fn test_process_transfer_multisig(
         assert!(result.is_ok());
 
         // Delegate updates
-        if old_src_delgate == Some(*key!(&accounts[2])) && !(key!(&accounts[0]) == key!(&accounts[1])) {
+        if old_src_delgate == Some(*key!(&accounts[2])) && key!(&accounts[0]) != key!(&accounts[1]) {
             assert_eq!(src_new.delegated_amount(), old_src_delgated_amount - amount);
             if old_src_delgated_amount - amount == 0 {
                 assert_eq!(src_new.delegate(), None);

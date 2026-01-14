@@ -86,9 +86,9 @@ fn test_process_burn_multisig(
             }
         }
 
-        if amount == 0 && !(owner!(&accounts[0]) == &PROGRAM_ID) {
+        if amount == 0 && owner!(&accounts[0]) != &PROGRAM_ID {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId))
-        } else if amount == 0 && !(owner!(&accounts[1]) == &PROGRAM_ID) {
+        } else if amount == 0 && owner!(&accounts[1]) != &PROGRAM_ID {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId))
         } else {
             let src_new = get_account(&accounts[0]);

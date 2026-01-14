@@ -90,10 +90,10 @@ fn test_process_mint_to(
             instruction_data[4], instruction_data[5], instruction_data[6], instruction_data[7],
         ]);
 
-        if amount == 0 && !(owner!(&accounts[0]) == &PROGRAM_ID) {
+        if amount == 0 && owner!(&accounts[0]) != &PROGRAM_ID {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId));
             return result;
-        } else if amount == 0 && !(owner!(&accounts[1]) == &PROGRAM_ID) {
+        } else if amount == 0 && owner!(&accounts[1]) != &PROGRAM_ID {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId));
             return result;
         } else if amount != 0 && amount.checked_add(initial_supply).is_none() {

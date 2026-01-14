@@ -34,7 +34,7 @@ fn test_process_transfer_checked(
 
     #[cfg(feature = "assumptions")]
     // avoids potential overflow in destination account. assuming global supply bound by u64
-    if !(key!(&accounts[0]) == key!(&accounts[2])) && dst_initial_amount.checked_add(amount).is_none() {
+    if key!(&accounts[0]) != key!(&accounts[2]) && dst_initial_amount.checked_add(amount).is_none() {
         return Err(ProgramError::Custom(99));
     }
 
@@ -54,16 +54,16 @@ fn test_process_transfer_checked(
     } else if !src_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount));
         return result;
-    } else if !(key!(&accounts[0]) == key!(&accounts[2])) && dst_initialised.is_err() {
+    } else if key!(&accounts[0]) != key!(&accounts[2]) && dst_initialised.is_err() {
         assert_eq!(result, Err(ProgramError::InvalidAccountData));
         return result;
-    } else if !(key!(&accounts[0]) == key!(&accounts[2])) && !dst_initialised.unwrap() {
+    } else if key!(&accounts[0]) != key!(&accounts[2]) && !dst_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount));
         return result;
     } else if get_account(&accounts[0]).account_state().unwrap() == AccountState::Frozen {
         assert_eq!(result, Err(ProgramError::Custom(17)));
         return result;
-    } else if !(key!(&accounts[0]) == key!(&accounts[2]))
+    } else if key!(&accounts[0]) != key!(&accounts[2])
         && get_account(&accounts[2]).account_state().unwrap() == AccountState::Frozen
     {
         assert_eq!(result, Err(ProgramError::Custom(17)));
@@ -71,7 +71,7 @@ fn test_process_transfer_checked(
     } else if src_initial_amount < amount {
         assert_eq!(result, Err(ProgramError::Custom(1)));
         return result;
-    } else if !(key!(&accounts[0]) == key!(&accounts[2]))
+    } else if key!(&accounts[0]) != key!(&accounts[2])
         && get_account(&accounts[0]).mint != get_account(&accounts[2]).mint
     {
         assert_eq!(result, Err(ProgramError::Custom(3)));
@@ -131,7 +131,7 @@ fn test_process_transfer_checked(
             assert_eq!(result, Err(ProgramError::IncorrectProgramId));
             return result;
         }
-        if !(key!(&accounts[0]) == key!(&accounts[2])) && amount != 0 {
+        if key!(&accounts[0]) != key!(&accounts[2]) && amount != 0 {
             if src_new.is_native() && src_initial_lamports < amount {
                 // Not sure how to fund native mint
                 assert_eq!(result, Err(ProgramError::Custom(14)));
@@ -156,7 +156,7 @@ fn test_process_transfer_checked(
         assert!(result.is_ok());
 
         // Delegate updates
-        if old_src_delgate == Some(*key!(&accounts[3])) && !(key!(&accounts[0]) == key!(&accounts[2])) {
+        if old_src_delgate == Some(*key!(&accounts[3])) && key!(&accounts[0]) != key!(&accounts[2]) {
             assert_eq!(src_new.delegated_amount(), old_src_delgated_amount - amount);
             if old_src_delgated_amount - amount == 0 {
                 assert_eq!(src_new.delegate(), None);

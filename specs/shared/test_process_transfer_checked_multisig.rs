@@ -49,16 +49,16 @@ fn test_process_transfer_checked_multisig(
     } else if !src_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount));
         return result;
-    } else if !(key!(&accounts[0]) == key!(&accounts[2])) && dst_initialised.is_err() {
+    } else if key!(&accounts[0]) != key!(&accounts[2]) && dst_initialised.is_err() {
         assert_eq!(result, Err(ProgramError::InvalidAccountData));
         return result;
-    } else if !(key!(&accounts[0]) == key!(&accounts[2])) && !dst_initialised.unwrap() {
+    } else if key!(&accounts[0]) != key!(&accounts[2]) && !dst_initialised.unwrap() {
         assert_eq!(result, Err(ProgramError::UninitializedAccount));
         return result;
     } else if get_account(&accounts[0]).account_state().unwrap() == AccountState::Frozen {
         assert_eq!(result, Err(ProgramError::Custom(17)));
         return result;
-    } else if !(key!(&accounts[0]) == key!(&accounts[2]))
+    } else if key!(&accounts[0]) != key!(&accounts[2])
         && get_account(&accounts[2]).account_state().unwrap() == AccountState::Frozen
     {
         assert_eq!(result, Err(ProgramError::Custom(17)));
@@ -66,7 +66,7 @@ fn test_process_transfer_checked_multisig(
     } else if src_initial_amount < amount {
         assert_eq!(result, Err(ProgramError::Custom(1)));
         return result;
-    } else if !(key!(&accounts[0]) == key!(&accounts[2]))
+    } else if key!(&accounts[0]) != key!(&accounts[2])
         && get_account(&accounts[0]).mint != get_account(&accounts[2]).mint
     {
         assert_eq!(result, Err(ProgramError::Custom(3)));
@@ -125,7 +125,7 @@ fn test_process_transfer_checked_multisig(
         {
             assert_eq!(result, Err(ProgramError::IncorrectProgramId));
             return result;
-        } else if !(key!(&accounts[0]) == key!(&accounts[2])) && amount != 0 {
+        } else if key!(&accounts[0]) != key!(&accounts[2]) && amount != 0 {
             if src_new.is_native() && src_initial_lamports < amount {
                 // Not sure how to fund native mint
                 assert_eq!(result, Err(ProgramError::Custom(14)));
@@ -150,7 +150,7 @@ fn test_process_transfer_checked_multisig(
 
         assert!(result.is_ok());
         // Delegate updates
-        if old_src_delgate == Some(*key!(&accounts[3])) && !(key!(&accounts[0]) == key!(&accounts[2])) {
+        if old_src_delgate == Some(*key!(&accounts[3])) && key!(&accounts[0]) != key!(&accounts[2]) {
             assert_eq!(src_new.delegated_amount(), old_src_delgated_amount - amount);
             if old_src_delgated_amount - amount == 0 {
                 assert_eq!(src_new.delegate(), None);
