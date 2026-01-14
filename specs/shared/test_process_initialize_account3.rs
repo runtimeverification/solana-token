@@ -54,7 +54,7 @@ pub fn test_process_initialize_account3(
             AccountState::Initialized
         );
         assert_eq!(new_account_new.mint, *key!(&accounts[1]));
-        assert_pubkey_from_slice!(new_account_new.owner, *instruction_data);
+        assert_pubkey_from_slice_val!(new_account_new.owner, *instruction_data);
 
         if is_native_mint {
             assert!(new_account_new.is_native());

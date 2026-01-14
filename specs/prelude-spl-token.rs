@@ -164,7 +164,16 @@ macro_rules! is_signer {
 
 // --- Pubkey Macros ---
 
+// For reference types (&Pubkey) - dereferences $actual
 macro_rules! assert_pubkey_from_slice {
+    ($actual:expr, $slice:expr) => {{
+        let expected_pubkey = Pubkey::new_from_array($slice.try_into().unwrap());
+        assert_eq!(*$actual, expected_pubkey);
+    }};
+}
+
+// For value types (Pubkey) - no dereference
+macro_rules! assert_pubkey_from_slice_val {
     ($actual:expr, $slice:expr) => {{
         let expected_pubkey = Pubkey::new_from_array($slice.try_into().unwrap());
         assert_eq!($actual, expected_pubkey);

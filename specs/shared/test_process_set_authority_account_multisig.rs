@@ -77,7 +77,7 @@ fn test_process_set_authority_account_multisig(
                 return result;
             }
 
-            assert_pubkey_from_slice!(src_new.owner, instruction_data[2..34]);
+            assert_pubkey_from_slice_val!(src_new.owner, instruction_data[2..34]);
             assert_eq!(src_new.delegate(), None);
             assert_eq!(src_new.delegated_amount(), 0);
             if src_new.is_native() {

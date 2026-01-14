@@ -22,7 +22,15 @@ macro_rules! is_signer {
 
 // --- Pubkey Macros ---
 
+// For reference types - in p-token, no dereference needed
 macro_rules! assert_pubkey_from_slice {
+    ($actual:expr, $slice:expr) => {{
+        assert_eq!($actual, $slice);
+    }};
+}
+
+// For value types - same as above for p-token
+macro_rules! assert_pubkey_from_slice_val {
     ($actual:expr, $slice:expr) => {{
         assert_eq!($actual, $slice);
     }};
