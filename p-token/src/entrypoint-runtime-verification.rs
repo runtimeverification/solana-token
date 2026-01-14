@@ -22,8 +22,8 @@ use {
     pinocchio_token_interface::{
         error::TokenError,
         state::{
-            account::Account, load_mut_unchecked, load_unchecked,
-            mint::Mint, multisig::Multisig, Initializable, Transmutable,
+            account::Account, load_mut_unchecked, load_unchecked, mint::Mint, multisig::Multisig,
+            Initializable, Transmutable,
         },
     },
 };
