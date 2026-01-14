@@ -1195,6 +1195,12 @@ pub fn test_process_transfer_multisig(
     let old_src_delgated_amount = src_old.delegated_amount();
     let maybe_multisig_is_initialised = Some(get_multisig(&accounts[2]).is_initialized());
 
+    #[cfg(feature = "assumptions")]
+    // avoids potential overflow in destination account. assuming global supply bound by u64
+    if accounts[0] != accounts[1] && dst_initial_amount.checked_add(amount).is_none() {
+        return Err(ProgramError::Custom(99));
+    }
+
     //-Process Instruction-----------------------------------------------------
     let result = process_transfer(accounts, instruction_data);
 
@@ -1455,6 +1461,18 @@ pub fn test_process_mint_to_multisig(
     let dst_init_state = dst_old.account_state();
     let maybe_multisig_is_initialised = Some(get_multisig(&accounts[2]).is_initialized());
 
+    #[cfg(feature = "assumptions")]
+    {
+        // Do not execute if adding to the account balance would overflow.
+        // shared::mint_to.rs,L68 is based on the assumption that initial_amount <=
+        // mint.supply and therefore cannot overflow because the minting itself
+        // would already error out.
+        let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
+        if initial_amount.checked_add(amount).is_none() {
+            return Err(ProgramError::Custom(99));
+        }
+    }
+
     //-Process Instruction-----------------------------------------------------
     let result = process_mint_to(accounts, instruction_data);
 
@@ -1690,6 +1708,13 @@ pub fn test_process_burn_multisig(
     let mint_init_supply = mint_old.supply();
     let mint_owner = *accounts[1].owner();
     let maybe_multisig_is_initialised = Some(get_multisig(&accounts[2]).is_initialized());
+
+    #[cfg(feature = "assumptions")]
+    // accoutn.amount() <= mint.supply(), account.delegated_amount() <= account.amount()
+    // otherwise processing could lead to overflows, see processor::shared::burn,L83
+    if !(src_init_amount <= mint_init_supply && old_src_delgated_amount <= src_init_amount) {
+        return Err(ProgramError::Custom(99));
+    }
 
     //-Process Instruction-----------------------------------------------------
     let result = process_burn(accounts, instruction_data);
@@ -2132,6 +2157,12 @@ pub fn test_process_transfer_checked_multisig(
     let mint_initialised = get_mint(&accounts[1]).is_initialized();
     let maybe_multisig_is_initialised = Some(get_multisig(&accounts[3]).is_initialized());
 
+    #[cfg(feature = "assumptions")]
+    // avoids potential overflow in destination account. assuming global supply bound by u64
+    if accounts[0] != accounts[2] && dst_initial_amount.checked_add(amount).is_none() {
+        return Err(ProgramError::Custom(99));
+    }
+
     //-Process Instruction-----------------------------------------------------
     let result = process_transfer_checked(accounts, instruction_data);
 
@@ -2427,6 +2458,13 @@ pub fn test_process_burn_checked_multisig(
     let mint_decimals = mint_old.decimals;
     let mint_owner = *accounts[1].owner();
     let maybe_multisig_is_initialised = Some(get_multisig(&accounts[2]).is_initialized());
+
+    #[cfg(feature = "assumptions")]
+    // accoutn.amount() <= mint.supply(), account.delegated_amount() <= account.amount()
+    // otherwise processing could lead to overflows, see processor::shared::burn,L83
+    if !(src_init_amount <= mint_init_supply && old_src_delgated_amount <= src_init_amount) {
+        return Err(ProgramError::Custom(99));
+    }
 
     //-Process Instruction-----------------------------------------------------
     let result = process_burn_checked(accounts, instruction_data);
@@ -4094,6 +4132,18 @@ fn test_process_mint_to_checked_multisig(
     let dst_initialised = dst_old.is_initialized();
     let dst_init_state = dst_old.account_state();
     let maybe_multisig_is_initialised = Some(get_multisig(&accounts[2]).is_initialized());
+
+    #[cfg(feature = "assumptions")]
+    {
+        // Do not execute if adding to the account balance would overflow.
+        // shared::mint_to.rs,L68 is based on the assumption that initial_amount <=
+        // mint.supply and therefore cannot overflow because the minting itself
+        // would already error out.
+        let amount = unsafe { u64::from_le_bytes(*(instruction_data.as_ptr() as *const [u8; 8])) };
+        if initial_amount.checked_add(amount).is_none() {
+            return Err(ProgramError::Custom(99));
+        }
+    }
 
     //-Process Instruction-----------------------------------------------------
     let result = process_mint_to_checked(accounts, instruction_data);
