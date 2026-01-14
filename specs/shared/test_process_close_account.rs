@@ -2,7 +2,7 @@
 /// accounts[1] // Destination Info
 /// accounts[2] // Authority Info
 #[inline(never)]
-fn test_process_close_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
+pub fn test_process_close_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
     cheatcode_account!(&accounts[0]);
     cheatcode_account!(&accounts[1]);
     cheatcode_account!(&accounts[2]); // Excluding the multisig case
@@ -26,7 +26,7 @@ fn test_process_close_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
     if accounts.len() < 3 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
         return result;
-    } else if key!(accounts[0]) == key!(accounts[1]) {
+    } else if key!(&accounts[0]) == key!(&accounts[1]) {
         assert_eq!(result, Err(ProgramError::InvalidAccountData));
         return result;
     } else if src_data_len != Account::LEN {
@@ -62,13 +62,17 @@ fn test_process_close_account(accounts: &[AccountInfo; 3]) -> ProgramResult {
         assert!(result.is_ok());
 
         // Validate owner falls through to here if no error
-        assert_eq!(accounts[0].lamports(), 0);
         assert_eq!(
             accounts[1].lamports(),
             dst_init_lamports + src_init_lamports
         );
         #[cfg(any(target_os = "solana", target_arch = "bpf"))]
-        assert_eq!(accounts[0].data_len(), 0); // Solana-RT only
+        {
+            // Solana-RT only syscall
+            assert_eq!(*owner!(&accounts[0]), [0; 32]);
+            assert_eq!(accounts[0].lamports(), 0);
+            assert_eq!(accounts[0].data_len(), 0);
+        }
     }
     result
 }
