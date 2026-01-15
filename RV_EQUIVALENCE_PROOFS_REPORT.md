@@ -329,41 +329,41 @@ To do this, we examine the SPL Token program entrypoint and check how the instru
 There is a single parser function that is called `TokenInstruction::unpack`.
 This parser function determines that the various instruction format variants have the following layouts:
 
-| Enum Tag | Enum Variant             | Associated Data                                           | Comment                                                   | Success Case |
-| ---      | ---                      | ---                                                       | ---                                                       | ---          |
-|   0      | InitializeMint           | u8, Pubkey:MintAuthority, COption<Pubkey>:FreezeAuthority |                                                           | 2            |
-|   1      | InitializeAccount        |                                                           |                                                           | 1            |
-|   2      | InitializeMultisig       | u8                                                        |                                                           | 1            |
-|   3      | Transfer                 | u64                                                       |                                                           | 1            |
-|   4      | Approve                  | u64                                                       |                                                           | 1            |
-|   5      | Revoke                   |                                                           |                                                           | 1            |
-|   6      | SetAuthority             | AuthorityType, COption<Pubkey>:NewAuthority               | AuthorityType == AccountOwner => is_defined(NewAuthority) | 7            |
-|   7      | MintTo                   | u64                                                       |                                                           | 1            |
-|   8      | Burn                     | u64                                                       |                                                           | 1            |
-|   9      | CloseAccount             |                                                           |                                                           | 1            |
-|  10      | FreezeAccount            |                                                           |                                                           | 1            |
-|  11      | ThawAccount              |                                                           |                                                           | 1            |
-|  12      | TransferChecked          | u64, u8                                                   |                                                           | 1            |
-|  13      | ApproveChecked           | u64, u8                                                   |                                                           | 1            |
-|  14      | MintToChecked            | u64, u8                                                   |                                                           | 1            |
-|  15      | BurnChecked              | u64, u8                                                   |                                                           | 1            |
-|  16      | InitializeAccount2       | Pubkey:Owner                                              |                                                           | 1            |
-|  17      | SyncNative               |                                                           |                                                           | 1            |
-|  18      | InitializeAccount3       | Pubkey:Owner                                              |                                                           | 1            |
-|  19      | InitializeMultisig2      | u8                                                        |                                                           | 1            |
-|  20      | InitializeMint2          | u8, Pubkey:MintAuthority, COption<Pubkey>:FreezeAuthority |                                                           | 2            |
-|  21      | GetAccountDataSize       |                                                           |                                                           | 1            |
-|  22      | InitializeImmutableOwner |                                                           |                                                           | 1            |
-|  23      | AmountToUiAmount         | u64                                                       |                                                           | 1            |
-|  24      | UiAmountToAmount         | &str                                                      |                                                           | 1            |
+| Enum Tag | Enum Variant             | Associated Data                                           | Comment                                                   |
+| ---      | ---                      | ---                                                       | ---                                                       |
+|   0      | InitializeMint           | u8, Pubkey:MintAuthority, COption<Pubkey>:FreezeAuthority |                                                           |
+|   1      | InitializeAccount        |                                                           |                                                           |
+|   2      | InitializeMultisig       | u8                                                        |                                                           |
+|   3      | Transfer                 | u64                                                       |                                                           |
+|   4      | Approve                  | u64                                                       |                                                           |
+|   5      | Revoke                   |                                                           |                                                           |
+|   6      | SetAuthority             | AuthorityType, COption<Pubkey>:NewAuthority               | AuthorityType == AccountOwner => is_defined(NewAuthority) |
+|   7      | MintTo                   | u64                                                       |                                                           |
+|   8      | Burn                     | u64                                                       |                                                           |
+|   9      | CloseAccount             |                                                           |                                                           |
+|  10      | FreezeAccount            |                                                           |                                                           |
+|  11      | ThawAccount              |                                                           |                                                           |
+|  12      | TransferChecked          | u64, u8                                                   |                                                           |
+|  13      | ApproveChecked           | u64, u8                                                   |                                                           |
+|  14      | MintToChecked            | u64, u8                                                   |                                                           |
+|  15      | BurnChecked              | u64, u8                                                   |                                                           |
+|  16      | InitializeAccount2       | Pubkey:Owner                                              |                                                           |
+|  17      | SyncNative               |                                                           |                                                           |
+|  18      | InitializeAccount3       | Pubkey:Owner                                              |                                                           |
+|  19      | InitializeMultisig2      | u8                                                        |                                                           |
+|  20      | InitializeMint2          | u8, Pubkey:MintAuthority, COption<Pubkey>:FreezeAuthority |                                                           |
+|  21      | GetAccountDataSize       |                                                           |                                                           |
+|  22      | InitializeImmutableOwner |                                                           |                                                           |
+|  23      | AmountToUiAmount         | u64                                                       |                                                           |
+|  24      | UiAmountToAmount         | &str                                                      |                                                           |
 
 Note that the P-Token program has two additional instruction format variants that SPL Token does not have.
 However, we will not examine these further since they are not relevant for the equivalence proof.
 
-| Enum Tag | Enum Variant             | Associated Data                                           | Comment                                                   | Success Case |
-| ---      | ---                      | ---                                                       | ---                                                       | ---          |
-|  38      | WithdrawExcessLamports   |                                                           |                                                           | 1            |
-| 255      | Batch                    | (accts:u8,len:u8,len)*                                    |                                                           | N            |
+| Enum Tag | Enum Variant             | Associated Data                                           | Comment                                                   |
+| ---      | ---                      | ---                                                       | ---                                                       |
+|  38      | WithdrawExcessLamports   |                                                           |                                                           |
+| 255      | Batch                    | (accts:u8,len:u8,len)*                                    |                                                           |
 
 | Enum Tag | AuthorityType Variant |
 | ---      | ---                   |
