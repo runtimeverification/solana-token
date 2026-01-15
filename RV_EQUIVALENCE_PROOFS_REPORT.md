@@ -648,3 +648,10 @@ Additionally, for certain related instruction variants, we may list them togethe
 |                          | C: ACCOUNT AT INDEX 0 (SOURCE ACCOUNT) IS OWNED BY TOKEN PROGRAM                                                                                  |                                            |
 |                          | C: SOURCE ACCOUNT IS WELL-FORMED MINT                                                                                                             |                                            |
 |                          | E: RETURN U64 AMOUNT FROM RENDERED UTF-8 AMOUNT AND MINT DECIMALS                                                                                 |                                            |
+
+## Kompass Proofs
+
+The results of the mechanical Kompass equivlanence proofs can be found in [this KaaS Vault (FIXME: Correct vault link to come)](https://kaas.runtimeverification.com/).
+The proofs can be locally run by following the instructions listed in [VERIFICATION_GUIDE.md](https://github.com/runtimeverification/solana-token/blob/proofs/p-token/test-properties/VERIFICATION_GUIDE.md).
+
+`VERIFICATION_GUIDE.md` also contains information about the cheatcodes used to set the appropriate symbolic state, as well as assumptions that are made as part of the solana domain, and limitations of the mechanical proofs.
