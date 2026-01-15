@@ -19,6 +19,11 @@ macro_rules! is_signer {
         $acc.is_signer()
     };
 }
+macro_rules! same_account {
+    ($acc1:expr, $acc2:expr) => {
+        $acc1 == $acc2
+    };
+}
 
 // --- Pubkey Macros ---
 

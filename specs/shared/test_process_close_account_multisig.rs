@@ -27,7 +27,7 @@ fn test_process_close_account_multisig(accounts: &[AccountInfo; 4]) -> ProgramRe
     if accounts.len() < 3 {
         assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
         return result;
-    } else if key!(accounts[0]) == key!(accounts[1]) {
+    } else if same_account!(accounts[0], accounts[1]) {
         assert_eq!(result, Err(ProgramError::InvalidAccountData));
         return result;
     } else if src_data_len != Account::LEN {
