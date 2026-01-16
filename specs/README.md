@@ -1,6 +1,8 @@
 # Specs - Runtime Verification Harness
 
-This directory contains shared runtime verification specifications for Solana token programs. The specs provide a common harness for verifying both **p-token** (pinocchio-based) and **spl-token** (solana-based) implementations.
+This directory contains shared runtime verification specifications for Solana token programs. The specs provide a common harness for verifying both
+**p-token** (pinocchio-based) and **spl-token** (solana-based) implementations. The differences between each will be handled by macros,
+allowing for small surface area of change that is easily reviewable.
 
 ## Architecture
 
@@ -105,11 +107,3 @@ fn test_process_transfer(
     result
 }
 ```
-
-## Benefits
-
-- **Code Deduplication**: ~8000 lines of duplicated specs reduced to ~2000 shared lines
-- **Single Source of Truth**: Changes to specs automatically apply to both implementations
-- **Consistency**: Same test coverage and logic for both p-token and spl-token
-- **Clear API Differences**: Preludes make implementation-specific differences explicit and localized
-- **Maintainability**: Easier to update and extend verification coverage
