@@ -27,6 +27,8 @@ fn inner_test_validate_owner(
             return result;
         } else {
             let multisig = get_multisig(owner_account_info);
+
+            // Did all declared and allowd signers sign?
             let unsigned_exists = tx_signers.iter().any(|potential_signer| {
                 multisig.signers.iter().any(|registered_key| {
                     registered_key == key!(potential_signer) && !is_signer!(potential_signer)
@@ -37,6 +39,7 @@ fn inner_test_validate_owner(
                 return result;
             }
 
+            // Were enough signatures received?
             let signers_count = multisig.signers
                 .iter()
                 .filter_map(|registered_key| {
@@ -45,6 +48,8 @@ fn inner_test_validate_owner(
                     })
                 })
                 .count();
+
+            // Check if we have enough signers
             if signers_count < multisig.m as usize {
                 assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                 return result;
@@ -53,7 +58,7 @@ fn inner_test_validate_owner(
             return Ok(());
         }
     }
-    // Non-multisig case - check if owner_account_info.is_signer
+    // Non-multisig case - check if owner_account_info.is_signer()
     else if !is_signer!(owner_account_info) {
         assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
         return result;
