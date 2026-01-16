@@ -31,6 +31,8 @@ pub fn test_process_burn(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]
     let maybe_multisig_is_initialised = None; // Value set to `None` since authority is an account
 
     #[cfg(feature = "assumptions")]
+    // account.amount() <= mint.supply(), account.delegated_amount() <= account.amount()
+    // otherwise processing could lead to overflows, see processor::shared::burn,L83
     if !(src_init_amount <= mint_init_supply && old_src_delgated_amount <= src_init_amount) {
         return Err(ProgramError::Custom(99));
     }
@@ -67,9 +69,9 @@ pub fn test_process_burn(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]
         if !src_owned_sys_inc {
             if old_src_delgate.is_some() && *key!(&accounts[2]) == old_src_delgate.unwrap() {
                 inner_test_validate_owner(
-                    &old_src_delgate.unwrap(),
-                    &accounts[2],
-                    &accounts[3..],
+                    &old_src_delgate.unwrap(), // expected_owner
+                    &accounts[2],              // owner_account_info
+                    &accounts[3..],            // tx_signers
                     maybe_multisig_is_initialised,
                     result.clone(),
                 )?;
@@ -80,9 +82,9 @@ pub fn test_process_burn(accounts: &[AccountInfo; 3], instruction_data: &[u8; 8]
                 }
             } else {
                 inner_test_validate_owner(
-                    &src_owner,
-                    &accounts[2],
-                    &accounts[3..],
+                    &src_owner,     // expected_owner
+                    &accounts[2],   // owner_account_info
+                    &accounts[3..], // tx_signers
                     maybe_multisig_is_initialised,
                     result.clone(),
                 )?;

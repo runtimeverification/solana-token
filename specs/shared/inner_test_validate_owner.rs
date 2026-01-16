@@ -18,6 +18,7 @@ fn inner_test_validate_owner(
         && owner_account_info.data_len() == Multisig::LEN
         && (owner!(owner_account_info) == &PROGRAM_ID)
     {
+        // Guaranteed to succeed by `cheatcode_is_multisig`
         let multisig_is_initialised = maybe_multisig_is_initialised.unwrap();
         if multisig_is_initialised.is_err() {
             assert_eq!(result, Err(ProgramError::InvalidAccountData));

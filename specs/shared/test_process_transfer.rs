@@ -29,6 +29,7 @@ pub fn test_process_transfer(
     let maybe_multisig_is_initialised = None;
 
     #[cfg(feature = "assumptions")]
+    // avoids potential overflow in destination account. assuming global supply bound by u64
     if !same_account!(accounts[0], accounts[1]) && dst_initial_amount.checked_add(amount).is_none() {
         return Err(ProgramError::Custom(99));
     }
@@ -75,21 +76,22 @@ pub fn test_process_transfer(
         let src_new = get_account(&accounts[0]);
         if old_src_delgate == Some(*key!(&accounts[2])) {
             inner_test_validate_owner(
-                &old_src_delgate.unwrap(),
-                &accounts[2],
-                &accounts[3..],
+                &old_src_delgate.unwrap(), // expected_owner
+                &accounts[2],              // owner_account_info
+                &accounts[3..],            // tx_signers
                 maybe_multisig_is_initialised,
                 result.clone(),
             )?;
+
             if old_src_delgated_amount < amount {
                 assert_eq!(result, Err(ProgramError::Custom(1)));
                 return result;
             }
         } else {
             inner_test_validate_owner(
-                &src_owner,
-                &accounts[2],
-                &accounts[3..],
+                &src_owner,     // expected_owner
+                &accounts[2],   // owner_account_info
+                &accounts[3..], // tx_signers
                 maybe_multisig_is_initialised,
                 result.clone(),
             )?;

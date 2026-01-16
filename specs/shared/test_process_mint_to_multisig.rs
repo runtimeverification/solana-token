@@ -64,9 +64,9 @@ fn test_process_mint_to_multisig(
         let mint_authority_new = mint_new.mint_authority();
         if mint_authority_new.is_some() {
             inner_test_validate_owner(
-                mint_authority_new.unwrap(),
-                &accounts[2],
-                &accounts[3..],
+                mint_authority_new.unwrap(), // expected_owner
+                &accounts[2],                // owner_account_info
+                &accounts[3..],              // tx_signers
                 maybe_multisig_is_initialised,
                 result.clone(),
             )?;

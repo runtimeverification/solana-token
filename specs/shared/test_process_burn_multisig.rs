@@ -64,9 +64,9 @@ fn test_process_burn_multisig(
         if !src_owned_sys_inc {
             if old_src_delgate.is_some() && *key!(&accounts[2]) == old_src_delgate.unwrap() {
                 inner_test_validate_owner(
-                    &old_src_delgate.unwrap(),
-                    &accounts[2],
-                    &accounts[3..],
+                    &old_src_delgate.unwrap(), // expected_owner
+                    &accounts[2],              // owner_account_info
+                    &accounts[3..],            // tx_signers
                     maybe_multisig_is_initialised,
                     result.clone(),
                 )?;
@@ -77,9 +77,9 @@ fn test_process_burn_multisig(
                 }
             } else {
                 inner_test_validate_owner(
-                    &src_owner,
-                    &accounts[2],
-                    &accounts[3..],
+                    &src_owner,     // expected_owner
+                    &accounts[2],   // owner_account_info
+                    &accounts[3..], // tx_signers
                     maybe_multisig_is_initialised,
                     result.clone(),
                 )?;

@@ -23,6 +23,10 @@ fn test_process_mint_to(
 
     #[cfg(feature = "assumptions")]
     {
+        // Do not execute if adding to the account balance would overflow.
+        // shared::mint_to.rs,L68 is based on the assumption that initial_amount <=
+        // mint.supply and therefore cannot overflow because the minting itself
+        // would already error out.
         let amount = u64::from_le_bytes([
             instruction_data[0], instruction_data[1], instruction_data[2], instruction_data[3],
             instruction_data[4], instruction_data[5], instruction_data[6], instruction_data[7],
@@ -74,9 +78,9 @@ fn test_process_mint_to(
         let mint_authority_new = mint_new.mint_authority();
         if mint_authority_new.is_some() {
             inner_test_validate_owner(
-                mint_authority_new.unwrap(),
-                &accounts[2],
-                &accounts[3..],
+                mint_authority_new.unwrap(), // expected_owner
+                &accounts[2],                // owner_account_info
+                &accounts[3..],              // tx_signers
                 maybe_multisig_is_initialised,
                 result.clone(),
             )?;

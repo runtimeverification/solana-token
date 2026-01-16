@@ -71,21 +71,22 @@ fn test_process_transfer_multisig(
         let tx_signers: &[AccountInfo] = &accounts[3..];
         if old_src_delgate == Some(*key!(&accounts[2])) {
             inner_test_validate_owner(
-                old_src_delgate.as_ref().unwrap(),
-                &accounts[2],
-                tx_signers,
+                old_src_delgate.as_ref().unwrap(), // expected_owner
+                &accounts[2],                      // owner_account_info
+                tx_signers,                        // tx_signers
                 maybe_multisig_is_initialised.clone(),
                 result.clone(),
             )?;
+
             if old_src_delgated_amount < amount {
                 assert_eq!(result, Err(ProgramError::Custom(1)));
                 return result;
             }
         } else {
             inner_test_validate_owner(
-                &src_owner,
-                &accounts[2],
-                tx_signers,
+                &src_owner,   // expected_owner
+                &accounts[2], // owner_account_info
+                tx_signers,   // tx_signers
                 maybe_multisig_is_initialised,
                 result.clone(),
             )?;
