@@ -1,6 +1,10 @@
 // =============================================================================
 // API Alignment (Wrappers and Macros)
 // =============================================================================
+// 
+// Macros for consistency between SPL and P Token shared specifications.
+// Wrapper types are required around `Account`, `Mint`, and `Multisig` provide
+// an interface that is consistent with the P-Token types API.
 
 // --- Wrappers ---
 

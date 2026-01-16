@@ -1,6 +1,8 @@
 // =============================================================================
 // API Alignment Macros
 // =============================================================================
+// 
+// Macros for consistency between SPL and P Token shared specifications
 
 // --- AccountInfo Macros ---
 
