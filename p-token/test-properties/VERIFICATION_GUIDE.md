@@ -11,6 +11,12 @@ The codebase uses conditional compilation to separate production and verificatio
 - **Production code**: `src/entrypoint.rs` - Used for normal builds
 - **Verification code**: `src/entrypoint-runtime-verification.rs` - Used when `runtime-verification` feature is enabled
 
+The verification code has proof harnesses for each instruction, and some have multiple harnesses per instruction.
+Each proof harness calls the implementation (the instruction itself) but also has the specification as a precondition
+and postcondition. The precondition expresses domain assumptions (see below) and also capture the initial state for comparision
+with expected results in the postcondition. The postcondition checks each expected error condition (ordered) and the success case
+appropriately updates the state.
+
 ## Cheatcode Functions
 
 Cheatcode functions are markers used by the formal verification tools to inject assumptions about account types:
@@ -19,7 +25,7 @@ Cheatcode functions are markers used by the formal verification tools to inject 
 fn cheatcode_is_account(_: &AccountInfo) {}
 fn cheatcode_is_mint(_: &AccountInfo) {}
 fn cheatcode_is_rent(_: &AccountInfo) {}
-fn cheatcode_is_multisig(_: &AccountInfo) {} // Currently unsupported
+fn cheatcode_is_multisig(_: &AccountInfo) {} // Currently unsupported for SPL-Token
 ```
 
 These functions are no-ops at runtime but set up data required for the verification.
@@ -45,6 +51,9 @@ These functions are no-ops at runtime but set up data required for the verificat
    - `Transmutable::load_unchecked` and `Transmutable::load_mut_unchecked` for the instances `Account`, `Mint`, `Multisig`
    - `sysvars::rent::Rent::from_bytes_unchecked` and `sysvars::rent::Rent::get`
   and replacing their function body execution by an effect that provides the desired access (read-only or mutable).
+
+## Domain Assumptions
+
 
 ## Running Verification
 
