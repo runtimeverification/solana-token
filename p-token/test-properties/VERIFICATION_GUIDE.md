@@ -133,13 +133,18 @@ assertions checking their effects due to them being behind similar feature flags
 
 ### Prerequisites
 
-1. Ensure submodules are initialized:
-   ```bash
-   cd test-properties
-   ./setup.sh
-   ```
+Ensure submodules are initialized and the environment is set up:
 
-2. Install `uv` if not already installed (Python package manager)
+```bash
+cd test-properties
+./setup.sh
+```
+
+Activate the virtual environment:
+
+```bash
+source deps/.venv/bin/activate
+```
 
 ### Running Tests
 
@@ -193,4 +198,4 @@ cargo build --features runtime-verification
 ## Notes
 
 - Default settings: max-depth 2000, max-iterations 500, timeout 1h
-- Results are stored in `artefacts/proof-SHA1-SHA2/` directory, where `SHA1` and `SHA2` indicate the version of `solana-token` and `mir-semantics` used.
+- Results are stored in `artefacts/proof-SHA-VER/` directory, where `SHA` and `VER` indicate the `solana-token` revision and `mir-semantics` version used, respectively.
