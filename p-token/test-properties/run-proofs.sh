@@ -81,9 +81,9 @@ set -u
 
 REPO_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
-MIR_COMMIT=$(git -C mir-semantics rev-parse --short HEAD 2>/dev/null || echo "unknown")
+MIR_VERSION=$(python3 -c 'import kmir; print(kmir.__version__)' || echo "unknown")
 
-PROOF_DIR="${ARTIFACTS_DIR:-artefacts}/proof-${REPO_COMMIT}-${MIR_COMMIT}"
+PROOF_DIR="${ARTIFACTS_DIR:-artefacts}/proof-${REPO_COMMIT}-${MIR_VERSION}"
 mkdir -p "${PROOF_DIR}"
 
 # Default proof status directory to live inside the hashed artefacts/proof directory
@@ -107,9 +107,9 @@ for name in $TESTS; do
     start_time=$(date +%s)
 
     timeout --preserve-status -v ${TIMEOUT} \
-        uv --project mir-semantics/kmir run -- \
         kmir prove-rs --smir "${ARTIFACTS_DIR:-artefacts}/${ARTIFACT_BASENAME}.smir.json" \
-        --proof-dir "${PROOF_DIR}" --verbose --start-symbol $start ${RELOAD_OPT} ${MAX_WORKERS} ${PROVE_OPTS}
+        --proof-dir "${PROOF_DIR}" --verbose --start-symbol $start ${RELOAD_OPT} ${MAX_WORKERS} ${PROVE_OPTS} \
+        --haskell-target kompass.haskell --llvm-lib-target kompass.llvm-library
     prove_rc=$?
 
     end_time=$(date +%s)
@@ -138,15 +138,15 @@ for name in $TESTS; do
         echo "total_duration_seconds: ${total_duration}"
         echo "prove_exit_code: ${prove_rc}"
         echo "repo_commit: ${REPO_COMMIT}"
-        echo "mir_semantics_commit: ${MIR_COMMIT}"
+        echo "mir_semantics_version: ${MIR_VERSION}"
         echo ""
     } > "${status_file}"
 
-    uv --project mir-semantics/kmir run -- \
-       kmir show --proof-dir "${PROOF_DIR}" ${ARTIFACT_BASENAME}.smir.$start \
-       --full-printer > "${PROOF_DIR}/${name}-full.txt"
-    uv --project mir-semantics/kmir run -- \
-       kmir show --proof-dir "${PROOF_DIR}" ${ARTIFACT_BASENAME}.smir.$start \
-       --statistics --leaves >> "${status_file}"
+    kmir show --proof-dir "${PROOF_DIR}" ${ARTIFACT_BASENAME}.smir.$start \
+       --full-printer > "${PROOF_DIR}/${name}-full.txt" \
+       --haskell-target kompass.haskell
+    kmir show --proof-dir "${PROOF_DIR}" ${ARTIFACT_BASENAME}.smir.$start \
+       --statistics --leaves >> "${status_file}" \
+       --haskell-target kompass.haskell
     echo "==========================================================================="
 done
