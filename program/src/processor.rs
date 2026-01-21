@@ -237,8 +237,6 @@ impl Processor {
         amount: u64,
         expected_decimals: Option<u8>,
     ) -> ProgramResult {
-
-        // VALIDATE NUMBER OF ACCOUNTS TO LOAD
         let account_info_iter = &mut accounts.iter();
 
         let source_account_info = next_account_info(account_info_iter)?;
@@ -252,28 +250,19 @@ impl Processor {
         let destination_account_info = next_account_info(account_info_iter)?;
         let authority_info = next_account_info(account_info_iter)?;
 
-        // VALIDATE TOKEN ACCOUNT STRUCTURE
         let mut source_account = Account::unpack(&source_account_info.data.borrow())?;
         let mut destination_account = Account::unpack(&destination_account_info.data.borrow())?;
 
-        // VALIDATE ACCOUNT FROZENNESS
         if source_account.is_frozen() || destination_account.is_frozen() {
             return Err(TokenError::AccountFrozen.into());
         }
-
-        // VALIDATE FUND SUFFICIENCY
         if source_account.amount < amount {
             return Err(TokenError::InsufficientFunds.into());
         }
-
-        // VALIDATE TOKEN TYPE MATCH
         if !Self::cmp_pubkeys(&source_account.mint, &destination_account.mint) {
             return Err(TokenError::MintMismatch.into());
         }
 
-        // VALIDATE MINT KEY
-        // VALIDATE MINT ACCOUNT STRUCTURE
-        // VALIDATE EXPECTED DECIMALS
         if let Some((mint_info, expected_decimals)) = expected_mint_info {
             if !Self::cmp_pubkeys(mint_info.key, &source_account.mint) {
                 return Err(TokenError::MintMismatch.into());
@@ -288,7 +277,6 @@ impl Processor {
         let self_transfer =
             Self::cmp_pubkeys(source_account_info.key, destination_account_info.key);
 
-        // VALIDATE TRANSFER AUTHORITY
         match source_account.delegate {
             COption::Some(ref delegate) if Self::cmp_pubkeys(authority_info.key, delegate) => {
                 Self::validate_owner(
@@ -318,7 +306,6 @@ impl Processor {
             )?,
         };
 
-        // VALIDATE TOKEN ACCOUNT OWNERSHIP
         if self_transfer || amount == 0 {
             Self::check_account_owner(program_id, source_account_info)?;
             Self::check_account_owner(program_id, destination_account_info)?;
@@ -330,7 +317,6 @@ impl Processor {
             return Ok(());
         }
 
-        // PERFORM CUSTOM TRANSFER
         source_account.amount = source_account
             .amount
             .checked_sub(amount)
@@ -340,7 +326,6 @@ impl Processor {
             .checked_add(amount)
             .ok_or(TokenError::Overflow)?;
 
-        // IF NATIVE, PERFORM NATIVE TRANSFER
         if source_account.is_native() {
             let source_starting_lamports = source_account_info.lamports();
             **source_account_info.lamports.borrow_mut() = source_starting_lamports
@@ -353,7 +338,6 @@ impl Processor {
                 .ok_or(TokenError::Overflow)?;
         }
 
-        // SAVE ACCOUNT DATA TO MEMORY
         Account::pack(source_account, &mut source_account_info.data.borrow_mut())?;
         Account::pack(
             destination_account,
@@ -362,19 +346,6 @@ impl Processor {
 
         Ok(())
     }
-
-    // VALIDATE NUMBER OF ACCOUNTS TO LOAD
-    // VALIDATE TOKEN ACCOUNT STRUCTURE
-    // VALIDATE ACCOUNT FROZENNESS
-    // VALIDATE FUND SUFFICIENCY
-    // VALIDATE TOKEN TYPE MATCH
-    // VALIDATE MINT KEY
-    // VALIDATE MINT ACCOUNT STRUCTURE
-    // VALIDATE EXPECTED DECIMALS
-    // VALIDATE TRANSFER AUTHORITY
-    // VALIDATE TOKEN ACCOUNT OWNERSHIP
-    // PERFORM CUSTOM TRANSFER
-    // IF NATIVE, PERFORM NATIVE TRANSFER
 
     /// Processes an [`Approve`](enum.TokenInstruction.html) instruction.
     pub fn process_approve(

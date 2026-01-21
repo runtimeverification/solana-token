@@ -38,11 +38,7 @@ impl Pack for Mint {
     const LEN: usize = 82;
     fn unpack_from_slice(src: &[u8]) -> Result<Self, ProgramError> {
         let src = array_ref![src, 0, 82];
-        let (mint_authority,     // 36
-             supply,             // 8
-             decimals,           // 1
-             is_initialized,     // 1
-             freeze_authority) = // 36
+        let (mint_authority, supply, decimals, is_initialized, freeze_authority) =
             array_refs![src, 36, 8, 1, 1, 36];
         let mint_authority = unpack_coption_key(mint_authority)?;
         let supply = u64::from_le_bytes(*supply);
@@ -136,14 +132,7 @@ impl Pack for Account {
     const LEN: usize = 165;
     fn unpack_from_slice(src: &[u8]) -> Result<Self, ProgramError> {
         let src = array_ref![src, 0, 165];
-        let (mint,              // 32
-             owner,             // 32
-             amount,            // 8
-             delegate,          // 36
-             state,             // 1
-             is_native,         // 12 (is_native + native_amount)
-             delegated_amount,  // 8
-             close_authority) = // 36
+        let (mint, owner, amount, delegate, state, is_native, delegated_amount, close_authority) =
             array_refs![src, 32, 32, 8, 36, 1, 12, 8, 36];
         Ok(Account {
             mint: Pubkey::new_from_array(*mint),
@@ -230,11 +219,7 @@ impl Pack for Multisig {
     fn unpack_from_slice(src: &[u8]) -> Result<Self, ProgramError> {
         let src = array_ref![src, 0, 355];
         #[allow(clippy::ptr_offset_with_cast)]
-        let (m,              // 1
-             n,              // 1
-             is_initialized, // 1
-             signers_flat) = // 11 * 32
-            array_refs![src, 1, 1, 1, 32 * MAX_SIGNERS];
+        let (m, n, is_initialized, signers_flat) = array_refs![src, 1, 1, 1, 32 * MAX_SIGNERS];
         let mut result = Multisig {
             m: m[0],
             n: n[0],
