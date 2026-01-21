@@ -75,6 +75,30 @@ to the `Mint` field `supply` being a `u64`.
 
 > // Note: The amount of a token account is always within the range of the mint supply (`u64`).
 
+## Limitations
+
+### Compiling with non-solana target
+Currently stable-mir-json does not compile to the solana bpf target. All syscalls are behind feature flags that check for solana
+as the target operating system.
+
+```rust
+#[cfg(target_os = "solana")]
+sol_memset_(self.data_ptr().sub(48), 0, 48);
+```
+
+Since the syscalls are not compiled, and thus do not appear in the Stable MIR JSON, the proof harnesses will not trigger the
+assertions checking their effects due to them being behind similar feature flags.
+
+```rust
+#[cfg(any(target_os = "solana", target_arch = "bpf"))]
+{
+    // Solana-RT only syscall
+    assert_eq!(*owner!(&accounts[0]), [0; 32]);
+    assert_eq!(accounts[0].lamports(), 0);
+    assert_eq!(accounts[0].data_len(), 0);
+}
+```
+
 ## Running Verification
 
 ### Prerequisites
