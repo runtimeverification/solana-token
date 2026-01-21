@@ -1,9 +1,10 @@
 #!/bin/bash
 #
 # Setup for running property tests with kmir (defaults for p-token).
-# - checks out submodule mir-semantics (recursively incl. stable-mir-json)
-# - builds stable-mir-json and mir-semantics
+# - sets up a virtual environment with kompass installed
+# - checks out and builds submodule stable-mir-json
 # - builds the selected crate with STABLE MIR and links SMIR JSON into artefacts
+# - builds the K definitions
 #
 # Usage:
 #   ./setup.sh [OPTIONS]
@@ -18,7 +19,8 @@
 #   ARTIFACT_BASENAME Artefact base name (default: p-token)
 #
 # After running it, one can use:
-#   `uv --project mir-semantics/kmir run -- kmir ...`
+#   source deps/.venv/bin/activate
+#   kmir ...
 ######################################################################
 
 set -xeuo pipefail
@@ -28,6 +30,7 @@ SCRIPT_DIR="$(realpath "$(dirname "$0")")"
 SKIP_SUBMODULES=true
 CRATE_DIR="${CRATE_DIR:-$(realpath "${SCRIPT_DIR}/..")}"
 ARTIFACT_BASENAME="${ARTIFACT_BASENAME:-p-token}"
+
 
 while [[ $# -gt 0 ]]; do
     case $1 in
@@ -44,35 +47,59 @@ done
 
 cd "${SCRIPT_DIR}"
 
+
+#############################
+# Step 1: Set up kompass venv
+#############################
+
+VENV_DIR='deps/.venv'
+KOMPASS_URL='https://github.com/runtimeverification/kompass'
+KOMPASS_VERSION=$(cat deps/kompass_release)
+
+if [[ -d "$VENV_DIR" ]]; then
+    echo "Virtual environment already exists at ${VENV_DIR}"
+    source "$VENV_DIR/bin/activate"
+else
+    echo "Creating virtual environment at ${VENV_DIR}"
+    python3 -m venv "${VENV_DIR}"
+
+    echo "Installing kompass"
+    source "$VENV_DIR/bin/activate"
+    pip install --upgrade pip
+    pip install "git+${KOMPASS_URL}@${KOMPASS_VERSION}"
+fi
+
+
+###############################
+# Step 2: Build stable-mir-json
+###############################
+
 # Refresh/check out submodules (unless skipped)
 if [ "${SKIP_SUBMODULES}" = false ]; then
     echo "Refreshing git submodules..."
     git submodule update --init --recursive
     git submodule status --recursive
-
-    echo "Checking out mir-semantics at origin/feature/p-token..."
-    if git -C mir-semantics status --porcelain | grep -v '^?? ' >/dev/null; then
-        echo "Skipping checkout: tracked local changes detected."
-    else
-        git -C mir-semantics fetch origin feature/p-token || true
-        git -C mir-semantics checkout --quiet origin/feature/p-token || true
-    fi
 else
     echo "Skipping git submodule refresh..."
 fi
 
 # Ensure stable-mir-json acts as its own workspace to avoid root workspace capture.
 # Add an empty [workspace] if missing (idempotent, independent of git status).
-SMJ_CARGO_TOML="mir-semantics/deps/stable-mir-json/Cargo.toml"
+SMJ_CARGO_TOML="deps/stable-mir-json/Cargo.toml"
 if ! grep -q '^\[workspace\]' "$SMJ_CARGO_TOML"; then
     printf "\n\n# avoid workspace confusion in token repo\n[workspace]\n" >> "$SMJ_CARGO_TOML"
 fi
 
-# Build mir-semantics and stable-mir-json
-make -C mir-semantics stable-mir-json build
+# Build stable-mir-json
+make stable-mir-json CARGO_BUILD_OPTS=--release
 
-export RUSTC=$PWD/mir-semantics/deps/.stable-mir-json/release.sh
+export RUSTC=$PWD/deps/.stable-mir-json/release.sh
 ${RUSTC} --version
+
+
+##############################
+# Step 3: Build and link tests
+##############################
 
 # Build selected crate with stable-mir-json (clean first)
 pushd "${CRATE_DIR}" >/dev/null
@@ -91,4 +118,11 @@ ls ${SMIRS}
 
 # Link all SMIR JSON and store in artefacts directory
 mkdir -p "${ARTEFACTS_DIR:-artefacts}/"
-uv --project mir-semantics/kmir run -- kmir link ${SMIRS} -o "${ARTEFACTS_DIR:-artefacts}/${ARTIFACT_BASENAME}.smir.json"
+kmir link ${SMIRS} -o "${ARTEFACTS_DIR:-artefacts}/${ARTIFACT_BASENAME}.smir.json"
+
+
+#############################
+# Step 4: Build K definitions
+#############################
+
+kdist --verbose build -j4 kompass.\*
