@@ -356,9 +356,14 @@ macro_rules! call_process_initialize_mint {
 macro_rules! call_process_initialize_mint_no_freeze {
     ($accounts:expr, $instruction_data:expr) => {{
         let data = $instruction_data;
+        assert!(data.len() == 34);
         let decimals = data[0];
         let mint_authority = Pubkey::new_from_array(data[1..33].try_into().unwrap());
-        Processor::process_initialize_mint($accounts, decimals, mint_authority, solana_program_option::COption::None)
+        if data[33] != 0 {
+            Err(TokenError::InvalidInstruction.into())
+        } else {
+            Processor::process_initialize_mint($accounts, decimals, mint_authority, solana_program_option::COption::None)
+        }
     }};
 }
 macro_rules! call_process_initialize_multisig {
