@@ -10,6 +10,7 @@ pub fn test_process_transfer(
     cheatcode_account!(&accounts[0]);
     cheatcode_account!(&accounts[1]);
     cheatcode_account!(&accounts[2]); // Excluding the multisig case
+    cheatcode_maybe_same_account(&accounts[0], &accounts[1]);
 
     //-Initial State-----------------------------------------------------------
     let src_old = get_account(&accounts[0]);

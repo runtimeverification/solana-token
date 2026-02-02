@@ -12,6 +12,7 @@ fn test_process_transfer_checked(
     cheatcode_mint!(&accounts[1]);
     cheatcode_account!(&accounts[2]);
     cheatcode_account!(&accounts[3]); // Excluding the multisig case
+    cheatcode_maybe_same_account(&accounts[0], &accounts[2]);
 
     //-Initial State-----------------------------------------------------------
     let src_old = get_account(&accounts[0]);
