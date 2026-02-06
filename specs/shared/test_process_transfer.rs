@@ -10,6 +10,9 @@ pub fn test_process_transfer(
     cheatcode_account!(&accounts[0]);
     cheatcode_account!(&accounts[1]);
     cheatcode_account!(&accounts[2]); // Excluding the multisig case
+
+    #[cfg(feature = "assumptions")]
+    // Link symbolic state of dst and src if they have the same key
     cheatcode_maybe_same_account(&accounts[0], &accounts[1]);
 
     //-Initial State-----------------------------------------------------------
