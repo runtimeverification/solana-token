@@ -4,7 +4,7 @@
 /// accounts[3..14] // Signers
 /// instruction_data[0..8] // Little Endian Bytes of u64 amount
 #[inline(never)]
-fn test_process_burn_multisig(
+pub fn test_process_burn_multisig(
     accounts: &[AccountInfo; 4],
     instruction_data: &[u8; 8],
 ) -> ProgramResult {
