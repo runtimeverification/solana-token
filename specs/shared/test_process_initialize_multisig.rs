@@ -43,13 +43,17 @@ fn test_process_initialize_multisig(
         assert_eq!(result, Err(ProgramError::Custom(8)))
     } else {
         let multisig_new = get_multisig(&accounts[0]);
-        assert!(accounts[2..]
-            .iter()
-            .map(|signer| *key!(signer))
-            .eq(multisig_new.signers
-                .iter()
-                .take(accounts[2..].len())
-                .copied()));
+        
+        for (i, signing_account) in accounts[2..].iter().enumerate() {
+            assert!(multisig_new.signers[i] == *key!(signing_account));
+        }
+        // assert!(accounts[2..]
+        //     .iter()
+        //     .map(|signer| *key!(signer))
+        //     .eq(multisig_new.signers
+        //         .iter()
+        //         .take(accounts[2..].len())
+        //         .copied()));
         assert_eq!(multisig_new.m, instruction_data[0]);
         assert_eq!(multisig_new.n as usize, accounts.len() - 2);
         assert!(multisig_new.is_initialized().is_ok());
