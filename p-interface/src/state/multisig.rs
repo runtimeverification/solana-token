@@ -7,7 +7,7 @@ use {
 pub const MIN_SIGNERS: u8 = 1;
 
 /// Maximum number of multisignature signers (max N)
-pub const MAX_SIGNERS: u8 = 11;
+pub const MAX_SIGNERS: u8 = 3;
 
 /// Multisignature data.
 #[repr(C)]
