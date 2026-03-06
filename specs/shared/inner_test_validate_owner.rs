@@ -29,26 +29,20 @@ fn inner_test_validate_owner(
         } else {
             let multisig = get_multisig(owner_account_info);
 
-            // Did all declared and allowd signers sign?
-            let unsigned_exists = tx_signers.iter().any(|potential_signer| {
-                multisig.signers.iter().any(|registered_key| {
-                    registered_key == key!(potential_signer) && !is_signer!(potential_signer)
-                })
-            });
-            if unsigned_exists {
-                assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
-                return result;
+            let mut signers_count = 0usize;
+            let mut matched = [false; crate::instruction::MAX_SIGNERS];
+            for potential_signer in tx_signers.iter() {
+                for (position, registered_key) in multisig.signers[0..multisig.n as usize].iter().enumerate() {
+                    if key!(potential_signer) == registered_key && !matched[position] {
+                        if !is_signer!(potential_signer) {
+                            assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                            return result;
+                        }
+                        matched[position] = true;
+                        signers_count += 1;
+                    }
+                }
             }
-
-            // Were enough signatures received?
-            let signers_count = multisig.signers
-                .iter()
-                .filter_map(|registered_key| {
-                    tx_signers.iter().find(|potential_signer| {
-                        key!(potential_signer) == registered_key && is_signer!(potential_signer)
-                    })
-                })
-                .count();
 
             // Check if we have enough signers
             if signers_count < multisig.m as usize {
