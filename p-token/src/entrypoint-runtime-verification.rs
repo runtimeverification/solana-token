@@ -652,8 +652,11 @@ fn inner_process_remaining_instruction(
 #[no_mangle]
 pub unsafe extern "C" fn use_tests(acc: &AccountInfo) {
     test_ptoken_domain_data(acc, acc, acc);
-    let _ = test_validate_owner(unsafe { &*(acc as *const AccountInfo as *const [AccountInfo; 2]) });
-    let _ = test_validate_owner_multisig(unsafe { &*(acc as *const AccountInfo as *const [AccountInfo; 5]) });
+    let _ =
+        test_validate_owner(unsafe { &*(acc as *const AccountInfo as *const [AccountInfo; 2]) });
+    let _ = test_validate_owner_multisig(unsafe {
+        &*(acc as *const AccountInfo as *const [AccountInfo; 5])
+    });
 }
 
 // special test for basic domain data access
