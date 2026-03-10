@@ -7,6 +7,11 @@ use {
 pub const MIN_SIGNERS: u8 = 1;
 
 /// Maximum number of multisignature signers (max N)
+#[cfg(feature = "runtime-verification")]
+pub const MAX_SIGNERS: u8 = 3;
+
+/// Maximum number of multisignature signers (max N)
+#[cfg(not(feature = "runtime-verification"))]
 pub const MAX_SIGNERS: u8 = 11;
 
 /// Multisignature data.
