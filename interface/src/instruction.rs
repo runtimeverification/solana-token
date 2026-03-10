@@ -15,7 +15,6 @@ pub const MIN_SIGNERS: usize = 1;
 /// Maximum number of multisignature signers (max N)
 #[cfg(feature = "runtime-verification")]
 pub const MAX_SIGNERS: usize = 3;
-/// Maximum number of multisignature signers (max N)
 #[cfg(not(feature = "runtime-verification"))]
 pub const MAX_SIGNERS: usize = 11;
 /// Serialized length of a `u64`, for unpacking
