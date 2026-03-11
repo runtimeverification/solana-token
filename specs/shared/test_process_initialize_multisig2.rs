@@ -19,7 +19,6 @@ fn test_process_initialize_multisig2(
     // impossible
     let rent = Rent::get().unwrap();
     let minimum_balance = rent.minimum_balance(accounts[0].data_len());
-    let max_signers = (Multisig::LEN - 3) / 32;
 
     //-Process Instruction-----------------------------------------------------
     let result = call_process_initialize_multisig2!(accounts, instruction_data);
@@ -37,9 +36,9 @@ fn test_process_initialize_multisig2(
         assert_eq!(result, Err(ProgramError::Custom(6)))
     } else if multisig_init_lamports < minimum_balance {
         assert_eq!(result, Err(ProgramError::Custom(0)))
-    } else if !((1..=max_signers).contains(&(accounts.len() - 1))) {
+    } else if !((1..=MAX_SIGNERS as usize).contains(&(accounts.len() - 1))) {
         assert_eq!(result, Err(ProgramError::Custom(7)))
-    } else if !(1..=max_signers).contains(&(instruction_data[0] as usize)) {
+    } else if !((1..=MAX_SIGNERS as usize).contains(&(instruction_data[0] as usize))) {
         assert_eq!(result, Err(ProgramError::Custom(8)))
     } else {
         let multisig_new = get_multisig(&accounts[0]);
