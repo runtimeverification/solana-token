@@ -14,28 +14,21 @@ fn test_validate_owner_multisig(
     let maybe_multisig_is_initialised = Some(get_multisig(&accounts[1]).is_initialized());
 
     //-Process Instruction-----------------------------------------------------
-    // let result = expected_validate_owner_result(
-    //     &expected_owner,
-    //     &accounts[1],
-    //     &accounts[2..],
-    //     maybe_multisig_is_initialised.clone(),
-    // );
+    let result = expected_validate_owner_result(
+        &expected_owner,
+        &accounts[1],
+        &accounts[2..],
+        maybe_multisig_is_initialised.clone(),
+    );
 
     //-Assert Postconditions---------------------------------------------------
-    // inner_test_validate_owner(
-    //     &expected_owner,
-    //     &accounts[1],
-    //     &accounts[2..],
-    //     maybe_multisig_is_initialised,
-    //     result.clone(),
-    // )?;
-
-    // result
-
-    expected_validate_owner_result(
+    inner_test_validate_owner(
         &expected_owner,
         &accounts[1],
         &accounts[2..],
         maybe_multisig_is_initialised,
-    )
+        result.clone(),
+    )?;
+
+    result
 }
