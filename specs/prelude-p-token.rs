@@ -124,6 +124,8 @@ use pinocchio_token_interface::state::account::INCINERATOR_ID;
 use pinocchio::pubkey::PUBKEY_BYTES;
 use pinocchio_token_interface::state::account_state::AccountState;
 use pinocchio_token_interface::state::multisig::MAX_SIGNERS;
+const MAX_SIGNERS_U8: u8 = MAX_SIGNERS;
+const MAX_SIGNERS_USIZE: usize = MAX_SIGNERS as usize;
 
 // =============================================================================
 // Process call macros (ordered same as includes)

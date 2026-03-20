@@ -272,6 +272,8 @@ use spl_token_interface::instruction::MAX_SIGNERS;
 use spl_token_interface::native_mint::ID as NATIVE_MINT_ID;
 use solana_sdk_ids::incinerator::ID as INCINERATOR_ID;
 use solana_pubkey::PUBKEY_BYTES;
+const MAX_SIGNERS_U8: u8 = MAX_SIGNERS as u8;
+const MAX_SIGNERS_USIZE: usize = MAX_SIGNERS;
 // Note: AccountState is already imported in the main file
 
 // =============================================================================

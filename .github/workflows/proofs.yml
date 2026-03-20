@@ -25,3 +25,18 @@ jobs:
 
       - name: Lint
         run: pnpm p-token:lint
+
+  compile_spl_token_rv:
+    name: Compile spl-token RV
+    runs-on: ubuntu-latest
+    steps:
+      - name: Git Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+        with:
+          clippy: true
+
+      - name: Compile runtime-verification target
+        run: cargo +nightly-2025-02-16 check --manifest-path program/Cargo.toml --features runtime-verification,assumptions --lib
