@@ -9,10 +9,10 @@ fn test_process_revoke_multisig(accounts: &[AccountInfo; 3]) -> ProgramResult {
     #[cfg(feature = "assumptions")]
     {
         let multisig = get_multisig(&accounts[1]);
-        if multisig.m < 1 || multisig.m > MAX_SIGNERS {
+        if multisig.m < 1 || multisig.m > MAX_SIGNERS as u8 {
             return Ok(());
         }
-        if multisig.n < 1 || multisig.n > MAX_SIGNERS {
+        if multisig.n < 1 || multisig.n > MAX_SIGNERS as u8 {
             return Ok(());
         }
     }
