@@ -26,16 +26,18 @@ fn expected_validate_owner_result(
 
             // Did all declared and allowd signers sign?
             let unsigned_exists = tx_signers.iter().any(|potential_signer| {
-                multisig.signers.iter().any(|registered_key| {
-                    registered_key == key!(potential_signer) && !is_signer!(potential_signer)
-                })
+                multisig.signers[0..multisig.n as usize]
+                    .iter()
+                    .any(|registered_key| {
+                        registered_key == key!(potential_signer) && !is_signer!(potential_signer)
+                    })
             });
             if unsigned_exists {
                 return Err(ProgramError::MissingRequiredSignature);
             }
 
             // Were enough signatures received?
-            let signers_count = multisig.signers
+            let signers_count = multisig.signers[0..multisig.n as usize]
                 .iter()
                 .filter_map(|registered_key| {
                     tx_signers.iter().find(|potential_signer| {
@@ -93,9 +95,11 @@ fn inner_test_validate_owner(
 
             // Did all declared and allowd signers sign?
             let unsigned_exists = tx_signers.iter().any(|potential_signer| {
-                multisig.signers.iter().any(|registered_key| {
-                    registered_key == key!(potential_signer) && !is_signer!(potential_signer)
-                })
+                multisig.signers[0..multisig.n as usize]
+                    .iter()
+                    .any(|registered_key| {
+                        registered_key == key!(potential_signer) && !is_signer!(potential_signer)
+                    })
             });
             if unsigned_exists {
                 assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
@@ -103,7 +107,7 @@ fn inner_test_validate_owner(
             }
 
             // Were enough signatures received?
-            let signers_count = multisig.signers
+            let signers_count = multisig.signers[0..multisig.n as usize]
                 .iter()
                 .filter_map(|registered_key| {
                     tx_signers.iter().find(|potential_signer| {

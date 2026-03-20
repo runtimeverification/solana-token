@@ -82,6 +82,16 @@ then the `Account` fields will be equivalent. Cheatcode `maybe_same_account` wil
 Currently this cheatcode will only link symbolic state for SPL Token _Account_ (not `AccountInfo` and not P-Token),
 that would be valid under the same assumptions but has not been necessary for the current proofs.
 
+### Multisig `m`/`n` Bounds
+The `cheatcode_is_multisig` marker sets up a symbolic `Multisig` layout, but it does not by itself constrain the
+`m` and `n` fields. For harnesses that reason about multisig validation, we therefore add assumptions that
+`1 <= m <= MAX_SIGNERS` and `1 <= n <= MAX_SIGNERS`.
+
+These are not extra behavioral restrictions on the implementation. They match the invariants enforced by
+`initialize_multisig`, and they exclude symbolic states that cannot arise from a valid initialized multisig account.
+Without these bounds, the prover can explore unreachable cases such as `n == 0`, `m == 0`, or `n > MAX_SIGNERS`,
+which lead to proof artifacts rather than meaningful counterexamples.
+
 ## Limitations
 
 ### Compiling with non-solana target

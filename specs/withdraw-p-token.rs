@@ -87,6 +87,17 @@ fn test_process_withdraw_excess_lamports_account_multisig(
     cheatcode_is_account(&accounts[1]); // Destination
     cheatcode_is_multisig(&accounts[2]); // Authority
 
+    #[cfg(feature = "assumptions")]
+    {
+        let multisig = get_multisig(&accounts[2]);
+        if multisig.m < 1 || multisig.m > MAX_SIGNERS_U8 {
+            return Ok(());
+        }
+        if multisig.n < 1 || multisig.n > MAX_SIGNERS_U8 {
+            return Ok(());
+        }
+    }
+
     //-Initial State-----------------------------------------------------------
     let src_old = get_account(&accounts[0]);
     let src_data_len = accounts[0].data_len();
@@ -244,6 +255,17 @@ fn test_process_withdraw_excess_lamports_mint_multisig(
     cheatcode_is_account(&accounts[1]); // Destination
     cheatcode_is_multisig(&accounts[2]); // Authority
 
+    #[cfg(feature = "assumptions")]
+    {
+        let multisig = get_multisig(&accounts[2]);
+        if multisig.m < 1 || multisig.m > MAX_SIGNERS_U8 {
+            return Ok(());
+        }
+        if multisig.n < 1 || multisig.n > MAX_SIGNERS_U8 {
+            return Ok(());
+        }
+    }
+
     //-Initial State-----------------------------------------------------------
     let src_old = get_mint(&accounts[0]);
     let src_data_len = accounts[0].data_len();
@@ -387,6 +409,17 @@ fn test_process_withdraw_excess_lamports_multisig_multisig(
     cheatcode_is_multisig(&accounts[0]); // Source Account (Multisig)
     cheatcode_is_account(&accounts[1]); // Destination
     cheatcode_is_multisig(&accounts[2]); // Authority
+
+    #[cfg(feature = "assumptions")]
+    {
+        let multisig = get_multisig(&accounts[2]);
+        if multisig.m < 1 || multisig.m > MAX_SIGNERS_U8 {
+            return Ok(());
+        }
+        if multisig.n < 1 || multisig.n > MAX_SIGNERS_U8 {
+            return Ok(());
+        }
+    }
 
     //-Initial State-----------------------------------------------------------
     let src_data_len = accounts[0].data_len();
