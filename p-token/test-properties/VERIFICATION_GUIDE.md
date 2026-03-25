@@ -104,8 +104,8 @@ additional branches. This made multisig proofs take unreasonably long to complet
 To address this, `MAX_SIGNERS` is reduced to 3 using the `runtime-verification` feature (in `p-interface/src/state/multisig.rs`).
 The signer-checking logic is identical regardless of the bound, but the proofs need to explore fewer combinations of the same
 logical branches. The resulting proofs only cover multisig accounts with up to 3 registered signers. However, due to all logical
-branches being exercised during these proofs, we believe that the signer checking logic is being sufficiently tested given the
-performance trade off. Both the Rust test code and the semantics reflect this change.
+branches being exercised during these proofs, we believe that this is a pragmatic tradeoff between sufficient testing of the
+signer checking logic and the performance benefits. Both the Rust test code and the semantics reflect this change.
 
 ### Compiling with non-solana target
 Currently stable-mir-json does not compile to the solana bpf target. All syscalls are behind feature flags that check for solana
