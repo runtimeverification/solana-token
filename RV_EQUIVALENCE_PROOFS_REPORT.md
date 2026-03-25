@@ -651,7 +651,7 @@ Additionally, for certain related instruction variants, we may list them togethe
 
 ## Kompass Proofs
 
-The results of the mechanical Kompass equivlanence proofs can be found in [this KaaS Vault (FIXME: Correct vault link to come)](https://kaas.runtimeverification.com/).
+The results of the mechanical Kompass equivalence proofs can be found in GH [issue1](https://github.com/runtimeverification/solana-token/issues/24) and [issue2](https://github.com/runtimeverification/solana-token/issues/97), linked to each test.
 The proofs can be locally run by following the instructions listed in [VERIFICATION_GUIDE.md](https://github.com/runtimeverification/solana-token/blob/proofs/p-token/test-properties/VERIFICATION_GUIDE.md).
 
 `VERIFICATION_GUIDE.md` also contains information about the cheatcodes used to set the appropriate symbolic state, as well as assumptions that are made as part of the solana domain, and limitations of the mechanical proofs.
