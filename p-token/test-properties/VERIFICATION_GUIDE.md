@@ -94,6 +94,19 @@ which lead to proof artifacts rather than meaningful counterexamples.
 
 ## Limitations
 
+### `MAX_SIGNERS` Reduced to 3
+
+With `MAX_SIGNERS = 11` (the production default), multisig proofs experience a combinatorial explosion of paths
+in the signer-checking logic. The prover explores all combinations of registered signers (up to `MAX_SIGNERS`)
+and transaction signers (also bounded by `MAX_SIGNERS`), with each key comparison and `is_signer` check creating
+additional branches. This made multisig proofs take unreasonably long to complete.
+
+To address this, `MAX_SIGNERS` is reduced to 3 using the `runtime-verification` feature (in `p-interface/src/state/multisig.rs`).
+The signer-checking logic is identical regardless of the bound, but the proofs need to explore fewer combinations of the same
+logical branches. The resulting proofs only cover multisig accounts with up to 3 registered signers. However, due to all logical
+branches being exercised during these proofs, we believe that this is a pragmatic tradeoff between sufficient testing of the
+signer checking logic and the performance benefits. Both the Rust test code and the semantics reflect this change.
+
 ### Compiling with non-solana target
 Currently stable-mir-json does not compile to the solana bpf target. All syscalls are behind feature flags that check for solana
 as the target operating system.
