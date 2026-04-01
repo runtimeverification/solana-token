@@ -146,15 +146,18 @@ fn test_process_withdraw_excess_lamports_account_multisig(
             if src_init_lamports < minimum_balance {
                 assert_eq!(result, Err(ProgramError::Custom(0)));
                 return result;
-            } else if u64::MAX - src_init_lamports + minimum_balance < dst_init_lamports {
-                assert_eq!(result, Err(ProgramError::Custom(0)));
+            } else if dst_init_lamports
+                .checked_add(src_init_lamports - minimum_balance)
+                .is_none()
+            {
+                assert_eq!(result, Err(ProgramError::Custom(14)));
                 return result;
             }
 
             assert_eq!(accounts[0].lamports(), minimum_balance);
             assert_eq!(
                 accounts[1].lamports(),
-                dst_init_lamports + src_init_lamports - minimum_balance
+                dst_init_lamports + (src_init_lamports - minimum_balance)
             );
             assert!(result.is_ok())
         }
@@ -311,18 +314,23 @@ fn test_process_withdraw_excess_lamports_mint_multisig(
             } else if !accounts[2].is_signer() {
                 assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                 return result;
-            } else if src_init_lamports < minimum_balance {
+            }
+
+            if src_init_lamports < minimum_balance {
                 assert_eq!(result, Err(ProgramError::Custom(0)));
                 return result;
-            } else if u64::MAX - src_init_lamports + minimum_balance < dst_init_lamports {
-                assert_eq!(result, Err(ProgramError::Custom(0)));
+            } else if dst_init_lamports
+                .checked_add(src_init_lamports - minimum_balance)
+                .is_none()
+            {
+                assert_eq!(result, Err(ProgramError::Custom(14)));
                 return result;
             }
 
             assert_eq!(accounts[0].lamports(), minimum_balance);
             assert_eq!(
                 accounts[1].lamports(),
-                dst_init_lamports + src_init_lamports - minimum_balance
+                dst_init_lamports + (src_init_lamports - minimum_balance)
             );
             assert!(result.is_ok())
         }
@@ -383,7 +391,7 @@ fn test_process_withdraw_excess_lamports_multisig(accounts: &[AccountInfo; 3]) -
             .checked_add(src_init_lamports - minimum_balance)
             .is_none()
         {
-            assert_eq!(result, Err(ProgramError::Custom(0)));
+            assert_eq!(result, Err(ProgramError::Custom(14)));
             return result;
         }
 
@@ -460,15 +468,18 @@ fn test_process_withdraw_excess_lamports_multisig_multisig(
         if src_init_lamports < minimum_balance {
             assert_eq!(result, Err(ProgramError::Custom(0)));
             return result;
-        } else if u64::MAX - src_init_lamports + minimum_balance < dst_init_lamports {
-            assert_eq!(result, Err(ProgramError::Custom(0)));
+        } else if dst_init_lamports
+            .checked_add(src_init_lamports - minimum_balance)
+            .is_none()
+        {
+            assert_eq!(result, Err(ProgramError::Custom(14)));
             return result;
         }
 
         assert_eq!(accounts[0].lamports(), minimum_balance);
         assert_eq!(
             accounts[1].lamports(),
-            dst_init_lamports + src_init_lamports - minimum_balance
+            dst_init_lamports + (src_init_lamports - minimum_balance)
         );
         assert!(result.is_ok())
     }
