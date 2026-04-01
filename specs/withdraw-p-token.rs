@@ -315,9 +315,8 @@ fn test_process_withdraw_excess_lamports_mint_multisig(
                 assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                 return result;
             }
-            // TODO: evaluate removing the `else` for consistency with non-multisig mint version
-            // (test_process_withdraw_excess_lamports_mint, line 225), where this is a standalone `if`
-            else if src_init_lamports < minimum_balance {
+
+            if src_init_lamports < minimum_balance {
                 assert_eq!(result, Err(ProgramError::Custom(0)));
                 return result;
             } else if dst_init_lamports
