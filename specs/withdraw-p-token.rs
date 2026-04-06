@@ -486,3 +486,85 @@ fn test_process_withdraw_excess_lamports_multisig_multisig(
 
     result
 }
+
+/// Same as test_process_withdraw_excess_lamports_multisig_multisig but with 3 tx_signers instead of 1.
+/// accounts[0] // Source Account Info
+/// accounts[1] // Destination Info
+/// accounts[2] // Authority Info
+/// accounts[3..14] // Signers (3 provided)
+#[inline(never)]
+fn test_process_withdraw_excess_lamports_multisig_multisig_3sig(
+    accounts: &[AccountInfo; 6],
+) -> ProgramResult {
+    cheatcode_is_multisig(&accounts[0]); // Source Account (Multisig)
+    cheatcode_is_account(&accounts[1]); // Destination
+    cheatcode_is_multisig(&accounts[2]); // Authority
+
+    #[cfg(feature = "assumptions")]
+    {
+        let multisig = get_multisig(&accounts[2]);
+        if multisig.m < 1 || multisig.m > MAX_SIGNERS_U8 {
+            return Ok(());
+        }
+        if multisig.n < 1 || multisig.n > MAX_SIGNERS_U8 {
+            return Ok(());
+        }
+    }
+
+    //-Initial State-----------------------------------------------------------
+    let src_data_len = accounts[0].data_len();
+    let src_init_lamports = accounts[0].lamports();
+    let dst_init_lamports = accounts[1].lamports();
+    let maybe_multisig_is_initialised = Some(get_multisig(&accounts[2]).is_initialized());
+
+    // Note: Rent is a supported sysvar so ProgramError::UnsupportedSysvar should be
+    // impossible
+    let rent = pinocchio::sysvars::rent::Rent::get().unwrap();
+    let minimum_balance = rent.minimum_balance(accounts[0].data_len());
+
+    //-Process Instruction-----------------------------------------------------
+    let result = process_withdraw_excess_lamports(accounts);
+
+    //-Assert Postconditions---------------------------------------------------
+    if accounts.len() < 3 {
+        assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
+        return result;
+    } else if src_data_len != Account::LEN
+        && src_data_len != Mint::LEN
+        && src_data_len != Multisig::LEN
+    {
+        assert_eq!(result, Err(ProgramError::Custom(13)));
+        return result;
+    } else {
+        assert_eq!(src_data_len, Multisig::LEN); // established by cheatcode_is_multisig
+
+        // Validate Owner
+        inner_test_validate_owner(
+            accounts[0].key(), // expected_owner
+            &accounts[2],      // owner_account_info
+            &accounts[3..],    // tx_signers (3 signers)
+            maybe_multisig_is_initialised,
+            result.clone(),
+        )?;
+
+        if src_init_lamports < minimum_balance {
+            assert_eq!(result, Err(ProgramError::Custom(0)));
+            return result;
+        } else if dst_init_lamports
+            .checked_add(src_init_lamports - minimum_balance)
+            .is_none()
+        {
+            assert_eq!(result, Err(ProgramError::Custom(14)));
+            return result;
+        }
+
+        assert_eq!(accounts[0].lamports(), minimum_balance);
+        assert_eq!(
+            accounts[1].lamports(),
+            dst_init_lamports + (src_init_lamports - minimum_balance)
+        );
+        assert!(result.is_ok())
+    }
+
+    result
+}

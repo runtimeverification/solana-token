@@ -58,3 +58,65 @@ fn test_process_revoke_multisig(accounts: &[AccountInfo; 3]) -> ProgramResult {
 
     result
 }
+
+/// Same as test_process_revoke_multisig but with 3 tx_signers instead of 1.
+/// accounts[0] // Source Account Info
+/// accounts[1] // Owner Info
+/// accounts[2..13] // Signers (3 provided)
+#[inline(never)]
+fn test_process_revoke_multisig_3sig(accounts: &[AccountInfo; 5]) -> ProgramResult {
+    cheatcode_account!(&accounts[0]); // Source Account
+    cheatcode_multisig!(&accounts[1]); // Owner
+
+    #[cfg(feature = "assumptions")]
+    {
+        let multisig = get_multisig(&accounts[1]);
+        if multisig.m < 1 || multisig.m > MAX_SIGNERS_U8 {
+            return Ok(());
+        }
+        if multisig.n < 1 || multisig.n > MAX_SIGNERS_U8 {
+            return Ok(());
+        }
+    }
+
+    //-Initial State-----------------------------------------------------------
+    let src_old = get_account(&accounts[0]);
+    let src_initialised = src_old.is_initialized();
+    let src_init_state = src_old.account_state();
+    let src_owner = src_old.owner;
+    let maybe_multisig_is_initialised = Some(get_multisig(&accounts[1]).is_initialized());
+
+    //-Process Instruction-----------------------------------------------------
+    let result = call_process_revoke!(accounts);
+
+    //-Assert Postconditions---------------------------------------------------
+    if accounts.is_empty() {
+        assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys))
+    } else if accounts[0].data_len() != Account::LEN {
+        assert_eq!(result, Err(ProgramError::InvalidAccountData))
+    } else if src_initialised.is_err() {
+        assert_eq!(result, Err(ProgramError::InvalidAccountData))
+    } else if !src_initialised.unwrap() {
+        assert_eq!(result, Err(ProgramError::UninitializedAccount))
+    } else if accounts.len() < 2 {
+        assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys))
+    } else if src_init_state.unwrap() == AccountState::Frozen {
+        assert_eq!(result, Err(ProgramError::Custom(17)))
+    } else {
+        // Validate Owner
+        inner_test_validate_owner(
+            &src_owner,     // expected_owner
+            &accounts[1],   // owner_account_info
+            &accounts[2..], // tx_signers (3 signers)
+            maybe_multisig_is_initialised,
+            result.clone(),
+        )?;
+
+        let src_new = get_account(&accounts[0]);
+        assert!(src_new.delegate().is_none());
+        assert_eq!(src_new.delegated_amount(), 0);
+        assert!(result.is_ok())
+    }
+
+    result
+}

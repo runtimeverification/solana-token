@@ -358,10 +358,16 @@ fn inner_process_remaining_instruction(
             }
 
             match accounts[2].data_len() {
-                Multisig::LEN if accounts[2].is_owned_by(&ID) => test_process_approve_multisig(
-                    accounts.first_chunk().unwrap(),
-                    instruction_data.first_chunk().unwrap(),
-                ),
+                Multisig::LEN if accounts[2].is_owned_by(&ID) => match accounts.len() {
+                    n if n >= 3 + MAX_SIGNERS as usize => test_process_approve_multisig_3sig(
+                        accounts.first_chunk().unwrap(),
+                        instruction_data.first_chunk().unwrap(),
+                    ),
+                    _ => test_process_approve_multisig(
+                        accounts.first_chunk().unwrap(),
+                        instruction_data.first_chunk().unwrap(),
+                    ),
+                },
                 _ => test_process_approve(
                     accounts.first_chunk().unwrap(),
                     instruction_data.first_chunk().unwrap(),
@@ -381,9 +387,12 @@ fn inner_process_remaining_instruction(
             }
 
             match accounts[1].data_len() {
-                Multisig::LEN if accounts[1].is_owned_by(&ID) => {
-                    test_process_revoke_multisig(accounts.first_chunk().unwrap())
-                }
+                Multisig::LEN if accounts[1].is_owned_by(&ID) => match accounts.len() {
+                    n if n >= 2 + MAX_SIGNERS as usize => {
+                        test_process_revoke_multisig_3sig(accounts.first_chunk().unwrap())
+                    }
+                    _ => test_process_revoke_multisig(accounts.first_chunk().unwrap()),
+                },
                 _ => test_process_revoke(accounts.first_chunk().unwrap()),
             }
         }
@@ -626,11 +635,16 @@ fn inner_process_remaining_instruction(
                         ),
                     },
                     Multisig::LEN => match accounts[2].data_len() {
-                        Multisig::LEN if accounts[2].is_owned_by(&ID) => {
-                            test_process_withdraw_excess_lamports_multisig_multisig(
+                        Multisig::LEN if accounts[2].is_owned_by(&ID) => match accounts.len() {
+                            n if n >= 3 + MAX_SIGNERS as usize => {
+                                test_process_withdraw_excess_lamports_multisig_multisig_3sig(
+                                    accounts.first_chunk().unwrap(),
+                                )
+                            }
+                            _ => test_process_withdraw_excess_lamports_multisig_multisig(
                                 accounts.first_chunk().unwrap(),
-                            )
-                        }
+                            ),
+                        },
                         _ => test_process_withdraw_excess_lamports_multisig(
                             accounts.first_chunk().unwrap(),
                         ),
