@@ -110,10 +110,17 @@ fn inner_process_instruction(
                 && accounts[2].data_len() == Multisig::LEN
                 && accounts[2].owner == &crate::id()
             {
-                test_process_approve_multisig(
-                    accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?, // CHANGE P-Token: accounts: &[AccountInfo; 4]
-                    instruction_data.last_chunk().ok_or(TokenError::InvalidInstruction)?,
-                )
+                if accounts.len() >= 3 + MAX_SIGNERS {
+                    test_process_approve_multisig_3sig(
+                        accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?,
+                        instruction_data.last_chunk().ok_or(TokenError::InvalidInstruction)?,
+                    )
+                } else {
+                    test_process_approve_multisig(
+                        accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?, // CHANGE P-Token: accounts: &[AccountInfo; 4]
+                        instruction_data.last_chunk().ok_or(TokenError::InvalidInstruction)?,
+                    )
+                }
             } else {
                 test_process_approve(
                     accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?, // CHANGE P-Token: accounts: &[AccountInfo; 3]
@@ -127,9 +134,15 @@ fn inner_process_instruction(
                 && accounts[1].data_len() == Multisig::LEN
                 && accounts[1].owner == &crate::id()
             {
-                test_process_revoke_multisig(
-                    accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?,
-                )
+                if accounts.len() >= 2 + MAX_SIGNERS {
+                    test_process_revoke_multisig_3sig(
+                        accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?,
+                    )
+                } else {
+                    test_process_revoke_multisig(
+                        accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?,
+                    )
+                }
             } else {
                 test_process_revoke(
                     accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?,
