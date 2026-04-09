@@ -37,22 +37,24 @@ Proofs to run with `run-proofs.sh -a`:
 
 Proofs to run with `run-proofs.sh -m`:
 
-| m | test_process_approve_multisig                           |
-| m | test_process_approve_checked_multisig                   |
-| m | test_process_withdraw_excess_lamports_account_multisig  |
-| m | test_process_withdraw_excess_lamports_mint_multisig     |
-| m | test_process_withdraw_excess_lamports_multisig_multisig |
-| m | test_process_transfer_multisig                          |
-| m | test_process_mint_to_multisig                           |
-| m | test_process_burn_multisig                              |
-| m | test_process_close_account_multisig                     |
-| m | test_process_transfer_checked_multisig                  |
-| m | test_process_burn_checked_multisig                      |
-| m | test_process_revoke_multisig                            |
-| m | test_process_freeze_account_multisig                    |
-| m | test_process_thaw_account_multisig                      |
-| m | test_process_mint_to_checked_multisig                   |
-| m | test_process_set_authority_account_multisig             |
-| m | test_process_set_authority_mint_multisig                |
-| m | test_process_initialize_multisig                        |
-| m | test_process_initialize_multisig2                       |
+| m | test_process_approve_multisig                                |
+| m | test_process_approve_checked_multisig                        |
+| m | test_process_withdraw_excess_lamports_account_multisig       |
+| m | test_process_withdraw_excess_lamports_mint_multisig          |
+| m | test_process_withdraw_excess_lamports_multisig_multisig      |
+| m | test_process_withdraw_excess_lamports_multisig_multisig_3sig |
+| m | test_process_transfer_multisig                               |
+| m | test_process_mint_to_multisig                                |
+| m | test_process_burn_multisig                                   |
+| m | test_process_close_account_multisig                          |
+| m | test_process_transfer_checked_multisig                       |
+| m | test_process_burn_checked_multisig                           |
+| m | test_process_revoke_multisig                                 |
+| m | test_process_revoke_multisig_3sig                            |
+| m | test_process_freeze_account_multisig                         |
+| m | test_process_thaw_account_multisig                           |
+| m | test_process_mint_to_checked_multisig                        |
+| m | test_process_set_authority_account_multisig                  |
+| m | test_process_set_authority_mint_multisig                     |
+| m | test_process_initialize_multisig                             |
+| m | test_process_initialize_multisig2                            |
