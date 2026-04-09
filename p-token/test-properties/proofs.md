@@ -38,7 +38,6 @@ Proofs to run with `run-proofs.sh -a`:
 Proofs to run with `run-proofs.sh -m`:
 
 | m | test_process_approve_multisig                                |
-| m | test_process_approve_multisig_3sig                           |
 | m | test_process_approve_checked_multisig                        |
 | m | test_process_withdraw_excess_lamports_account_multisig       |
 | m | test_process_withdraw_excess_lamports_mint_multisig          |
