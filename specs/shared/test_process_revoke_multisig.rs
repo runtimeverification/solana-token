@@ -59,12 +59,12 @@ fn test_process_revoke_multisig(accounts: &[AccountInfo; 3]) -> ProgramResult {
     result
 }
 
-/// Same as test_process_revoke_multisig but with 3 tx_signers instead of 1.
+/// Same as test_process_revoke_multisig but with 2 tx_signers instead of 1.
 /// accounts[0] // Source Account Info
 /// accounts[1] // Owner Info
-/// accounts[2..13] // Signers (3 provided)
+/// accounts[2..13] // Signers (2 provided)
 #[inline(never)]
-fn test_process_revoke_multisig_3sig(accounts: &[AccountInfo; 5]) -> ProgramResult {
+fn test_process_revoke_multisig_2sig(accounts: &[AccountInfo; 4]) -> ProgramResult {
     cheatcode_account!(&accounts[0]); // Source Account
     cheatcode_multisig!(&accounts[1]); // Owner
 
