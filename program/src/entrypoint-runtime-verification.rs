@@ -127,8 +127,8 @@ fn inner_process_instruction(
                 && accounts[1].data_len() == Multisig::LEN
                 && accounts[1].owner == &crate::id()
             {
-                if accounts.len() >= 2 + MAX_SIGNERS {
-                    test_process_revoke_multisig_3sig(
+                if accounts.len() >= 2 + 2 {
+                    test_process_revoke_multisig_2sig(
                         accounts.first_chunk().ok_or(TokenError::InvalidInstruction)?,
                     )
                 } else {

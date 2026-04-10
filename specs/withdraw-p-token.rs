@@ -487,14 +487,14 @@ fn test_process_withdraw_excess_lamports_multisig_multisig(
     result
 }
 
-/// Same as test_process_withdraw_excess_lamports_multisig_multisig but with 3 tx_signers instead of 1.
+/// Same as test_process_withdraw_excess_lamports_multisig_multisig but with 2 tx_signers instead of 1.
 /// accounts[0] // Source Account Info
 /// accounts[1] // Destination Info
 /// accounts[2] // Authority Info
-/// accounts[3..14] // Signers (3 provided)
+/// accounts[3..14] // Signers (2 provided)
 #[inline(never)]
-fn test_process_withdraw_excess_lamports_multisig_multisig_3sig(
-    accounts: &[AccountInfo; 6],
+fn test_process_withdraw_excess_lamports_multisig_multisig_2sig(
+    accounts: &[AccountInfo; 5],
 ) -> ProgramResult {
     cheatcode_is_multisig(&accounts[0]); // Source Account (Multisig)
     cheatcode_is_account(&accounts[1]); // Destination
