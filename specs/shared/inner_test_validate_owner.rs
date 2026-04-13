@@ -24,29 +24,30 @@ fn expected_validate_owner_result(
         } else {
             let multisig = get_multisig(owner_account_info);
 
-            // Single loop matching the implementation's validate_owner:
-            // outer over tx_signers, inner over registered keys, with
-            // matched[position] to prevent double-counting and to skip
-            // unsigned detection when a position was already claimed.
-            let mut num_signers: usize = 0;
-            let mut matched = [false; MAX_SIGNERS as usize];
-
-            for potential_signer in tx_signers.iter() {
-                for (position, registered_key) in
-                    multisig.signers[0..multisig.n as usize].iter().enumerate()
-                {
-                    if registered_key == key!(potential_signer) && !matched[position] {
-                        if !is_signer!(potential_signer) {
-                            return Err(ProgramError::MissingRequiredSignature);
-                        }
-                        matched[position] = true;
-                        num_signers += 1;
-                    }
-                }
+            // Did all declared and allowd signers sign?
+            let unsigned_exists = tx_signers.iter().any(|potential_signer| {
+                multisig.signers[0..multisig.n as usize]
+                    .iter()
+                    .any(|registered_key| {
+                        registered_key == key!(potential_signer) && !is_signer!(potential_signer)
+                    })
+            });
+            if unsigned_exists {
+                return Err(ProgramError::MissingRequiredSignature);
             }
 
+            // Were enough signatures received?
+            let signers_count = multisig.signers[0..multisig.n as usize]
+                .iter()
+                .filter_map(|registered_key| {
+                    tx_signers.iter().find(|potential_signer| {
+                        key!(potential_signer) == registered_key && is_signer!(potential_signer)
+                    })
+                })
+                .count();
+
             // Check if we have enough signers
-            if num_signers < multisig.m as usize {
+            if signers_count < multisig.m as usize {
                 return Err(ProgramError::MissingRequiredSignature);
             }
 
@@ -92,30 +93,31 @@ fn inner_test_validate_owner(
         } else {
             let multisig = get_multisig(owner_account_info);
 
-            // Single loop matching the implementation's validate_owner:
-            // outer over tx_signers, inner over registered keys, with
-            // matched[position] to prevent double-counting and to skip
-            // unsigned detection when a position was already claimed.
-            let mut num_signers: usize = 0;
-            let mut matched = [false; MAX_SIGNERS as usize];
-
-            for potential_signer in tx_signers.iter() {
-                for (position, registered_key) in
-                    multisig.signers[0..multisig.n as usize].iter().enumerate()
-                {
-                    if registered_key == key!(potential_signer) && !matched[position] {
-                        if !is_signer!(potential_signer) {
-                            assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
-                            return result;
-                        }
-                        matched[position] = true;
-                        num_signers += 1;
-                    }
-                }
+            // Did all declared and allowd signers sign?
+            let unsigned_exists = tx_signers.iter().any(|potential_signer| {
+                multisig.signers[0..multisig.n as usize]
+                    .iter()
+                    .any(|registered_key| {
+                        registered_key == key!(potential_signer) && !is_signer!(potential_signer)
+                    })
+            });
+            if unsigned_exists {
+                assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
+                return result;
             }
 
+            // Were enough signatures received?
+            let signers_count = multisig.signers[0..multisig.n as usize]
+                .iter()
+                .filter_map(|registered_key| {
+                    tx_signers.iter().find(|potential_signer| {
+                        key!(potential_signer) == registered_key && is_signer!(potential_signer)
+                    })
+                })
+                .count();
+
             // Check if we have enough signers
-            if num_signers < multisig.m as usize {
+            if signers_count < multisig.m as usize {
                 assert_eq!(result, Err(ProgramError::MissingRequiredSignature));
                 return result;
             }
