@@ -122,3 +122,345 @@ fn test_process_set_authority_account_multisig(
 
     result
 }
+
+/// accounts[0] // Account Info - Account Case
+/// accounts[1] // Authority Info
+/// accounts[2..13] // Signers
+/// instruction_data[0] // Authority Type (instruction)
+/// instruction_data[1] // New Authority Follows (0 -> No, 1 -> Yes)
+/// instruction_data[2..34] // New Authority Pubkey
+#[inline(never)]
+fn test_process_set_authority_account_multisig_n1(
+    accounts: &[AccountInfo; 3],
+    instruction_data: &[u8; 34],
+) -> ProgramResult {
+    cheatcode_account!(&accounts[0]);
+    cheatcode_multisig!(&accounts[1]);
+
+    #[cfg(feature = "assumptions")]
+    {
+        let multisig = get_multisig(&accounts[1]);
+        if multisig.m < 1 || multisig.m > MAX_SIGNERS_U8 {
+            return Ok(());
+        }
+        if multisig.n != 1 {
+            return Ok(());
+        }
+    }
+
+    let src_old = get_account(&accounts[0]);
+    let src_initialised = src_old.is_initialized();
+    let src_init_state = src_old.account_state();
+    let src_owner = src_old.owner;
+    let authority = src_old.close_authority().cloned().unwrap_or(src_old.owner);
+    let account_data_len = accounts[0].data_len();
+    let maybe_multisig_is_initialised = Some(get_multisig(&accounts[1]).is_initialized());
+
+    let result = call_process_set_authority!(accounts, instruction_data);
+
+    if instruction_data.len() < 2 {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if !(0..=3).contains(&instruction_data[0]) {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if instruction_data[1] != 0 && instruction_data[1] != 1 {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if instruction_data[1] == 1 && instruction_data.len() < 34 {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if accounts.len() < 2 {
+        assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
+        return result;
+    } else if account_data_len != Account::LEN && account_data_len != Mint::LEN {
+        assert_eq!(result, Err(ProgramError::InvalidArgument));
+        return result;
+    } else if account_data_len == Account::LEN {
+        let src_new = get_account(&accounts[0]);
+
+        if src_initialised.is_err() {
+            assert_eq!(result, Err(ProgramError::InvalidAccountData));
+            return result;
+        } else if !src_initialised.unwrap() {
+            assert_eq!(result, Err(ProgramError::UninitializedAccount));
+            return result;
+        } else if src_init_state.unwrap() == AccountState::Frozen {
+            assert_eq!(result, Err(ProgramError::Custom(17)));
+            return result;
+        } else if instruction_data[0] != 2 && instruction_data[0] != 3 {
+            assert_eq!(result, Err(ProgramError::Custom(15)));
+            return result;
+        } else if instruction_data[0] == 2 {
+            inner_test_validate_owner(
+                &src_owner,
+                &accounts[1],
+                &accounts[2..],
+                maybe_multisig_is_initialised,
+                result.clone(),
+            )?;
+
+            if instruction_data[1] != 1 || instruction_data.len() < 34 {
+                assert_eq!(result, Err(ProgramError::Custom(12)));
+                return result;
+            }
+
+            assert_pubkey_from_slice_val!(src_new.owner, instruction_data[2..34]);
+            assert_eq!(src_new.delegate(), None);
+            assert_eq!(src_new.delegated_amount(), 0);
+            if src_new.is_native() {
+                assert_eq!(src_new.close_authority(), None);
+            }
+            assert!(result.is_ok())
+        } else {
+            assert_eq!(instruction_data[0], 3);
+
+            inner_test_validate_owner(
+                &authority,
+                &accounts[1],
+                &accounts[2..],
+                maybe_multisig_is_initialised,
+                result.clone(),
+            )?;
+
+            if instruction_data[1] == 1 {
+                assert_pubkey_from_slice!(src_new.close_authority().unwrap(), &instruction_data[2..34]);
+            } else {
+                assert_eq!(src_new.close_authority(), None);
+            }
+            assert!(result.is_ok())
+        }
+    } else {
+        unreachable!()
+    }
+
+    result
+}
+
+/// accounts[0] // Account Info - Account Case
+/// accounts[1] // Authority Info
+/// accounts[2..13] // Signers
+/// instruction_data[0] // Authority Type (instruction)
+/// instruction_data[1] // New Authority Follows (0 -> No, 1 -> Yes)
+/// instruction_data[2..34] // New Authority Pubkey
+#[inline(never)]
+fn test_process_set_authority_account_multisig_n2(
+    accounts: &[AccountInfo; 3],
+    instruction_data: &[u8; 34],
+) -> ProgramResult {
+    cheatcode_account!(&accounts[0]);
+    cheatcode_multisig!(&accounts[1]);
+
+    #[cfg(feature = "assumptions")]
+    {
+        let multisig = get_multisig(&accounts[1]);
+        if multisig.m < 1 || multisig.m > MAX_SIGNERS_U8 {
+            return Ok(());
+        }
+        if multisig.n != 2 {
+            return Ok(());
+        }
+    }
+
+    let src_old = get_account(&accounts[0]);
+    let src_initialised = src_old.is_initialized();
+    let src_init_state = src_old.account_state();
+    let src_owner = src_old.owner;
+    let authority = src_old.close_authority().cloned().unwrap_or(src_old.owner);
+    let account_data_len = accounts[0].data_len();
+    let maybe_multisig_is_initialised = Some(get_multisig(&accounts[1]).is_initialized());
+
+    let result = call_process_set_authority!(accounts, instruction_data);
+
+    if instruction_data.len() < 2 {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if !(0..=3).contains(&instruction_data[0]) {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if instruction_data[1] != 0 && instruction_data[1] != 1 {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if instruction_data[1] == 1 && instruction_data.len() < 34 {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if accounts.len() < 2 {
+        assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
+        return result;
+    } else if account_data_len != Account::LEN && account_data_len != Mint::LEN {
+        assert_eq!(result, Err(ProgramError::InvalidArgument));
+        return result;
+    } else if account_data_len == Account::LEN {
+        let src_new = get_account(&accounts[0]);
+
+        if src_initialised.is_err() {
+            assert_eq!(result, Err(ProgramError::InvalidAccountData));
+            return result;
+        } else if !src_initialised.unwrap() {
+            assert_eq!(result, Err(ProgramError::UninitializedAccount));
+            return result;
+        } else if src_init_state.unwrap() == AccountState::Frozen {
+            assert_eq!(result, Err(ProgramError::Custom(17)));
+            return result;
+        } else if instruction_data[0] != 2 && instruction_data[0] != 3 {
+            assert_eq!(result, Err(ProgramError::Custom(15)));
+            return result;
+        } else if instruction_data[0] == 2 {
+            inner_test_validate_owner(
+                &src_owner,
+                &accounts[1],
+                &accounts[2..],
+                maybe_multisig_is_initialised,
+                result.clone(),
+            )?;
+
+            if instruction_data[1] != 1 || instruction_data.len() < 34 {
+                assert_eq!(result, Err(ProgramError::Custom(12)));
+                return result;
+            }
+
+            assert_pubkey_from_slice_val!(src_new.owner, instruction_data[2..34]);
+            assert_eq!(src_new.delegate(), None);
+            assert_eq!(src_new.delegated_amount(), 0);
+            if src_new.is_native() {
+                assert_eq!(src_new.close_authority(), None);
+            }
+            assert!(result.is_ok())
+        } else {
+            assert_eq!(instruction_data[0], 3);
+
+            inner_test_validate_owner(
+                &authority,
+                &accounts[1],
+                &accounts[2..],
+                maybe_multisig_is_initialised,
+                result.clone(),
+            )?;
+
+            if instruction_data[1] == 1 {
+                assert_pubkey_from_slice!(src_new.close_authority().unwrap(), &instruction_data[2..34]);
+            } else {
+                assert_eq!(src_new.close_authority(), None);
+            }
+            assert!(result.is_ok())
+        }
+    } else {
+        unreachable!()
+    }
+
+    result
+}
+
+/// accounts[0] // Account Info - Account Case
+/// accounts[1] // Authority Info
+/// accounts[2..13] // Signers
+/// instruction_data[0] // Authority Type (instruction)
+/// instruction_data[1] // New Authority Follows (0 -> No, 1 -> Yes)
+/// instruction_data[2..34] // New Authority Pubkey
+#[inline(never)]
+fn test_process_set_authority_account_multisig_n3(
+    accounts: &[AccountInfo; 3],
+    instruction_data: &[u8; 34],
+) -> ProgramResult {
+    cheatcode_account!(&accounts[0]);
+    cheatcode_multisig!(&accounts[1]);
+
+    #[cfg(feature = "assumptions")]
+    {
+        let multisig = get_multisig(&accounts[1]);
+        if multisig.m < 1 || multisig.m > MAX_SIGNERS_U8 {
+            return Ok(());
+        }
+        if multisig.n != 3 {
+            return Ok(());
+        }
+    }
+
+    let src_old = get_account(&accounts[0]);
+    let src_initialised = src_old.is_initialized();
+    let src_init_state = src_old.account_state();
+    let src_owner = src_old.owner;
+    let authority = src_old.close_authority().cloned().unwrap_or(src_old.owner);
+    let account_data_len = accounts[0].data_len();
+    let maybe_multisig_is_initialised = Some(get_multisig(&accounts[1]).is_initialized());
+
+    let result = call_process_set_authority!(accounts, instruction_data);
+
+    if instruction_data.len() < 2 {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if !(0..=3).contains(&instruction_data[0]) {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if instruction_data[1] != 0 && instruction_data[1] != 1 {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if instruction_data[1] == 1 && instruction_data.len() < 34 {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if accounts.len() < 2 {
+        assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
+        return result;
+    } else if account_data_len != Account::LEN && account_data_len != Mint::LEN {
+        assert_eq!(result, Err(ProgramError::InvalidArgument));
+        return result;
+    } else if account_data_len == Account::LEN {
+        let src_new = get_account(&accounts[0]);
+
+        if src_initialised.is_err() {
+            assert_eq!(result, Err(ProgramError::InvalidAccountData));
+            return result;
+        } else if !src_initialised.unwrap() {
+            assert_eq!(result, Err(ProgramError::UninitializedAccount));
+            return result;
+        } else if src_init_state.unwrap() == AccountState::Frozen {
+            assert_eq!(result, Err(ProgramError::Custom(17)));
+            return result;
+        } else if instruction_data[0] != 2 && instruction_data[0] != 3 {
+            assert_eq!(result, Err(ProgramError::Custom(15)));
+            return result;
+        } else if instruction_data[0] == 2 {
+            inner_test_validate_owner(
+                &src_owner,
+                &accounts[1],
+                &accounts[2..],
+                maybe_multisig_is_initialised,
+                result.clone(),
+            )?;
+
+            if instruction_data[1] != 1 || instruction_data.len() < 34 {
+                assert_eq!(result, Err(ProgramError::Custom(12)));
+                return result;
+            }
+
+            assert_pubkey_from_slice_val!(src_new.owner, instruction_data[2..34]);
+            assert_eq!(src_new.delegate(), None);
+            assert_eq!(src_new.delegated_amount(), 0);
+            if src_new.is_native() {
+                assert_eq!(src_new.close_authority(), None);
+            }
+            assert!(result.is_ok())
+        } else {
+            assert_eq!(instruction_data[0], 3);
+
+            inner_test_validate_owner(
+                &authority,
+                &accounts[1],
+                &accounts[2..],
+                maybe_multisig_is_initialised,
+                result.clone(),
+            )?;
+
+            if instruction_data[1] == 1 {
+                assert_pubkey_from_slice!(src_new.close_authority().unwrap(), &instruction_data[2..34]);
+            } else {
+                assert_eq!(src_new.close_authority(), None);
+            }
+            assert!(result.is_ok())
+        }
+    } else {
+        unreachable!()
+    }
+
+    result
+}

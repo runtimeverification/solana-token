@@ -443,6 +443,15 @@ pub unsafe extern "C" fn use_tests(acc: &AccountInfo) {
     let _ = test_process_transfer_multisig_n1(acc4, idata8);
     let _ = test_process_transfer_multisig_n2(acc4, idata8);
     let _ = test_process_transfer_multisig_n3(acc4, idata8);
+    let acc5 = unsafe { &*(acc as *const AccountInfo as *const [AccountInfo; 5]) };
+    let _ = test_process_transfer_checked_multisig_n1(acc5, idata9);
+    let _ = test_process_transfer_checked_multisig_n2(acc5, idata9);
+    let _ = test_process_transfer_checked_multisig_n3(acc5, idata9);
+    let acc3 = unsafe { &*(acc as *const AccountInfo as *const [AccountInfo; 3]) };
+    let idata34 = unsafe { &*(acc as *const AccountInfo as *const [u8; 34]) };
+    let _ = test_process_set_authority_account_multisig_n1(acc3, idata34);
+    let _ = test_process_set_authority_account_multisig_n2(acc3, idata34);
+    let _ = test_process_set_authority_account_multisig_n3(acc3, idata34);
 }
 
 // special test for basic domain data access (SPL types)
