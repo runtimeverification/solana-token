@@ -436,6 +436,10 @@ pub unsafe extern "C" fn use_tests(acc: &AccountInfo) {
     let _ = test_process_burn_multisig_n1(acc4, idata8);
     let _ = test_process_burn_multisig_n2(acc4, idata8);
     let _ = test_process_burn_multisig_n3(acc4, idata8);
+    let idata9 = unsafe { &*(acc as *const AccountInfo as *const [u8; 9]) };
+    let _ = test_process_burn_checked_multisig_n1(acc4, idata9);
+    let _ = test_process_burn_checked_multisig_n2(acc4, idata9);
+    let _ = test_process_burn_checked_multisig_n3(acc4, idata9);
 }
 
 // special test for basic domain data access (SPL types)
