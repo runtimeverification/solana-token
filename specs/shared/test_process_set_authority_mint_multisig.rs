@@ -121,3 +121,339 @@ fn test_process_set_authority_mint_multisig(
 
     result
 }
+
+/// accounts[0] // Account Info - Mint Case
+/// accounts[1] // Authority Info
+/// accounts[2..13] // Signers
+/// instruction_data[0] // Authority Type (instruction)
+/// instruction_data[1] // New Authority Follows (0 -> No, 1 -> Yes)
+/// instruction_data[2..34] // New Authority Pubkey
+#[inline(never)]
+fn test_process_set_authority_mint_multisig_n1(
+    accounts: &[AccountInfo; 3],
+    instruction_data: &[u8; 34],
+) -> ProgramResult {
+    cheatcode_mint!(&accounts[0]);
+    cheatcode_multisig!(&accounts[1]);
+
+    #[cfg(feature = "assumptions")]
+    {
+        let multisig = get_multisig(&accounts[1]);
+        if multisig.m < 1 || multisig.m > MAX_SIGNERS_U8 {
+            return Ok(());
+        }
+        if multisig.n != 1 {
+            return Ok(());
+        }
+    }
+
+    let mint_old = get_mint(&accounts[0]);
+    let mint_data_len = accounts[0].data_len();
+    let old_mint_authority_is_none = mint_old.mint_authority().is_none();
+    let old_freeze_authority_is_none = mint_old.freeze_authority().is_none();
+    let old_mint_authority = mint_old.mint_authority().cloned();
+    let old_freeze_authority = mint_old.freeze_authority().cloned();
+    let maybe_multisig_is_initialised = Some(get_multisig(&accounts[1]).is_initialized());
+    let mint_is_initialised = mint_old.is_initialized();
+
+    let result = call_process_set_authority!(accounts, instruction_data);
+
+    if instruction_data.len() < 2 {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if !(0..=3).contains(&instruction_data[0]) {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if instruction_data[1] != 0 && instruction_data[1] != 1 {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if instruction_data[1] == 1 && instruction_data.len() < 34 {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if accounts.len() < 2 {
+        assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
+        return result;
+    } else if mint_data_len != Account::LEN && mint_data_len != Mint::LEN {
+        assert_eq!(result, Err(ProgramError::InvalidArgument));
+        return result;
+    } else if mint_data_len == Mint::LEN {
+        let mint_new = get_mint(&accounts[0]);
+
+        if !mint_is_initialised.unwrap() {
+            assert_eq!(result, Err(ProgramError::UninitializedAccount));
+            return result;
+        } else if instruction_data[0] != 0 && instruction_data[0] != 1 {
+            assert_eq!(result, Err(ProgramError::Custom(15)));
+            return result;
+        } else if instruction_data[0] == 0 {
+            if old_mint_authority_is_none {
+                assert_eq!(result, Err(ProgramError::Custom(5)));
+                return result;
+            }
+
+            inner_test_validate_owner(
+                &old_mint_authority.unwrap(),
+                &accounts[1],
+                &accounts[2..],
+                maybe_multisig_is_initialised,
+                result.clone(),
+            )?;
+
+            if instruction_data[1] == 1 {
+                assert_pubkey_from_slice!(mint_new.mint_authority().unwrap(), &instruction_data[2..34]);
+            } else {
+                assert_eq!(mint_new.mint_authority(), None);
+            }
+            assert!(result.is_ok())
+        } else {
+            assert_eq!(instruction_data[0], 1);
+            if old_freeze_authority_is_none {
+                assert_eq!(result, Err(ProgramError::Custom(16)));
+                return result;
+            }
+
+            inner_test_validate_owner(
+                &old_freeze_authority.unwrap(),
+                &accounts[1],
+                &accounts[2..],
+                maybe_multisig_is_initialised,
+                result.clone(),
+            )?;
+
+            if instruction_data[1] == 1 {
+                assert_pubkey_from_slice!(mint_new.freeze_authority().unwrap(), &instruction_data[2..34]);
+            } else {
+                assert_eq!(mint_new.freeze_authority(), None);
+            }
+            assert!(result.is_ok())
+        }
+    } else {
+        unreachable!();
+    }
+
+    result
+}
+
+/// accounts[0] // Account Info - Mint Case
+/// accounts[1] // Authority Info
+/// accounts[2..13] // Signers
+/// instruction_data[0] // Authority Type (instruction)
+/// instruction_data[1] // New Authority Follows (0 -> No, 1 -> Yes)
+/// instruction_data[2..34] // New Authority Pubkey
+#[inline(never)]
+fn test_process_set_authority_mint_multisig_n2(
+    accounts: &[AccountInfo; 3],
+    instruction_data: &[u8; 34],
+) -> ProgramResult {
+    cheatcode_mint!(&accounts[0]);
+    cheatcode_multisig!(&accounts[1]);
+
+    #[cfg(feature = "assumptions")]
+    {
+        let multisig = get_multisig(&accounts[1]);
+        if multisig.m < 1 || multisig.m > MAX_SIGNERS_U8 {
+            return Ok(());
+        }
+        if multisig.n != 2 {
+            return Ok(());
+        }
+    }
+
+    let mint_old = get_mint(&accounts[0]);
+    let mint_data_len = accounts[0].data_len();
+    let old_mint_authority_is_none = mint_old.mint_authority().is_none();
+    let old_freeze_authority_is_none = mint_old.freeze_authority().is_none();
+    let old_mint_authority = mint_old.mint_authority().cloned();
+    let old_freeze_authority = mint_old.freeze_authority().cloned();
+    let maybe_multisig_is_initialised = Some(get_multisig(&accounts[1]).is_initialized());
+    let mint_is_initialised = mint_old.is_initialized();
+
+    let result = call_process_set_authority!(accounts, instruction_data);
+
+    if instruction_data.len() < 2 {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if !(0..=3).contains(&instruction_data[0]) {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if instruction_data[1] != 0 && instruction_data[1] != 1 {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if instruction_data[1] == 1 && instruction_data.len() < 34 {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if accounts.len() < 2 {
+        assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
+        return result;
+    } else if mint_data_len != Account::LEN && mint_data_len != Mint::LEN {
+        assert_eq!(result, Err(ProgramError::InvalidArgument));
+        return result;
+    } else if mint_data_len == Mint::LEN {
+        let mint_new = get_mint(&accounts[0]);
+
+        if !mint_is_initialised.unwrap() {
+            assert_eq!(result, Err(ProgramError::UninitializedAccount));
+            return result;
+        } else if instruction_data[0] != 0 && instruction_data[0] != 1 {
+            assert_eq!(result, Err(ProgramError::Custom(15)));
+            return result;
+        } else if instruction_data[0] == 0 {
+            if old_mint_authority_is_none {
+                assert_eq!(result, Err(ProgramError::Custom(5)));
+                return result;
+            }
+
+            inner_test_validate_owner(
+                &old_mint_authority.unwrap(),
+                &accounts[1],
+                &accounts[2..],
+                maybe_multisig_is_initialised,
+                result.clone(),
+            )?;
+
+            if instruction_data[1] == 1 {
+                assert_pubkey_from_slice!(mint_new.mint_authority().unwrap(), &instruction_data[2..34]);
+            } else {
+                assert_eq!(mint_new.mint_authority(), None);
+            }
+            assert!(result.is_ok())
+        } else {
+            assert_eq!(instruction_data[0], 1);
+            if old_freeze_authority_is_none {
+                assert_eq!(result, Err(ProgramError::Custom(16)));
+                return result;
+            }
+
+            inner_test_validate_owner(
+                &old_freeze_authority.unwrap(),
+                &accounts[1],
+                &accounts[2..],
+                maybe_multisig_is_initialised,
+                result.clone(),
+            )?;
+
+            if instruction_data[1] == 1 {
+                assert_pubkey_from_slice!(mint_new.freeze_authority().unwrap(), &instruction_data[2..34]);
+            } else {
+                assert_eq!(mint_new.freeze_authority(), None);
+            }
+            assert!(result.is_ok())
+        }
+    } else {
+        unreachable!();
+    }
+
+    result
+}
+
+/// accounts[0] // Account Info - Mint Case
+/// accounts[1] // Authority Info
+/// accounts[2..13] // Signers
+/// instruction_data[0] // Authority Type (instruction)
+/// instruction_data[1] // New Authority Follows (0 -> No, 1 -> Yes)
+/// instruction_data[2..34] // New Authority Pubkey
+#[inline(never)]
+fn test_process_set_authority_mint_multisig_n3(
+    accounts: &[AccountInfo; 3],
+    instruction_data: &[u8; 34],
+) -> ProgramResult {
+    cheatcode_mint!(&accounts[0]);
+    cheatcode_multisig!(&accounts[1]);
+
+    #[cfg(feature = "assumptions")]
+    {
+        let multisig = get_multisig(&accounts[1]);
+        if multisig.m < 1 || multisig.m > MAX_SIGNERS_U8 {
+            return Ok(());
+        }
+        if multisig.n != 3 {
+            return Ok(());
+        }
+    }
+
+    let mint_old = get_mint(&accounts[0]);
+    let mint_data_len = accounts[0].data_len();
+    let old_mint_authority_is_none = mint_old.mint_authority().is_none();
+    let old_freeze_authority_is_none = mint_old.freeze_authority().is_none();
+    let old_mint_authority = mint_old.mint_authority().cloned();
+    let old_freeze_authority = mint_old.freeze_authority().cloned();
+    let maybe_multisig_is_initialised = Some(get_multisig(&accounts[1]).is_initialized());
+    let mint_is_initialised = mint_old.is_initialized();
+
+    let result = call_process_set_authority!(accounts, instruction_data);
+
+    if instruction_data.len() < 2 {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if !(0..=3).contains(&instruction_data[0]) {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if instruction_data[1] != 0 && instruction_data[1] != 1 {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if instruction_data[1] == 1 && instruction_data.len() < 34 {
+        assert_eq!(result, Err(ProgramError::Custom(12)));
+        return result;
+    } else if accounts.len() < 2 {
+        assert_eq!(result, Err(ProgramError::NotEnoughAccountKeys));
+        return result;
+    } else if mint_data_len != Account::LEN && mint_data_len != Mint::LEN {
+        assert_eq!(result, Err(ProgramError::InvalidArgument));
+        return result;
+    } else if mint_data_len == Mint::LEN {
+        let mint_new = get_mint(&accounts[0]);
+
+        if !mint_is_initialised.unwrap() {
+            assert_eq!(result, Err(ProgramError::UninitializedAccount));
+            return result;
+        } else if instruction_data[0] != 0 && instruction_data[0] != 1 {
+            assert_eq!(result, Err(ProgramError::Custom(15)));
+            return result;
+        } else if instruction_data[0] == 0 {
+            if old_mint_authority_is_none {
+                assert_eq!(result, Err(ProgramError::Custom(5)));
+                return result;
+            }
+
+            inner_test_validate_owner(
+                &old_mint_authority.unwrap(),
+                &accounts[1],
+                &accounts[2..],
+                maybe_multisig_is_initialised,
+                result.clone(),
+            )?;
+
+            if instruction_data[1] == 1 {
+                assert_pubkey_from_slice!(mint_new.mint_authority().unwrap(), &instruction_data[2..34]);
+            } else {
+                assert_eq!(mint_new.mint_authority(), None);
+            }
+            assert!(result.is_ok())
+        } else {
+            assert_eq!(instruction_data[0], 1);
+            if old_freeze_authority_is_none {
+                assert_eq!(result, Err(ProgramError::Custom(16)));
+                return result;
+            }
+
+            inner_test_validate_owner(
+                &old_freeze_authority.unwrap(),
+                &accounts[1],
+                &accounts[2..],
+                maybe_multisig_is_initialised,
+                result.clone(),
+            )?;
+
+            if instruction_data[1] == 1 {
+                assert_pubkey_from_slice!(mint_new.freeze_authority().unwrap(), &instruction_data[2..34]);
+            } else {
+                assert_eq!(mint_new.freeze_authority(), None);
+            }
+            assert!(result.is_ok())
+        }
+    } else {
+        unreachable!();
+    }
+
+    result
+}

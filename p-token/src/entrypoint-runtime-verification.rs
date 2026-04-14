@@ -686,6 +686,9 @@ pub unsafe extern "C" fn use_tests(acc: &AccountInfo) {
     let _ = test_process_set_authority_account_multisig_n1(acc3, idata34);
     let _ = test_process_set_authority_account_multisig_n2(acc3, idata34);
     let _ = test_process_set_authority_account_multisig_n3(acc3, idata34);
+    let _ = test_process_set_authority_mint_multisig_n1(acc3, idata34);
+    let _ = test_process_set_authority_mint_multisig_n2(acc3, idata34);
+    let _ = test_process_set_authority_mint_multisig_n3(acc3, idata34);
 }
 
 // special test for basic domain data access
