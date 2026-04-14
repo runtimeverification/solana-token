@@ -665,6 +665,11 @@ pub unsafe extern "C" fn use_tests(acc: &AccountInfo) {
     let _ = test_validate_owner_multisig(unsafe {
         &*(acc as *const AccountInfo as *const [AccountInfo; 5])
     });
+    let acc4 = unsafe { &*(acc as *const AccountInfo as *const [AccountInfo; 4]) };
+    let idata8 = unsafe { &*(acc as *const AccountInfo as *const [u8; 8]) };
+    let _ = test_process_burn_multisig_n1(acc4, idata8);
+    let _ = test_process_burn_multisig_n2(acc4, idata8);
+    let _ = test_process_burn_multisig_n3(acc4, idata8);
 }
 
 // special test for basic domain data access
