@@ -440,6 +440,9 @@ pub unsafe extern "C" fn use_tests(acc: &AccountInfo) {
     let _ = test_process_burn_checked_multisig_n1(acc4, idata9);
     let _ = test_process_burn_checked_multisig_n2(acc4, idata9);
     let _ = test_process_burn_checked_multisig_n3(acc4, idata9);
+    let _ = test_process_transfer_multisig_n1(acc4, idata8);
+    let _ = test_process_transfer_multisig_n2(acc4, idata8);
+    let _ = test_process_transfer_multisig_n3(acc4, idata8);
 }
 
 // special test for basic domain data access (SPL types)
