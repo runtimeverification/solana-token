@@ -431,6 +431,30 @@ fn inner_process_instruction(
 pub unsafe extern "C" fn use_tests(acc: &AccountInfo) {
     test_spltoken_domain_data(acc, acc, acc);
     test_process_maybe_same_account(&[acc, acc]);
+    let acc4 = unsafe { &*(acc as *const AccountInfo as *const [AccountInfo; 4]) };
+    let idata8 = unsafe { &*(acc as *const AccountInfo as *const [u8; 8]) };
+    let _ = test_process_burn_multisig_n1(acc4, idata8);
+    let _ = test_process_burn_multisig_n2(acc4, idata8);
+    let _ = test_process_burn_multisig_n3(acc4, idata8);
+    let idata9 = unsafe { &*(acc as *const AccountInfo as *const [u8; 9]) };
+    let _ = test_process_burn_checked_multisig_n1(acc4, idata9);
+    let _ = test_process_burn_checked_multisig_n2(acc4, idata9);
+    let _ = test_process_burn_checked_multisig_n3(acc4, idata9);
+    let _ = test_process_transfer_multisig_n1(acc4, idata8);
+    let _ = test_process_transfer_multisig_n2(acc4, idata8);
+    let _ = test_process_transfer_multisig_n3(acc4, idata8);
+    let acc5 = unsafe { &*(acc as *const AccountInfo as *const [AccountInfo; 5]) };
+    let _ = test_process_transfer_checked_multisig_n1(acc5, idata9);
+    let _ = test_process_transfer_checked_multisig_n2(acc5, idata9);
+    let _ = test_process_transfer_checked_multisig_n3(acc5, idata9);
+    let acc3 = unsafe { &*(acc as *const AccountInfo as *const [AccountInfo; 3]) };
+    let idata34 = unsafe { &*(acc as *const AccountInfo as *const [u8; 34]) };
+    let _ = test_process_set_authority_account_multisig_n1(acc3, idata34);
+    let _ = test_process_set_authority_account_multisig_n2(acc3, idata34);
+    let _ = test_process_set_authority_account_multisig_n3(acc3, idata34);
+    let _ = test_process_set_authority_mint_multisig_n1(acc3, idata34);
+    let _ = test_process_set_authority_mint_multisig_n2(acc3, idata34);
+    let _ = test_process_set_authority_mint_multisig_n3(acc3, idata34);
 }
 
 // special test for basic domain data access (SPL types)
