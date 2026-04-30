@@ -3,11 +3,13 @@
 
 The selection is intentionally conservative:
 - only functions reachable from the requested start symbol are considered;
-- only p-token processor functions and entrypoint inner wrappers are
-  considered automatic CSE targets;
+- only p-token processor process_* functions are considered automatic CSE
+  targets;
 - the largest reachable process_* function is kept by default;
-- other processor functions are kept only when their MIR instruction count
+- other process_* functions are kept only when their MIR instruction count
   reaches the configured threshold.
+- helpers and entrypoint wrappers can be added explicitly when a benchmark
+  needs to test them.
 - the proof start symbol can be included explicitly as a trace wrapper.
 
 The MIR instruction count used here is:
@@ -153,9 +155,7 @@ def is_auto_candidate(name: str, start_symbol: str) -> bool:
     if basename.startswith('test_'):
         return False
     if name.startswith(PROCESSOR_PREFIX):
-        return basename not in EXCLUDED_PROCESS_NAMES
-    if name.startswith(ENTRYPOINT_PREFIX):
-        return basename.startswith('inner_')
+        return basename.startswith('process_') and basename not in EXCLUDED_PROCESS_NAMES
     return False
 
 

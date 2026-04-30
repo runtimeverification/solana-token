@@ -6,11 +6,12 @@
 #   3. The same proof without CSE
 #
 # CSE target functions are inferred from the SMIR call graph for each test.
-# The automatic selector only considers reachable p-token processor functions,
-# keeps the largest reachable process_* target by default, and adds additional
-# processor functions only when their MIR instruction count reaches the
-# configured threshold. Trace mode can also include the proof start symbol as
-# a wrapper so warm runs replay large harness-side branch structures.
+# The automatic selector only considers reachable p-token processor process_*
+# functions, keeps the largest reachable target by default, and adds additional
+# process_* functions only when their MIR instruction count reaches the
+# configured threshold. Helpers and wrappers can still be supplied explicitly
+# with -f. Trace mode can also include the proof start symbol as a wrapper so
+# warm runs replay large harness-side branch structures.
 
 set -euo pipefail
 
@@ -50,8 +51,9 @@ usage() {
 Usage: ./run-cse-benchmark.sh [OPTIONS] [TEST_NAME...]
 
 Runs cold CSE, warm CSE, and no-CSE proofs, then writes timing data under
-artefacts/cse-bench/. CSE functions are inferred per test from the SMIR call
-graph and filtered by MIR instruction count.
+artefacts/cse-bench/. Automatic CSE functions are inferred per test from
+reachable process_* functions in the SMIR call graph and filtered by MIR
+instruction count.
 
 Options:
   -a              Run all start symbols from the first proofs.md table.
