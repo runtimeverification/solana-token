@@ -5,9 +5,10 @@ The selection is intentionally conservative:
 - only functions reachable from the requested start symbol are considered;
 - only p-token processor process_* functions are considered automatic CSE
   targets;
-- the largest reachable process_* function is kept by default;
+- the largest reachable process_* function is kept by default when it does not
+  exceed the configured maximum MIR instruction count;
 - other process_* functions are kept only when their MIR instruction count
-  reaches the configured threshold.
+  reaches the configured threshold and does not exceed the configured maximum.
 - helpers and entrypoint wrappers can be added explicitly when a benchmark
   needs to test them.
 - the proof start symbol can be included explicitly as a trace wrapper.
@@ -60,10 +61,22 @@ def parse_args() -> argparse.Namespace:
         help='Maximum selected automatic targets, or 0 for no cap',
     )
     parser.add_argument(
+        '--max-instructions',
+        type=int,
+        default=200,
+        help='Maximum MIR instruction count for automatic targets, or 0 for no cap',
+    )
+    parser.add_argument(
         '--extra-function',
         action='append',
         default=[],
         help='Additional CSE function to append after automatic selection',
+    )
+    parser.add_argument(
+        '--exclude-function',
+        action='append',
+        default=[],
+        help='Automatic CSE candidate to exclude. Accepts a full function name or basename.',
     )
     parser.add_argument(
         '--no-force-largest-process',
@@ -146,12 +159,14 @@ def function_basename(name: str) -> str:
     return name.rsplit('::', 1)[-1]
 
 
-def is_auto_candidate(name: str, start_symbol: str) -> bool:
+def is_auto_candidate(name: str, start_symbol: str, excluded_functions: set[str]) -> bool:
     if '::{closure#' in name:
         return False
     if name == start_symbol:
         return False
     basename = function_basename(name)
+    if name in excluded_functions or basename in excluded_functions:
+        return False
     if basename.startswith('test_'):
         return False
     if name.startswith(PROCESSOR_PREFIX):
@@ -186,6 +201,40 @@ def reachable_function_names(info: SMIRInfo, start_symbol: str) -> set[str]:
     return result
 
 
+def reachable_from_function(info: SMIRInfo, function: str) -> set[str]:
+    """Return function names reachable from FUNCTION, or an empty set if unknown."""
+    ty = info.function_tys.get(function)
+    if ty is None:
+        return set()
+
+    result: set[str] = set()
+    for reached_ty in compute_closure([ty], info.call_edges):
+        name = function_name_for_ty(info, int(reached_ty))
+        if name is not None:
+            result.add(name)
+    return result
+
+
+def has_oversized_process_dependency(
+    info: SMIRInfo,
+    items: dict[str, dict[str, Any]],
+    function: str,
+    max_instructions: int,
+) -> bool:
+    """Return whether FUNCTION reaches a process_* callee over the instruction cap."""
+    if max_instructions <= 0:
+        return False
+
+    for reached in reachable_from_function(info, function):
+        if not reached.startswith(PROCESSOR_PREFIX) or not is_process_function(reached):
+            continue
+        if function_basename(reached) in EXCLUDED_PROCESS_NAMES:
+            continue
+        if mir_instruction_count(items.get(reached)) > max_instructions:
+            return True
+    return False
+
+
 def add_selected(selected: list[SelectedFunction], candidate: SelectedFunction) -> None:
     if any(existing.name == candidate.name for existing in selected):
         return
@@ -196,20 +245,27 @@ def infer_targets(
     info: SMIRInfo,
     start_symbol: str,
     min_instructions: int,
+    max_instructions: int,
     max_functions: int,
     extra_functions: list[str],
+    excluded_functions: list[str],
     force_largest_process: bool,
     include_start_symbol: bool,
 ) -> list[SelectedFunction]:
     items = item_by_function_name(info)
     reachable = reachable_function_names(info, start_symbol)
+    excluded = set(excluded_functions)
 
     candidates: list[SelectedFunction] = []
     for name in sorted(reachable):
-        if not is_auto_candidate(name, start_symbol):
+        if not is_auto_candidate(name, start_symbol, excluded):
             continue
         instructions = mir_instruction_count(items.get(name))
         if instructions <= 0:
+            continue
+        if max_instructions > 0 and instructions > max_instructions:
+            continue
+        if has_oversized_process_dependency(info, items, name, max_instructions):
             continue
         role = function_role(name)
         candidates.append(SelectedFunction(name, role, instructions, 'candidate'))
@@ -302,14 +358,19 @@ def main() -> int:
     if args.max_functions < 0:
         print('[ERROR] --max-functions must be non-negative', file=sys.stderr)
         return 2
+    if args.max_instructions < 0:
+        print('[ERROR] --max-instructions must be non-negative', file=sys.stderr)
+        return 2
 
     info = SMIRInfo.from_file(args.smir)
     selected = infer_targets(
         info,
         args.start_symbol,
         args.min_instructions,
+        args.max_instructions,
         args.max_functions,
         args.extra_function,
+        args.exclude_function,
         not args.no_force_largest_process,
         args.include_start_symbol,
     )

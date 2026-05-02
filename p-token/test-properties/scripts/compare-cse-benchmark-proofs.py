@@ -58,17 +58,19 @@ def load_proof(proof_dir: Path) -> dict[str, Any] | None:
 
     split_shape = []
     split_constraints = []
+    split_constraint_multiset = []
     for split in kcfg.get('splits', []):
         split_shape.append((split['source'], tuple(target['target'] for target in split['targets'])))
-        split_constraints.append(
-            tuple(digest(target.get('csubst', {}).get('constraints', [])) for target in split['targets'])
-        )
+        constraints = tuple(digest(target.get('csubst', {}).get('constraints', [])) for target in split['targets'])
+        split_constraints.append(constraints)
+        split_constraint_multiset.extend(constraints)
 
     return {
         'nodes': len(kcfg.get('nodes', [])),
         'edges': tuple((edge['source'], edge['target'], edge.get('depth')) for edge in kcfg.get('edges', [])),
         'split_shape': tuple(split_shape),
         'split_constraints': tuple(split_constraints),
+        'split_constraint_multiset': tuple(sorted(split_constraint_multiset)),
         'covers': tuple(sorted((cover['source'], cover['target']) for cover in kcfg.get('covers', []))),
         'terminal_count': len(proof.get('terminal', [])),
         'terminal_hashes': tuple(sorted(node_hash(node_id) for node_id in proof.get('terminal', []))),
@@ -114,14 +116,21 @@ def compare(base: dict[str, Any] | None, other: dict[str, Any] | None) -> dict[s
             'case_terminal': '',
         }
 
+    same_terminal_hashes = base['terminal_hashes'] == other['terminal_hashes']
+    same_target_hash = base['target_hash'] == other['target_hash']
+    same_terminal_count = base['terminal_count'] == other['terminal_count']
+
     return {
         'checked': True,
         'same_edges': base['edges'] == other['edges'],
         'same_splits': base['split_shape'] == other['split_shape'],
         'same_split_constraints': base['split_constraints'] == other['split_constraints'],
+        'same_split_constraint_multiset': base['split_constraint_multiset'] == other['split_constraint_multiset'],
         'same_covers': base['covers'] == other['covers'],
-        'same_terminal_hashes': base['terminal_hashes'] == other['terminal_hashes'],
-        'same_target_hash': base['target_hash'] == other['target_hash'],
+        'same_terminal_hashes': same_terminal_hashes,
+        'same_target_hash': same_target_hash,
+        'same_terminal_count': same_terminal_count,
+        'state_equivalent': same_terminal_hashes and same_target_hash and same_terminal_count,
         'base_nodes': base['nodes'],
         'case_nodes': other['nodes'],
         'base_terminal': base['terminal_count'],
@@ -163,9 +172,12 @@ def main() -> None:
         'same_edges',
         'same_splits',
         'same_split_constraints',
+        'same_split_constraint_multiset',
         'same_covers',
         'same_terminal_hashes',
         'same_target_hash',
+        'same_terminal_count',
+        'state_equivalent',
         'base_nodes',
         'case_nodes',
         'base_terminal',
@@ -180,34 +192,22 @@ def main() -> None:
     with md_path.open('w') as handle:
         handle.write('# Proof equivalence\n\n')
         handle.write(
-            '| test | case | base status | case status | checked | edges | splits | split constraints | covers | terminals | target | nodes | terminal count |\n'
+            '| test | case | base status | case status | checked | state equivalent | edges | splits | split constraints | split constraint multiset | covers | terminals | target | terminal count same | nodes | terminal count |\n'
         )
-        handle.write('| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---: | ---: |\n')
+        handle.write('| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | ---: | ---: |\n')
         for row in rows:
             handle.write(
                 f"| {row['test']} | {row['case']} | {row['base_status']} | {row['case_status']} | {row['checked']} | "
+                f"{row.get('state_equivalent', '')} | "
                 f"{row['same_edges']} | {row['same_splits']} | "
-                f"{row['same_split_constraints']} | {row['same_covers']} | {row['same_terminal_hashes']} | "
-                f"{row['same_target_hash']} | {row['case_nodes']} | {row['case_terminal']} |\n"
+                f"{row['same_split_constraints']} | {row.get('same_split_constraint_multiset', '')} | "
+                f"{row['same_covers']} | {row['same_terminal_hashes']} | "
+                f"{row['same_target_hash']} | {row.get('same_terminal_count', '')} | "
+                f"{row['case_nodes']} | {row['case_terminal']} |\n"
             )
         handle.write(f'\nCSV: `{csv_path}`\n')
 
-    failed = [
-        row
-        for row in rows
-        if row['checked']
-        and not all(
-            row[key]
-            for key in (
-                'same_edges',
-                'same_splits',
-                'same_split_constraints',
-                'same_covers',
-                'same_terminal_hashes',
-                'same_target_hash',
-            )
-        )
-    ]
+    failed = [row for row in rows if row['checked'] and not row['state_equivalent']]
     print(md_path)
     if failed:
         raise SystemExit(1)

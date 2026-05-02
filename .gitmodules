@@ -1,4 +1,4 @@
 [submodule "p-token/test-properties/mir-semantics"]
 	path = p-token/test-properties/mir-semantics
 	url = https://github.com/Stevengre/mir-semantics.git
-	branch = jh/ksum-cse-benchmark-mir-semantics
+	branch = jh/ksum-cse-mir-20260501

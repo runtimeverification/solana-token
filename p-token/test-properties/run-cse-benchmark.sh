@@ -30,6 +30,7 @@ TIMEOUT_KILL_AFTER="${TIMEOUT_KILL_AFTER:-60s}"
 MAX_WORKERS=1
 BASELINE_MAX_WORKERS=1
 MIN_INSTRUCTIONS=20
+MAX_INSTRUCTIONS=200
 MAX_CSE_FUNCTIONS=0
 PROVE_OPTS=(--fail-fast)
 RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)"
@@ -41,9 +42,11 @@ RUN_MULTISIG=false
 FORCE_LARGEST_PROCESS=true
 MIRROR_CSE_BREAKPOINTS="${MIRROR_CSE_BREAKPOINTS:-true}"
 INCLUDE_START_FUNCTION="${INCLUDE_START_FUNCTION:-false}"
+BASELINE_WITHOUT_CSE_TARGETS="${BASELINE_WITHOUT_CSE_TARGETS:-false}"
 
 declare -a TESTS=()
 declare -a EXTRA_CSE_FUNCTIONS=()
+declare -a EXCLUDE_CSE_FUNCTIONS=()
 declare -a CSE_FUNCTIONS=()
 
 usage() {
@@ -59,7 +62,13 @@ Options:
   -a              Run all start symbols from the first proofs.md table.
   -m              Run all start symbols from the multisig proofs.md table.
   -f FUNC         Extra CSE function. Repeatable; appended after auto targets.
+  --exclude-function FUNC
+                  Automatic CSE candidate to exclude. Repeatable; accepts a full
+                  function name or basename.
   -i N            Minimum MIR instruction count for non-forced targets. Default: 20
+  --max-instructions N
+                  Maximum MIR instruction count for automatic CSE targets, or 0
+                  for no cap. Default: 200
   -x N            Maximum automatic CSE targets per test, or 0 for unlimited. Default: 0
   -p              Plan only: print inferred CSE targets without running proofs.
   -t SEC          Timeout per proof run. Default: 28800
@@ -76,6 +85,9 @@ Options:
                   Add each proof start symbol as a CSE trace wrapper target.
                   This is useful for large tests whose branch explosion happens
                   before the selected processor function is reached.
+  --baseline-without-cse-targets
+                  Run no-CSE proofs even when no CSE target is selected.
+                  Default: false
   -h, --help      Show this help.
 
 Environment:
@@ -96,6 +108,7 @@ Environment:
 Examples:
   ./run-cse-benchmark.sh -p test_process_get_account_data_size
   ./run-cse-benchmark.sh -i 40 test_process_transfer test_process_burn
+  ./run-cse-benchmark.sh -a --exclude-function process_close_account
   ./run-cse-benchmark.sh -a -t 28800
 EOF
 }
@@ -120,9 +133,19 @@ while [[ "$#" -gt 0 ]]; do
             EXTRA_CSE_FUNCTIONS+=("$2")
             shift 2
             ;;
+        --exclude-function)
+            [[ "$#" -ge 2 ]] || die "--exclude-function requires a function name"
+            EXCLUDE_CSE_FUNCTIONS+=("$2")
+            shift 2
+            ;;
         -i)
             [[ "$#" -ge 2 ]] || die "-i requires an instruction count"
             MIN_INSTRUCTIONS="$2"
+            shift 2
+            ;;
+        --max-instructions)
+            [[ "$#" -ge 2 ]] || die "--max-instructions requires an instruction count"
+            MAX_INSTRUCTIONS="$2"
             shift 2
             ;;
         -x)
@@ -176,6 +199,10 @@ while [[ "$#" -gt 0 ]]; do
             INCLUDE_START_FUNCTION=true
             shift
             ;;
+        --baseline-without-cse-targets)
+            BASELINE_WITHOUT_CSE_TARGETS=true
+            shift
+            ;;
         -h|--help)
             usage
             exit 0
@@ -196,6 +223,7 @@ while [[ "$#" -gt 0 ]]; do
 done
 
 [[ "${MIN_INSTRUCTIONS}" =~ ^[0-9]+$ ]] || die "-i must be a non-negative integer"
+[[ "${MAX_INSTRUCTIONS}" =~ ^[0-9]+$ ]] || die "--max-instructions must be a non-negative integer"
 [[ "${MAX_CSE_FUNCTIONS}" =~ ^[0-9]+$ ]] || die "-x must be a non-negative integer"
 [[ "${MAX_WORKERS}" =~ ^[0-9]+$ ]] || die "-w must be a non-negative integer"
 [[ "${BASELINE_MAX_WORKERS}" =~ ^[0-9]+$ ]] || die "-b must be a non-negative integer"
@@ -204,7 +232,7 @@ if [[ "${MAX_WORKERS}" != "1" ]]; then
     die "kmir CSE currently requires CSE max-workers to be 1"
 fi
 
-mapfile -t ALL_NAMES < <(sed -n -e 's/^| \(test_p[a-zA-Z0-9:_]*\) *|.*/\1/p' proofs.md)
+mapfile -t ALL_NAMES < <(sed -n -e 's/^| \(test_[a-zA-Z0-9:_]*\) *|.*/\1/p' proofs.md)
 mapfile -t MULTISIG_NAMES < <(sed -n -e 's/^| m | \(test_p[a-zA-Z0-9:_]*\) *|.*/\1/p' proofs.md)
 
 if [[ "${RUN_ALL}" == true ]]; then
@@ -250,7 +278,7 @@ if [[ "${KEEP}" == false ]]; then
 fi
 mkdir -p "${BENCH_ROOT}"
 
-printf 'test,case,exit_code,duration_seconds,proof_status,nodes,pending,failing,stuck,terminal,summary_count,trace_count,subsumption_count,store_bytes,trace_hits,trace_misses,subsume_hits,subsume_misses,execute_requests,implies_requests,cse_functions,proof_dir,log\n' > "${RESULTS_CSV}"
+printf 'test,case,exit_code,duration_seconds,proof_status,nodes,pending,failing,stuck,terminal,summary_count,trace_count,subsumption_count,store_bytes,trace_hits,trace_misses,subsume_hits,subsume_misses,execute_requests,implies_requests,edge_depth_sum,cse_functions,proof_dir,log\n' > "${RESULTS_CSV}"
 
 join_cse_functions() {
     if [[ "${#CSE_FUNCTIONS[@]}" -eq 0 ]]; then
@@ -294,6 +322,25 @@ store_bytes() {
     else
         echo 0
     fi
+}
+
+edge_depth_sum() {
+    local proof_dir="$1"
+    local kcfg_file
+    kcfg_file="$(find "${proof_dir}" -path '*/kcfg/kcfg.json' -type f | head -n 1)"
+    if [[ -z "${kcfg_file}" ]]; then
+        echo ""
+        return
+    fi
+
+    python3 - "${kcfg_file}" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+kcfg = json.loads(Path(sys.argv[1]).read_text())
+print(sum(int(edge.get('depth') or 0) for edge in kcfg.get('edges', [])))
+PY
 }
 
 log_count() {
@@ -374,7 +421,7 @@ write_case_result() {
     local summary_store="$5"
     local proof_dir="$6"
     local log_file="$7"
-    local status nodes pending failing stuck terminal summaries traces subsumptions bytes hits misses subsume_hits subsume_misses executes implies functions
+    local status nodes pending failing stuck terminal summaries traces subsumptions bytes hits misses subsume_hits subsume_misses executes implies depth_sum functions
 
     status="$(proof_status_value "${log_file}")"
     nodes="$(log_metric "${log_file}" nodes)"
@@ -392,14 +439,15 @@ write_case_result() {
     subsume_misses="$(log_count "${log_file}" 'CSE trace subsumption cache miss' | tr -d ' ')"
     executes="$(log_count "${log_file}" 'Sending request.* - execute' | tr -d ' ')"
     implies="$(log_count "${log_file}" 'Sending request.* - implies' | tr -d ' ')"
+    depth_sum="$(edge_depth_sum "${proof_dir}")"
     functions="$(join_cse_functions)"
 
-    printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
+    printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
         "${test_name}" "${case_name}" "${exit_code}" "${duration}" "${status}" \
         "${nodes}" "${pending}" "${failing}" "${stuck}" "${terminal}" \
         "${summaries}" "${traces}" "${subsumptions}" "${bytes}" "${hits}" "${misses}" \
         "${subsume_hits}" "${subsume_misses}" "${executes}" "${implies}" \
-        "${functions}" "${proof_dir}" "${log_file}" >> "${RESULTS_CSV}"
+        "${depth_sum}" "${functions}" "${proof_dir}" "${log_file}" >> "${RESULTS_CSV}"
 }
 
 write_skipped_result() {
@@ -413,10 +461,10 @@ write_skipped_result() {
     subsumptions="$(subsumption_count "${summary_store}" | tr -d ' ')"
     bytes="$(store_bytes "${summary_store}" | tr -d ' ')"
     functions="$(join_cse_functions)"
-    printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
+    printf '%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
         "${test_name}" "${case_name}" "SKIPPED" "0" "SKIPPED" \
         "" "" "" "" "" "${summaries}" "${traces}" "${subsumptions}" "${bytes}" \
-        "" "" "" "" "" "" "${functions}" "" "" >> "${RESULTS_CSV}"
+        "" "" "" "" "" "" "" "${functions}" "" "" >> "${RESULTS_CSV}"
 }
 
 infer_cse_plan() {
@@ -427,6 +475,7 @@ infer_cse_plan() {
         --smir "${SMIR_FILE}"
         --start-symbol "${start_symbol}"
         --min-instructions "${MIN_INSTRUCTIONS}"
+        --max-instructions "${MAX_INSTRUCTIONS}"
         --max-functions "${MAX_CSE_FUNCTIONS}"
         --format tsv
     )
@@ -439,6 +488,9 @@ infer_cse_plan() {
     fi
     for func in "${EXTRA_CSE_FUNCTIONS[@]}"; do
         infer_args+=(--extra-function "${func}")
+    done
+    for func in "${EXCLUDE_CSE_FUNCTIONS[@]}"; do
+        infer_args+=(--exclude-function "${func}")
     done
 
     uv --project "${KMIR_PROJECT}" run -- python "${INFER_SCRIPT}" "${infer_args[@]}" > "${plan_tsv}"
@@ -558,12 +610,15 @@ is_timeout_rc() {
     echo "- baseline_workers: \`${BASELINE_MAX_WORKERS}\`"
     echo "- prove_opts: \`${PROVE_OPTS[*]}\`"
     echo "- min_mir_instructions: \`${MIN_INSTRUCTIONS}\`"
+    echo "- max_mir_instructions: \`${MAX_INSTRUCTIONS}\`"
     echo "- max_auto_cse_functions: \`${MAX_CSE_FUNCTIONS}\`"
     echo "- force_largest_process: \`${FORCE_LARGEST_PROCESS}\`"
     echo "- include_start_function: \`${INCLUDE_START_FUNCTION}\`"
+    echo "- baseline_without_cse_targets: \`${BASELINE_WITHOUT_CSE_TARGETS}\`"
     echo "- mirror_cse_breakpoints: \`${MIRROR_CSE_BREAKPOINTS}\`"
     echo "- resume_proofs: \`${RESUME_PROOFS}\`"
     echo "- extra_cse_functions: \`${EXTRA_CSE_FUNCTIONS[*]:-}\`"
+    echo "- excluded_cse_functions: \`${EXCLUDE_CSE_FUNCTIONS[*]:-}\`"
     echo
     echo "## CSE plans"
     echo
@@ -589,6 +644,11 @@ for test_name in "${TESTS[@]}"; do
         echo "[INFO] No CSE targets selected for ${test_name}; skipping CSE runs."
         write_skipped_result "${test_name}" "cold-cse" "${summary_store}"
         write_skipped_result "${test_name}" "warm-cse" "${summary_store}"
+        if [[ "${BASELINE_WITHOUT_CSE_TARGETS}" != true ]]; then
+            echo "[INFO] Skipping ${test_name} / no-cse because no CSE target was selected."
+            write_skipped_result "${test_name}" "no-cse" "${summary_store}"
+            continue
+        fi
     else
         cold_rc=0
         run_case "${test_name}" "cold-cse" "${test_root}/proof-cold-cse" "${test_root}/cold-cse.log" "${MAX_WORKERS}" true "${summary_store}" || cold_rc=$?
@@ -615,15 +675,57 @@ if [[ "${PLAN_ONLY}" == false ]]; then
     {
         echo "## Results"
         echo
-        echo "| test | case | exit | seconds | status | nodes | pending | failing | stuck | terminal | summaries | traces | subsumptions | hits | misses | subsume hits | subsume misses | execute | implies |"
-        echo "| --- | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"
-        tail -n +2 "${RESULTS_CSV}" | while IFS=, read -r test_name case_name exit_code duration status nodes pending failing stuck terminal summaries traces subsumptions _bytes hits misses subsume_hits subsume_misses executes implies _functions _proof_dir _log_file; do
-            printf '| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |\n' \
+        echo "| test | case | exit | seconds | status | nodes | pending | failing | stuck | terminal | summaries | traces | subsumptions | hits | misses | subsume hits | subsume misses | execute | implies | depth sum |"
+        echo "| --- | --- | ---: | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"
+        tail -n +2 "${RESULTS_CSV}" | while IFS=, read -r test_name case_name exit_code duration status nodes pending failing stuck terminal summaries traces subsumptions _bytes hits misses subsume_hits subsume_misses executes implies depth_sum _functions _proof_dir _log_file; do
+            printf '| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |\n' \
                 "${test_name}" "${case_name}" "${exit_code}" "${duration}" "${status}" \
                 "${nodes:- }" "${pending:- }" "${failing:- }" "${stuck:- }" "${terminal:- }" \
                 "${summaries:-0}" "${traces:-0}" "${subsumptions:-0}" "${hits:-0}" "${misses:-0}" \
-                "${subsume_hits:-0}" "${subsume_misses:-0}" "${executes:-0}" "${implies:-0}"
+                "${subsume_hits:-0}" "${subsume_misses:-0}" "${executes:-0}" "${implies:-0}" "${depth_sum:- }"
         done
+        echo
+        echo "## Time / Depth Reduction"
+        echo
+        python3 - "${RESULTS_CSV}" <<'PY'
+import csv
+import sys
+from pathlib import Path
+
+rows = list(csv.DictReader(Path(sys.argv[1]).open()))
+by_test: dict[str, dict[str, dict[str, str]]] = {}
+for row in rows:
+    by_test.setdefault(row['test'], {})[row['case']] = row
+
+print('| test | case | baseline | time reduction | depth sum reduction |')
+print('| --- | --- | --- | ---: | ---: |')
+for test in sorted(by_test):
+    base = by_test[test].get('no-cse')
+    if base is None:
+        continue
+    try:
+        base_time = int(base['duration_seconds'])
+        base_depth = int(base['edge_depth_sum'])
+    except (KeyError, TypeError, ValueError):
+        continue
+    for case in ('cold-cse', 'warm-cse'):
+        row = by_test[test].get(case)
+        if row is None or row.get('exit_code') == 'SKIPPED':
+            continue
+        try:
+            case_time = int(row['duration_seconds'])
+            case_depth = int(row['edge_depth_sum'])
+        except (KeyError, TypeError, ValueError):
+            continue
+        time_delta = base_time - case_time
+        depth_delta = base_depth - case_depth
+        time_pct = (time_delta / base_time * 100) if base_time else 0
+        depth_pct = (depth_delta / base_depth * 100) if base_depth else 0
+        print(
+            f'| {test} | {case} | no-cse | '
+            f'{time_delta}s ({time_pct:.1f}%) | {depth_delta} ({depth_pct:.1f}%) |'
+        )
+PY
         echo
         echo "CSV: \`${RESULTS_CSV}\`"
         echo
