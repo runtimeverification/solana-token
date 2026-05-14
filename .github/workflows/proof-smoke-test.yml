@@ -1,0 +1,155 @@
+name: Proof Smoke Test
+
+on:
+  push:
+    branches: [proofs]
+  pull_request:
+    branches: [proofs]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  compile:
+    name: "Compile ${{ matrix.target }} SMIR"
+    runs-on: [self-hosted, linux, normal]
+    strategy:
+      matrix:
+        include:
+          - target: p-token
+            crate_dir: p-token
+            artifact: p-token-smir
+          - target: spl-token
+            crate_dir: program
+            artifact: spl-token-smir
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: "Build ${{ matrix.target }} with stable_mir_json"
+        run: |
+          docker run --rm \
+            --entrypoint bash \
+            -u 0:0 \
+            -v $PWD:/workdir --workdir /workdir \
+            -e CARGO_HOME=/tmp/cargo \
+            -e RUSTUP_HOME=/rustup \
+            ghcr.io/runtimeverification/kompass:ubuntu-jammy-latest \
+            -c "cd ${{ matrix.crate_dir }} && RUSTC=/home/kmir/.stable-mir-json/release.sh cargo build --features runtime-verification,assumptions"
+
+      - name: "Link ${{ matrix.target }} SMIR"
+        run: |
+          mkdir -p artefacts
+          docker run --rm \
+            --entrypoint bash \
+            -v $PWD:/workdir --workdir /workdir \
+            ghcr.io/runtimeverification/kompass:ubuntu-jammy-latest \
+            -c "kmir link -o artefacts/${{ matrix.target }}.smir.json ${{ matrix.crate_dir }}/target/debug/deps/*.smir.json"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: artefacts/${{ matrix.target }}.smir.json
+          retention-days: 1
+
+  prove:
+    name: "Prove ${{ matrix.target }}: ${{ matrix.proof }}"
+    needs: compile
+    runs-on: [self-hosted, linux, normal]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # p-token proofs
+          - target: p-token
+            artifact: p-token-smir
+            prefix: "pinocchio_token_program::entrypoint::"
+            proof: test_ptoken_domain_data
+            timeout: 30
+          - target: p-token
+            artifact: p-token-smir
+            prefix: "pinocchio_token_program::entrypoint::"
+            proof: test_process_initialize_immutable_owner
+            timeout: 30
+          - target: p-token
+            artifact: p-token-smir
+            prefix: "pinocchio_token_program::entrypoint::"
+            proof: test_process_revoke
+            timeout: 30
+          - target: p-token
+            artifact: p-token-smir
+            prefix: "pinocchio_token_program::entrypoint::"
+            proof: test_process_initialize_multisig
+            timeout: 30
+          - target: p-token
+            artifact: p-token-smir
+            prefix: "pinocchio_token_program::entrypoint::"
+            proof: test_process_get_account_data_size
+            timeout: 30
+          # spl-token proofs
+          - target: spl-token
+            artifact: spl-token-smir
+            prefix: "spl_token::entrypoint::"
+            proof: test_spltoken_domain_data
+            timeout: 60
+          - target: spl-token
+            artifact: spl-token-smir
+            prefix: "spl_token::entrypoint::"
+            proof: test_process_initialize_immutable_owner
+            timeout: 60
+          - target: spl-token
+            artifact: spl-token-smir
+            prefix: "spl_token::entrypoint::"
+            proof: test_process_revoke
+            timeout: 60
+    timeout-minutes: ${{ matrix.timeout }}
+    env:
+      CONTAINER_NAME: "kompass-${{ matrix.target }}-${{ matrix.proof }}-${{ github.sha }}"
+    steps:
+      - name: "Start kompass container"
+        run: |
+          mkdir -p $PWD/artefacts
+          chmod a+rwx $PWD/artefacts $PWD
+          docker run --rm --detach \
+            -u $(id -u):$(id -g) \
+            -v $PWD:/workdir --workdir /workdir \
+            --name "${CONTAINER_NAME}" \
+            ghcr.io/runtimeverification/kompass:ubuntu-jammy-latest \
+            bash -c 'while true; do sleep 600; done'
+          sleep 5
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: artefacts/
+
+      - name: "Run proof: ${{ matrix.proof }}"
+        run: |
+          docker exec --workdir /workdir "${CONTAINER_NAME}" \
+            kmir prove-rs \
+              --smir artefacts/${{ matrix.target }}.smir.json \
+              --start-symbol "${{ matrix.prefix }}${{ matrix.proof }}" \
+              --verbose \
+              --fail-fast \
+              --proof-dir artefacts/proof \
+              --haskell-target kompass.haskell \
+              --llvm-lib-target kompass.llvm-library
+
+      - name: "Show proof summary"
+        if: always()
+        run: |
+          docker exec --workdir /workdir "${CONTAINER_NAME}" \
+            kmir show \
+              --statistics --leaves \
+              --proof-dir artefacts/proof \
+              "${{ matrix.target }}.smir.${{ matrix.prefix }}${{ matrix.proof }}" \
+              --haskell-target kompass.haskell \
+            || true
+
+      - name: "Stop container"
+        if: always()
+        run: |
+          docker stop "${CONTAINER_NAME}" || true
+          docker rm -f "${CONTAINER_NAME}" || true
