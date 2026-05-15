@@ -50,7 +50,7 @@ jobs:
       - name: "Link ${{ matrix.target }} SMIR"
         run: |
           mkdir -p artefacts
-          SMIRS=$(ls ${{ matrix.crate_dir }}/target/debug/deps/*.smir.json)
+          SMIRS=$(ls target/debug/deps/*.smir.json)
           docker run --rm \
             --entrypoint bash \
             -v $PWD:/workdir --workdir /workdir \
