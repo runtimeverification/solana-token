@@ -198,4 +198,4 @@ cargo build --features runtime-verification
 ## Notes
 
 - Default settings: max-depth 2000, max-iterations 500, timeout 1h
-- Results are stored in `artefacts/proof-SHA-VER/` directory, where `SHA` and `VER` indicate the `solana-token` revision and `mir-semantics` version used, respectively.
+- Results are stored in `artefacts/proof-SHA-kompassVER/` directory, where `SHA` and `VER` indicate the `solana-token` revision and kompass version used, respectively.

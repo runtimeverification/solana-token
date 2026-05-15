@@ -23,10 +23,18 @@ jobs:
           - target: spl-token
             crate_dir: program
             artifact: spl-token-smir
+    outputs:
+      kompass-image: ${{ steps.version.outputs.image }}
     steps:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
+
+      - name: "Set kompass image"
+        id: version
+        run: |
+          VERSION=$(cat p-token/test-properties/deps/kompass_release)
+          echo "image=ghcr.io/runtimeverification/kompass:ubuntu-jammy-${VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: "Build ${{ matrix.target }} with stable_mir_json"
         run: |
@@ -36,7 +44,7 @@ jobs:
             -v $PWD:/workdir --workdir /workdir \
             -e CARGO_HOME=/tmp/cargo \
             -e RUSTUP_HOME=/rustup \
-            ghcr.io/runtimeverification/kompass:ubuntu-jammy-latest \
+            ${{ steps.version.outputs.image }} \
             -c "cd ${{ matrix.crate_dir }} && RUSTC=/home/kmir/.stable-mir-json/release.sh cargo build --features runtime-verification,assumptions"
 
       - name: "Link ${{ matrix.target }} SMIR"
@@ -45,7 +53,7 @@ jobs:
           docker run --rm \
             --entrypoint bash \
             -v $PWD:/workdir --workdir /workdir \
-            ghcr.io/runtimeverification/kompass:ubuntu-jammy-latest \
+            ${{ steps.version.outputs.image }} \
             -c "kmir link -o artefacts/${{ matrix.target }}.smir.json ${{ matrix.crate_dir }}/target/debug/deps/*.smir.json"
 
       - uses: actions/upload-artifact@v4
@@ -107,6 +115,7 @@ jobs:
     timeout-minutes: ${{ matrix.timeout }}
     env:
       CONTAINER_NAME: "kompass-${{ matrix.target }}-${{ matrix.proof }}-${{ github.sha }}"
+      KOMPASS_IMAGE: ${{ needs.compile.outputs.kompass-image }}
     steps:
       - name: "Start kompass container"
         run: |
@@ -116,7 +125,7 @@ jobs:
             -u $(id -u):$(id -g) \
             -v $PWD:/workdir --workdir /workdir \
             --name "${CONTAINER_NAME}" \
-            ghcr.io/runtimeverification/kompass:ubuntu-jammy-latest \
+            ${KOMPASS_IMAGE} \
             bash -c 'while true; do sleep 600; done'
           sleep 5
 

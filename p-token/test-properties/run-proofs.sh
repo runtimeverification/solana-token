@@ -81,9 +81,9 @@ set -u
 
 REPO_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
-MIR_VERSION=$(python3 -c 'import kmir; print(kmir.__version__)' || echo "unknown")
+KOMPASS_VERSION=$(cat deps/kompass_release 2>/dev/null || echo "unknown")
 
-PROOF_DIR="${ARTIFACTS_DIR:-artefacts}/proof-${REPO_COMMIT}-${MIR_VERSION}"
+PROOF_DIR="${ARTIFACTS_DIR:-artefacts}/proof-${REPO_COMMIT}-kompass${KOMPASS_VERSION}"
 mkdir -p "${PROOF_DIR}"
 
 # Default proof status directory to live inside the hashed artefacts/proof directory
@@ -138,7 +138,7 @@ for name in $TESTS; do
         echo "total_duration_seconds: ${total_duration}"
         echo "prove_exit_code: ${prove_rc}"
         echo "repo_commit: ${REPO_COMMIT}"
-        echo "mir_semantics_version: ${MIR_VERSION}"
+        echo "kompass_version: ${KOMPASS_VERSION}"
         echo ""
     } > "${status_file}"
 

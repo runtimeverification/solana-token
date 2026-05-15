@@ -66,7 +66,7 @@ else
     echo "Installing kompass"
     source "$VENV_DIR/bin/activate"
     pip install --upgrade pip
-    pip install "git+${KOMPASS_URL}@${KOMPASS_VERSION}"
+    pip install "git+${KOMPASS_URL}@v${KOMPASS_VERSION}"
 fi
 
 
