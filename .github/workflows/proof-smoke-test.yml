@@ -47,20 +47,12 @@ jobs:
             ${{ steps.version.outputs.image }} \
             -c "cd ${{ matrix.crate_dir }} && RUSTC=/home/kmir/.stable-mir-json/release.sh cargo build --features runtime-verification,assumptions"
 
-      - name: "Link ${{ matrix.target }} SMIR"
-        run: |
-          mkdir -p artefacts
-          SMIRS=$(ls target/debug/deps/*.smir.json)
-          docker run --rm \
-            --entrypoint bash \
-            -v $PWD:/workdir --workdir /workdir \
-            ${{ steps.version.outputs.image }} \
-            -c "kmir link -o artefacts/${{ matrix.target }}.smir.json ${SMIRS}"
-
-      - uses: actions/upload-artifact@v4
+      - name: "Store SMIR JSON files"
+        uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact }}
-          path: artefacts/${{ matrix.target }}.smir.json
+          path: ./target/debug/deps/*.smir.json
+          if-no-files-found: error
           retention-days: 1
 
   prove:
@@ -130,10 +122,16 @@ jobs:
             bash -c 'while true; do sleep 600; done'
           sleep 5
 
-      - uses: actions/download-artifact@v4
+      - name: "Get SMIR files"
+        uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.artifact }}
           path: artefacts/
+
+      - name: "Link SMIR files"
+        run: |
+          docker exec --workdir /workdir/artefacts/ "${CONTAINER_NAME}" \
+            bash -c "kmir link -o ${{ matrix.target }}.smir.json *.smir.json"
 
       - name: "Run proof: ${{ matrix.proof }}"
         run: |
