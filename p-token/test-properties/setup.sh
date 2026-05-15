@@ -12,11 +12,15 @@
 # Options (p-token defaults):
 #   --skip-submodules           Skip refreshing git submodules (default)
 #   --with-submodules           Refresh git submodules
+#   --local-dev                 Use local kmir and kompass repos for development.
+#                               Requires KMIR_LOCAL and KOMPASS_LOCAL env vars.
 #   -h, --help                  Show help
 #
 # Overridable via environment (kept minimal):
 #   CRATE_DIR         Crate to build (default: ../ for p-token)
 #   ARTIFACT_BASENAME Artefact base name (default: p-token)
+#   KMIR_LOCAL        Path to local kmir repo (only with --local-dev)
+#   KOMPASS_LOCAL     Path to local kompass repo (only with --local-dev)
 #
 # After running it, one can use:
 #   source deps/.venv/bin/activate
@@ -28,6 +32,7 @@ set -xeuo pipefail
 SCRIPT_DIR="$(realpath "$(dirname "$0")")"
 
 SKIP_SUBMODULES=true
+LOCAL_DEV=false
 CRATE_DIR="${CRATE_DIR:-$(realpath "${SCRIPT_DIR}/..")}"
 ARTIFACT_BASENAME="${ARTIFACT_BASENAME:-p-token}"
 
@@ -38,8 +43,10 @@ while [[ $# -gt 0 ]]; do
             SKIP_SUBMODULES=true; shift ;;
         --with-submodules)
             SKIP_SUBMODULES=false; shift ;;
+        --local-dev)
+            LOCAL_DEV=true; shift ;;
         -h|--help)
-            echo "Usage: $0 [--skip-submodules]"; exit 0 ;;
+            head -27 "$0" | tail -25; exit 0 ;;
         *)
             echo "Unknown option: $1"; echo "Use --help for usage."; exit 1 ;;
     esac
@@ -62,11 +69,23 @@ if [[ -d "$VENV_DIR" ]]; then
 else
     echo "Creating virtual environment at ${VENV_DIR}"
     python3 -m venv "${VENV_DIR}"
-
-    echo "Installing kompass"
     source "$VENV_DIR/bin/activate"
     pip install --upgrade pip
-    pip install "git+${KOMPASS_URL}@v${KOMPASS_VERSION}"
+
+    if [ "${LOCAL_DEV}" = true ]; then
+        if [ -z "${KMIR_LOCAL:-}" ] || [ -z "${KOMPASS_LOCAL:-}" ]; then
+            echo "[ERROR] --local-dev requires both KMIR_LOCAL and KOMPASS_LOCAL env vars."
+            echo "  Example: KMIR_LOCAL=/path/to/mir-semantics/kmir KOMPASS_LOCAL=/path/to/kompass ./setup.sh --local-dev"
+            exit 1
+        fi
+        echo "Installing local kmir from ${KMIR_LOCAL}"
+        pip install -e "${KMIR_LOCAL}"
+        echo "Installing local kompass from ${KOMPASS_LOCAL}"
+        pip install -e "${KOMPASS_LOCAL}" --no-deps
+    else
+        echo "Installing kompass ${KOMPASS_VERSION}"
+        pip install "git+${KOMPASS_URL}@v${KOMPASS_VERSION}"
+    fi
 fi
 
 
