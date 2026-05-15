@@ -50,11 +50,12 @@ jobs:
       - name: "Link ${{ matrix.target }} SMIR"
         run: |
           mkdir -p artefacts
+          SMIRS=$(ls ${{ matrix.crate_dir }}/target/debug/deps/*.smir.json)
           docker run --rm \
             --entrypoint bash \
             -v $PWD:/workdir --workdir /workdir \
             ${{ steps.version.outputs.image }} \
-            -c "kmir link -o artefacts/${{ matrix.target }}.smir.json ${{ matrix.crate_dir }}/target/debug/deps/*.smir.json"
+            -c "kmir link -o artefacts/${{ matrix.target }}.smir.json ${SMIRS}"
 
       - uses: actions/upload-artifact@v4
         with:
