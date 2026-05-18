@@ -35,7 +35,7 @@ cd "$SCRIPT_DIR"
 echo "Building p-token with features: $FEATURES"
 cd ..
 cargo clean
-export RUSTC=$PWD/test-properties/mir-semantics/deps/.stable-mir-json/release.sh
+export RUSTC=$PWD/deps/.stable-mir-json/release.sh
 
 # Build with runtime-verification feature to get test functions
 cargo build --features "$FEATURES"
@@ -46,7 +46,7 @@ cd test-properties
 echo "Linking SMIR files..."
 SMIRS=$(ls ../../target/debug/deps/*smir.json | sort)
 mkdir -p artefacts/
-uv --project mir-semantics/kmir run -- kmir link ${SMIRS} -o artefacts/p-token.smir.json
+kmir link ${SMIRS} -o artefacts/p-token.smir.json
 
 # Now run the proofs
 echo "Running verification proofs..."

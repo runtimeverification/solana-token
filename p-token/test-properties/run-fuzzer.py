@@ -1,4 +1,4 @@
-#!/usr/bin/env -S uv --project ./mir-semantics/kmir run
+#!/usr/bin/env python3
 
 from __future__ import annotations
 
@@ -98,7 +98,13 @@ def load_smir() -> SMIRInfo:
 
 
 def load_kmir(smir_info: SMIRInfo) -> KMIR:
-    return KMIR.from_kompiled_kore(smir_info, target_dir=TARGET_DIR, symbolic=False)
+    return KMIR.from_kompiled_kore(
+        smir_info,
+        target_dir=TARGET_DIR,
+        symbolic=False,
+        haskell_target='kompass.haskell',
+        llvm_target='kompass.llvm',
+    )
 
 
 def fuzz(kmir: KMIR, smir_info: SMIRInfo, test: str, seed: int) -> None:
@@ -109,6 +115,7 @@ def fuzz(kmir: KMIR, smir_info: SMIRInfo, test: str, seed: int) -> None:
         start_symbol=f'{TEST_PREFIX}{test}',
         depth=None,
         seed=seed,
+        llvm_target='kompass.llvm',
     )
 
     kore_text = pattern.text

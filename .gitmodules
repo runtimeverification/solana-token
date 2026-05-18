@@ -1,4 +1,3 @@
-[submodule "p-token/test-properties/mir-semantics"]
-	path = p-token/test-properties/mir-semantics
-	url = https://github.com/runtimeverification/mir-semantics
-	branch = feature/p-token
+[submodule "p-token/test-properties/deps/stable-mir-json"]
+	path = p-token/test-properties/deps/stable-mir-json
+	url = https://github.com/runtimeverification/stable-mir-json.git
