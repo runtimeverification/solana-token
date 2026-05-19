@@ -81,9 +81,14 @@ set -u
 
 REPO_COMMIT=$(git rev-parse --short HEAD 2>/dev/null || echo "unknown")
 
-KOMPASS_VERSION=$(cat deps/kompass_release 2>/dev/null || echo "unknown")
-
-PROOF_DIR="${ARTIFACTS_DIR:-artefacts}/proof-${REPO_COMMIT}-kompass${KOMPASS_VERSION}"
+if [ -f deps/.local-dev ]; then
+    KMIR_COMMIT=$(cd "${KMIR_LOCAL:-0}" 2>/dev/null && git rev-parse --short HEAD 2>/dev/null || echo "0")
+    KOMPASS_COMMIT=$(cd "${KOMPASS_LOCAL:-0}" 2>/dev/null && git rev-parse --short HEAD 2>/dev/null || echo "0")
+    PROOF_DIR="${ARTIFACTS_DIR:-artefacts}/proof-${REPO_COMMIT}-local-kmir.${KMIR_COMMIT}-kompass.${KOMPASS_COMMIT}"
+else
+    KOMPASS_VERSION=$(cat deps/kompass_release 2>/dev/null || echo "unknown")
+    PROOF_DIR="${ARTIFACTS_DIR:-artefacts}/proof-${REPO_COMMIT}-kompass${KOMPASS_VERSION}"
+fi
 mkdir -p "${PROOF_DIR}"
 
 # Default proof status directory to live inside the hashed artefacts/proof directory
@@ -138,7 +143,13 @@ for name in $TESTS; do
         echo "total_duration_seconds: ${total_duration}"
         echo "prove_exit_code: ${prove_rc}"
         echo "repo_commit: ${REPO_COMMIT}"
-        echo "kompass_version: ${KOMPASS_VERSION}"
+        if [ -f deps/.local-dev ]; then
+            echo "local_dev: true"
+            echo "kmir_commit: ${KMIR_COMMIT}"
+            echo "kompass_commit: ${KOMPASS_COMMIT}"
+        else
+            echo "kompass_version: ${KOMPASS_VERSION}"
+        fi
         echo ""
     } > "${status_file}"
 

@@ -60,6 +60,7 @@ cd "${SCRIPT_DIR}"
 #############################
 
 VENV_DIR='deps/.venv'
+LOCAL_DEV_MARKER='deps/.local-dev'
 KOMPASS_URL='https://github.com/runtimeverification/kompass'
 KOMPASS_VERSION=$(cat deps/kompass_release)
 
@@ -86,6 +87,13 @@ else
         echo "Installing kompass ${KOMPASS_VERSION}"
         pip install "git+${KOMPASS_URL}@v${KOMPASS_VERSION}"
     fi
+fi
+
+# Track local-dev mode for run-proofs.sh naming
+if [ "${LOCAL_DEV}" = true ]; then
+    touch "${LOCAL_DEV_MARKER}"
+else
+    rm -f "${LOCAL_DEV_MARKER}"
 fi
 
 
