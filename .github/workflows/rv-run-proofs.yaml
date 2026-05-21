@@ -21,8 +21,8 @@ on:
         required: true
         type: string
         default: "--max-depth 10000 --max-iterations 10000"
-      kompass_image:
-        description: Kompass Docker image tag (optional, defaults to version in deps/kompass_release)
+      kompass_version:
+        description: Kompass version (optional, defaults to version in deps/kompass_release)
         required: false
         type: string
         default: # empty = retrieve from deps/kompass_release
@@ -51,13 +51,14 @@ jobs:
       - name: "Set kompass image"
         id: kompass
         run: |
-          if [ ! -z "${{ inputs.kompass_image }}" ]; then
-              echo "Kompass image set to ${{ inputs.kompass_image }}"
-              image="ghcr.io/runtimeverification/kompass:${{ inputs.kompass_image }}"
+          if [ ! -z "${{ inputs.kompass_version }}" ]; then
+              echo "Kompass version set to ${{ inputs.kompass_version }}"
+              VERSION=${{ inputs.kompass_version }}
           else
               VERSION=$(cat p-token/test-properties/deps/kompass_release)
-              image="ghcr.io/runtimeverification/kompass:ubuntu-jammy-${VERSION}"
+              echo "Kompass version from deps/kompass_release: ${VERSION}"
           fi
+          image="ghcr.io/runtimeverification/kompass:ubuntu-jammy-${VERSION}"
           echo "image=$image" >> $GITHUB_OUTPUT
 
       - name: "Derive settings from target"
