@@ -21,11 +21,11 @@ on:
         required: true
         type: string
         default: "--max-depth 10000 --max-iterations 10000"
-      kmir:
-        description: KMIR to work with (must exist as a docker image tag, optional)
+      kompass_version:
+        description: Kompass version (optional, defaults to version in deps/kompass_release)
         required: false
         type: string
-        default: # empty = retrieve from submodule (later)
+        default: # empty = retrieve from deps/kompass_release
       timeout:
         description: Timeout for running the proofs
         required: false
@@ -43,21 +43,23 @@ jobs:
       artifact_name: ${{ steps.vars.outputs.artifact_name }}
       start_prefix: ${{ steps.vars.outputs.start_prefix }}
       show_prefix: ${{ steps.vars.outputs.show_prefix }}
-      kmir: ${{ steps.kmir.outputs.kmir }}
+      kompass_image: ${{ steps.kompass.outputs.image }}
     steps:
       - name: "Git Checkout"
         uses: actions/checkout@v4
 
-      - name: "Set KMIR version"
-        id: kmir
+      - name: "Set kompass image"
+        id: kompass
         run: |
-          if [ ! -z "${{ inputs.kmir }}" ]; then
-              echo "KMIR version set to ${{ inputs.kmir }}"
-              kmir=${{ inputs.kmir }}
+          if [ ! -z "${{ inputs.kompass_version }}" ]; then
+              echo "Kompass version set to ${{ inputs.kompass_version }}"
+              VERSION=${{ inputs.kompass_version }}
           else
-              kmir=p-token-$(git rev-parse --short $(git ls-tree HEAD p-token/test-properties/mir-semantics/ | awk '{print $3}'))
+              VERSION=$(cat p-token/test-properties/deps/kompass_release)
+              echo "Kompass version from deps/kompass_release: ${VERSION}"
           fi
-          echo "kmir=$kmir" >> $GITHUB_OUTPUT
+          image="ghcr.io/runtimeverification/kompass:ubuntu-jammy-${VERSION}"
+          echo "image=$image" >> $GITHUB_OUTPUT
 
       - name: "Derive settings from target"
         id: vars
@@ -91,7 +93,7 @@ jobs:
             -v $PWD:/workdir --workdir /workdir \
             -e CARGO_HOME=/tmp/cargo \
             -e RUSTUP_HOME=/rustup \
-            runtimeverificationinc/kmir:${{ steps.kmir.outputs.kmir }} \
+            ${{ steps.kompass.outputs.image }} \
             -c "cd '${{ steps.vars.outputs.crate_dir }}' && RUSTC=/home/kmir/.stable-mir-json/release.sh cargo build --features runtime-verification,assumptions"
 
       - name: "Store SMIR JSON files"
@@ -120,18 +122,16 @@ jobs:
       - compile
       - prepare_matrix
     runs-on: [self-hosted, linux, normal]
-    # container:
-    #   image: runtimeverificationinc/kmir:${{ needs.prepare_matrix.outputs.kmir }}
     strategy:
       matrix:
         proof: ${{ fromJSON(needs.prepare_matrix.outputs.proofs) }}
     env:
-      KMIR_CONTAINER_NAME: "kmir-${{ github.sha }}"
+      KOMPASS_CONTAINER_NAME: "kompass-${{ github.sha }}"
     steps:
       - name: debug matrix and docker image
         run: |
           echo "This is proof ${{ matrix.proof }}"
-          echo "Running with $KMIR_CONTAINER_NAME, docker image runtimeverificationinc/kmir:${{ needs.compile.outputs.kmir }}"
+          echo "Running with $KOMPASS_CONTAINER_NAME, docker image ${{ needs.compile.outputs.kompass_image }}"
 
       - name: "Set up Docker Host"
         run: |
@@ -141,8 +141,8 @@ jobs:
           docker run --rm --detach \
             -u $(id -u):$(id -g) \
             -v $PWD:/workdir --workdir /workdir \
-            --name "${KMIR_CONTAINER_NAME}" \
-            runtimeverificationinc/kmir:${{ needs.compile.outputs.kmir }} \
+            --name "${KOMPASS_CONTAINER_NAME}" \
+            ${{ needs.compile.outputs.kompass_image }} \
             bash -c 'while true; do sleep 600; done'
           sleep 10
 
@@ -154,32 +154,36 @@ jobs:
 
       - name: "Link SMIR Files"
         run: |
-          docker exec --workdir /workdir/artefacts/ "${KMIR_CONTAINER_NAME}" \
+          docker exec --workdir /workdir/artefacts/ "${KOMPASS_CONTAINER_NAME}" \
             bash -c "kmir link -o '${{ needs.compile.outputs.artifact_name }}.json' *.smir.json"
 
       - name: "Run Proof ${{ matrix.proof }} and store resulting tree"
         run: |
-          docker exec --workdir /workdir "${KMIR_CONTAINER_NAME}" \
+          docker exec --workdir /workdir "${KOMPASS_CONTAINER_NAME}" \
             bash -c "ls -la artefacts; mkdir -p artefacts/proof; ls -la artefacts"
 
           timeout ${{ inputs.timeout }} \
             docker exec \
-              --workdir /workdir "${KMIR_CONTAINER_NAME}" \
+              --workdir /workdir "${KOMPASS_CONTAINER_NAME}" \
               kmir prove-rs --smir "artefacts/${{ needs.compile.outputs.artifact_name }}.json" \
               --start-symbol "${{ needs.compile.outputs.start_prefix }}${{ matrix.proof }}" \
               --verbose \
               ${{ inputs.proof_options }} \
               --proof-dir artefacts/proof \
+              --haskell-target kompass.haskell \
+              --llvm-lib-target kompass.llvm-library \
             || echo "Runner signals proof failure"
 
-          docker exec --workdir /workdir "${KMIR_CONTAINER_NAME}" \
+          docker exec --workdir /workdir "${KOMPASS_CONTAINER_NAME}" \
             kmir show --full-printer --proof-dir artefacts/proof \
             "${{ needs.compile.outputs.show_prefix }}${{ matrix.proof }}" \
+            --haskell-target kompass.haskell \
             > artefacts/proof/${{ matrix.proof }}-full.txt
 
-          docker exec --workdir /workdir "${KMIR_CONTAINER_NAME}" \
+          docker exec --workdir /workdir "${KOMPASS_CONTAINER_NAME}" \
             kmir show --statistics --leaves --proof-dir artefacts/proof \
             "${{ needs.compile.outputs.show_prefix }}${{ matrix.proof }}" \
+            --haskell-target kompass.haskell \
             > artefacts/proof/${{ matrix.proof }}-stats.txt
 
       - name: "Save proof tree and smir"
@@ -194,9 +198,9 @@ jobs:
       - name: "Shut down docker image"
         if: always()
         run: |
-          docker stop ${KMIR_CONTAINER_NAME}
+          docker stop ${KOMPASS_CONTAINER_NAME}
           sleep 5
-          docker rm -f ${KMIR_CONTAINER_NAME}
+          docker rm -f ${KOMPASS_CONTAINER_NAME}
 
       - name: "Clean up artefacts directory"
         if: always()
