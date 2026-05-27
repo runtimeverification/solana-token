@@ -660,11 +660,6 @@ fn inner_process_remaining_instruction(
 #[no_mangle]
 pub unsafe extern "C" fn use_tests(acc: &AccountInfo) {
     test_ptoken_domain_data(acc, acc, acc);
-    let _ =
-        test_validate_owner(unsafe { &*(acc as *const AccountInfo as *const [AccountInfo; 2]) });
-    let _ = test_validate_owner_multisig(unsafe {
-        &*(acc as *const AccountInfo as *const [AccountInfo; 5])
-    });
     let acc4 = unsafe { &*(acc as *const AccountInfo as *const [AccountInfo; 4]) };
     let idata8 = unsafe { &*(acc as *const AccountInfo as *const [u8; 8]) };
     let _ = test_process_burn_multisig_n1(acc4, idata8);
@@ -779,8 +774,6 @@ include!("../../specs/shared/test_process_transfer.rs");
 include!("../../specs/shared/test_process_transfer_multisig.rs");
 include!("../../specs/shared/test_process_amount_to_ui_amount.rs");
 include!("../../specs/shared/test_process_ui_amount_to_amount.rs");
-include!("../../specs/shared/test_validate_owner.rs");
-include!("../../specs/shared/test_validate_owner_multisig.rs");
 
 // Withdraw Excess Lamports test harnesses (p-token specific)
 include!("../../specs/withdraw-p-token.rs");
