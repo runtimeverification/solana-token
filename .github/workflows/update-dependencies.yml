@@ -1,0 +1,22 @@
+name: 'Update Dependencies'
+on:
+  push:
+    branches:
+      - '_update-deps/runtimeverification/kompass'
+  workflow_dispatch:
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+
+  update-versions:
+    name: 'Update kompass version'
+    runs-on: [self-hosted, linux, flyweight]
+    steps:
+      - name: 'Check out code'
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.JENKINS_GITHUB_PAT }}
+      - name: 'Push updates'
+        run: git push
